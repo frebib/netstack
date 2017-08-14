@@ -8,6 +8,7 @@
 
 #include <sys/capability.h>
 #include <linux/if_ether.h>
+#include "../libnet/src/eth/ether.h"
 
 int main(int argc, char **argv) {
 
@@ -22,9 +23,9 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    // Open a raw socket
-    //int sock = socket(AF_PACKET, SOCK_DGRAM, htons(ETH_P_IP));
-    int sock = socket(AF_PACKET, SOCK_DGRAM, htons(ETH_P_ALL));
+    // Open a raw socket (raw layer 2/3 frames)
+    // Use SOCK_DGRAM to remove ethernet header
+    int sock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
     if (sock < 0) {
         printf("Error: %s\n", strerror(errno));
         return -1;
@@ -45,7 +46,18 @@ int main(int argc, char **argv) {
         strftime(buf, sizeof(buf), "%T", gmtime(&ts.tv_sec));
         snprintf(buf + 8, 8, ".%ld", ts.tv_nsec);
         // Print time received and payload size
-        printf("%s Received a packet of %lu size\n", buf, count);
+        printf("%s Received a frame of %5lu bytes\t\n", buf, count);
+
+        struct eth_hdr *eth_hdr = (struct eth_hdr *) buffer;
+        // Convert network endianess to host
+        eth_hdr->ethertype = ntohs(eth_hdr->ethertype);
+
+        char ssaddr[18], sdaddr[18];
+        fmt_mac(eth_hdr->saddr, ssaddr);
+        fmt_mac(eth_hdr->daddr, sdaddr);
+        printf("\tSource: %s\n\tDest:   %s\n\tType:   0x%04X > %s\n",
+               ssaddr, sdaddr, eth_hdr->ethertype,
+               fmt_ethertype(eth_hdr->ethertype));
     }
 
     printf("Error: %s\n", strerror(errno));
