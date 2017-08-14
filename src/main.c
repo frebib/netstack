@@ -34,15 +34,27 @@ int main(int argc, char **argv) {
     }
 
     // Count is raw eth packet size (inc eth + ip headers)
-    ssize_t count = 0;
-    socklen_t sl = 0;
-    // TODO: Lookahead at incoming frame size and allocate a frame
-    // accordingly - tests show that they're not always <= MTU
-    uint8_t buffer[65536];
-    struct sockaddr sa = {0};
+    ssize_t lookahead = 0,
+            count = 0;
+    uint8_t *buffer = 0;
 
     // Read data into the buffer
-    while ((count = recvfrom(sock, buffer, 65535, 0, &sa, &sl)) != -1) {
+    while ((lookahead = recv(sock, buffer, 0, (MSG_PEEK | MSG_TRUNC))) != -1) {
+
+        // Allocate a buffer of the correct size
+        buffer = malloc((size_t) lookahead);
+        count = recv(sock, buffer, (size_t) lookahead, 0);
+
+        if (count == -1) {
+            perror("recv error");
+        }
+        // Warn if the sizes don't match (should probably never happen)
+        //assert(count != lookahead);
+        if (count != lookahead) {
+            fprintf(stderr, "Warning: MSG_PEEK != recv(): %zi != %zi\n",
+                    lookahead, count);
+        }
+
         // Format and print time the same as tcpdump for comparison
         struct timespec ts;
         timespec_get(&ts, TIME_UTC);
@@ -62,9 +74,11 @@ int main(int argc, char **argv) {
         printf("\tSource: %s\n\tDest:   %s\n\tType:   0x%04X > %s\n",
                ssaddr, sdaddr, eth_hdr->ethertype,
                fmt_ethertype(eth_hdr->ethertype));
+
+        free(buffer);
     }
 
-    printf("Error: %s\n", strerror(errno));
+    perror("recv error (MSG_PEEK|MSG_TRUNC)");
 
     return 0;
 }
