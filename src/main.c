@@ -34,6 +34,8 @@ int main(int argc, char **argv) {
     // Count is raw eth packet size (inc eth + ip headers)
     ssize_t count = 0;
     socklen_t sl = 0;
+    // TODO: Lookahead at incoming frame size and allocate a frame
+    // accordingly - tests show that they're not always <= MTU
     uint8_t buffer[65536];
     struct sockaddr sa = {0};
 
