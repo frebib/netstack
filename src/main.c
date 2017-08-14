@@ -14,9 +14,11 @@ int main(int argc, char **argv) {
 
     // Check for effective CAP_NET_RAW capability
     cap_flag_value_t hasRaw = CAP_CLEAR;
-    if (cap_get_flag(cap_get_proc(), CAP_NET_RAW, CAP_EFFECTIVE, &hasRaw)) {
+    cap_t capabilities = cap_get_proc();
+    if (cap_get_flag(capabilities, CAP_NET_RAW, CAP_EFFECTIVE, &hasRaw)) {
         perror("Error checking capabilities");
     }
+    cap_free(capabilities);
     if (hasRaw != CAP_SET) {
         fprintf(stderr, "You don't have the CAP_NET_RAW capability.\n"
                 "Use 'setcap cap_net_raw+ep %s' or run as root\n", argv[0]);
