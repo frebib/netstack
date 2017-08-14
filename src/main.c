@@ -1,8 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <errno.h>
 #include <netdb.h>
 #include <time.h>
 
@@ -29,7 +26,7 @@ int main(int argc, char **argv) {
     // Use SOCK_DGRAM to remove ethernet header
     int sock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
     if (sock < 0) {
-        printf("Error: %s\n", strerror(errno));
+        perror("Error: could not create socket");
         return -1;
     }
 
