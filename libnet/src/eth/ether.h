@@ -23,7 +23,4 @@ struct eth_hdr {
     sprintf(buff, "%02X:%02X:%02X:%02X:%02X:%02X", \
         a[0], a[1], a[2], a[3], a[4], a[5])
 
-/* Returns a matching `const char *` to a ETH_P_* value */
-const char const* fmt_ethertype(unsigned short ethertype);
-
 #endif //NETD_ETHER_H

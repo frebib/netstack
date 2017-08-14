@@ -10,4 +10,17 @@
 
 #define ETH_P_LLDP  0x88CC  /* Link Layer Discovery Protocol */
 
+
+/* Returns a matching `const char *` to a ETH_P_* value */
+static inline const char const *fmt_ethertype(unsigned short ethertype) {
+    switch (ethertype) {
+        case ETH_P_IP:      return "ETH_P_IP";
+        case ETH_P_IPV6:    return "ETH_P_IPV6";
+        case ETH_P_ARP:     return "ETH_P_ARP";
+        case ETH_P_LLDP:    return "ETH_P_LLDP";
+        default:
+            return NULL;
+    }
+}
+
 #endif //NETD_ETHERTYPE_H
