@@ -5,10 +5,11 @@
 
 #include <sys/capability.h>
 #include <linux/if_ether.h>
-#include "../libnet/src/eth/ether.h"
-#include "../libnet/src/ip/ipv4.h"
-#include "../libnet/src/ip/ipproto.h"
-#include "../libnet/src/tcp/tcp.h"
+
+#include "libnet/eth/ether.h"
+#include "libnet/ip/ipv4.h"
+#include "libnet/ip/ipproto.h"
+#include "libnet/tcp/tcp.h"
 
 int main(int argc, char **argv) {
 

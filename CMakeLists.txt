@@ -1,9 +1,23 @@
 cmake_minimum_required(VERSION 3.8)
 set(CMAKE_C_STANDARD 11)
 
-project(netd)
+##################
+##    libnet    ##
+##################
 
-add_subdirectory(libnet)
+project(libnet)
+
+include_directories(include)
+
+file(GLOB_RECURSE SOURCE_FILES src/**)
+add_library(net SHARED ${SOURCE_FILES})
+
+
+##################
+##     netd     ##
+##################
+
+project(netd)
 
 file(GLOB_RECURSE SOURCE_FILES src/**)
 add_executable(netd ${SOURCE_FILES})
