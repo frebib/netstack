@@ -89,12 +89,12 @@ int main(int argc, char **argv) {
             fmt_ipv4(ntohl(ipv4_hdr->daddr), ip4_sdaddr);
 
             printf("\t==> IP Packet\n");
-            printf("\t\tVersion:\t%d\n", ipv4_hdr->version);
-            printf("\t\tIHL:\t\t%d words\n", ipv4_hdr->ihl);
-            printf("\t\tLength:\t\t%d bytes\n", ntohs(ipv4_hdr->len));
-            printf("\t\tTTL:\t\t%d\n", ipv4_hdr->ttl);
-            printf("\t\tProtocol:\t%d\n", ipv4_hdr->proto);
-            printf("\t\tChecksum:\t%d\n", ipv4_hdr->csum);
+            printf("\t\tVersion:\t%u\n", ipv4_hdr->version);
+            printf("\t\tIHL:\t\t%u words\n", ipv4_hdr->ihl);
+            printf("\t\tLength:\t\t%u bytes\n", ntohs(ipv4_hdr->len));
+            printf("\t\tTTL:\t\t%u\n", ipv4_hdr->ttl);
+            printf("\t\tProtocol:\t%u\n", ipv4_hdr->proto);
+            printf("\t\tChecksum:\t%u\n", ipv4_hdr->csum);
             printf("\t\tSource:\t\t%s\n", ip4_ssaddr);
             printf("\t\tDestination:\t%s\n", ip4_sdaddr);
         }
