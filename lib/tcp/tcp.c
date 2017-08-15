@@ -1,4 +1,6 @@
+#include <stdlib.h>
 #include <netinet/in.h>
+
 #include <libnet/tcp/tcp.h>
 
 struct tcp_hdr *tcp_hdr(struct frame *frame) {

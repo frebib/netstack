@@ -3,7 +3,9 @@
 
 #include <stdint.h>
 #include <linux/types.h>
+
 #include <libnet/frame.h>
+
 #include "ethertype.h"
 
 #define ETH_HDR_LEN  sizeof(struct eth_hdr)
