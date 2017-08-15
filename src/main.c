@@ -7,6 +7,8 @@
 #include <linux/if_ether.h>
 #include "../libnet/src/eth/ether.h"
 #include "../libnet/src/ip/ipv4.h"
+#include "../libnet/src/ip/ipproto.h"
+#include "../libnet/src/tcp/tcp.h"
 
 int main(int argc, char **argv) {
 
@@ -97,6 +99,30 @@ int main(int argc, char **argv) {
             printf("\t\tChecksum:\t%u\n", ipv4_hdr->csum);
             printf("\t\tSource:\t\t%s\n", ip4_ssaddr);
             printf("\t\tDestination:\t%s\n", ip4_sdaddr);
+
+            if (ipv4_hdr->proto == IP_P_TCP) {
+                void *tcp_ptr = ipv4_ptr + (ipv4_hdr->ihl * 4);
+                struct tcp_hdr *tcp_hdr = (struct tcp_hdr *) tcp_ptr;
+
+                tcp_hdr->sport = ntohs(tcp_hdr->sport);
+                tcp_hdr->dport = ntohs(tcp_hdr->dport);
+                tcp_hdr->seqn = ntohl(tcp_hdr->seqn);
+                tcp_hdr->ackn = ntohl(tcp_hdr->ackn);
+                tcp_hdr->wind = ntohs(tcp_hdr->wind);
+                tcp_hdr->csum = ntohs(tcp_hdr->csum);
+                tcp_hdr->urg_ptr = ntohs(tcp_hdr->urg_ptr);
+
+                char flags[10];
+                fmt_tcp_flags(tcp_hdr, flags);
+
+                printf("\t\t==> TCP Packet\n");
+                printf("\t\t\tS-Port:\t%u\n", tcp_hdr->sport);
+                printf("\t\t\tD-Port:\t%u\n", tcp_hdr->dport);
+                // TODO: Check seq/ack numbers, they seem too big
+                printf("\t\t\tSeq #:\t%u\n", tcp_hdr->seqn);
+                printf("\t\t\tAck #:\t%u\n", tcp_hdr->ackn);
+                printf("\t\t\tFlags:\t%s\n", flags);
+            }
         }
 
         free(buffer);
