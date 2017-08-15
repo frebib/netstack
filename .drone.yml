@@ -1,0 +1,14 @@
+pipeline:
+  build:
+    image: alpine:3.6
+    environment:
+      - NO_SETCAP=true
+    commands:
+      - apk --no-cache add cmake make gcc g++ libc-dev
+                           linux-headers libcap-dev 
+      - mkdir -p build
+      - cd build
+      - cmake ..
+      - make
+      - test -f ./netd -a -x ./netd
+      - test -f ./libnet.so
