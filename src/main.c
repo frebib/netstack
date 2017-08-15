@@ -38,14 +38,13 @@ int main(int argc, char **argv) {
     // Count is raw eth packet size (inc eth + ip headers)
     ssize_t lookahead = 0,
             count = 0;
-    uint8_t *buffer = 0;
 
     // Read data into the buffer
-    while ((lookahead = recv(sock, buffer, 0, (MSG_PEEK | MSG_TRUNC))) != -1) {
+    while ((lookahead = recv(sock, NULL, 0, (MSG_PEEK | MSG_TRUNC))) != -1) {
 
         // Allocate a buffer of the correct size
-        buffer = malloc((size_t) lookahead);
-        count = recv(sock, buffer, (size_t) lookahead, 0);
+        struct frame *eth_frame = init_frame(NULL, (size_t) lookahead);
+        count = recv(sock, eth_frame->buffer, (size_t) lookahead, 0);
 
         if (count == -1) {
             perror("recv error");
@@ -66,9 +65,7 @@ int main(int argc, char **argv) {
         // Print time received and payload size
         printf("%s Received a frame of %5lu bytes\t\n", buf, count);
 
-        struct eth_hdr *eth_hdr = (struct eth_hdr *) buffer;
-        // Convert network endianess to host
-        eth_hdr->ethertype = ntohs(eth_hdr->ethertype);
+        struct eth_hdr *eth_hdr = recv_ether(eth_frame);
 
         /*
          * ETHERNET
@@ -85,34 +82,26 @@ int main(int argc, char **argv) {
          * IPv4
          */
         if (eth_hdr->ethertype == ETH_P_IP) {
-            void *ipv4_ptr = (buffer + ETH_HDR_LEN);
-            struct ipv4_hdr *ipv4_hdr = (struct ipv4_hdr *) ipv4_ptr;
+            struct frame *ipv4_frame = frame_child_copy(eth_frame);
+            struct ipv4_hdr *ipv4_hdr = recv_ipv4(ipv4_frame);
 
             char ip4_ssaddr[16], ip4_sdaddr[16];
-            fmt_ipv4(ntohl(ipv4_hdr->saddr), ip4_ssaddr);
-            fmt_ipv4(ntohl(ipv4_hdr->daddr), ip4_sdaddr);
+            fmt_ipv4(ipv4_hdr->saddr, ip4_ssaddr);
+            fmt_ipv4(ipv4_hdr->daddr, ip4_sdaddr);
 
             printf("\t==> IP Packet\n");
             printf("\t\tVersion:\t%u\n", ipv4_hdr->version);
             printf("\t\tIHL:\t\t%u words\n", ipv4_hdr->ihl);
-            printf("\t\tLength:\t\t%u bytes\n", ntohs(ipv4_hdr->len));
+            printf("\t\tLength:\t\t%u bytes\n", ipv4_hdr->len);
             printf("\t\tTTL:\t\t%u\n", ipv4_hdr->ttl);
-            printf("\t\tProtocol:\t%u\n", ipv4_hdr->proto);
+            printf("\t\tProtocol:\t0x%02X\n", ipv4_hdr->proto);
             printf("\t\tChecksum:\t%u\n", ipv4_hdr->csum);
             printf("\t\tSource:\t\t%s\n", ip4_ssaddr);
             printf("\t\tDestination:\t%s\n", ip4_sdaddr);
 
             if (ipv4_hdr->proto == IP_P_TCP) {
-                void *tcp_ptr = ipv4_ptr + (ipv4_hdr->ihl * 4);
-                struct tcp_hdr *tcp_hdr = (struct tcp_hdr *) tcp_ptr;
-
-                tcp_hdr->sport = ntohs(tcp_hdr->sport);
-                tcp_hdr->dport = ntohs(tcp_hdr->dport);
-                tcp_hdr->seqn = ntohl(tcp_hdr->seqn);
-                tcp_hdr->ackn = ntohl(tcp_hdr->ackn);
-                tcp_hdr->wind = ntohs(tcp_hdr->wind);
-                tcp_hdr->csum = ntohs(tcp_hdr->csum);
-                tcp_hdr->urg_ptr = ntohs(tcp_hdr->urg_ptr);
+                struct frame *tcp_frame = frame_child_copy(ipv4_frame);
+                struct tcp_hdr *tcp_hdr = recv_tcp(tcp_frame);
 
                 char flags[10];
                 fmt_tcp_flags(tcp_hdr, flags);
@@ -127,7 +116,7 @@ int main(int argc, char **argv) {
             }
         }
 
-        free(buffer);
+        free_frame(eth_frame);
     }
 
     perror("recv error (MSG_PEEK|MSG_TRUNC)");

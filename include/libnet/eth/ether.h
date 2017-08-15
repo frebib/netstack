@@ -3,10 +3,11 @@
 
 #include <stdint.h>
 #include <linux/types.h>
+#include <libnet/frame.h>
 #include "ethertype.h"
 
-#define ETH_HDR_LEN  14     /* this is always fixed */
-#define ETH_ADDR_LEN 6      /* # of octets per address 00:00:00:00:00:00 */
+#define ETH_HDR_LEN  sizeof(struct eth_hdr)
+#define ETH_ADDR_LEN 6      /* # of octets per address */
 
 /* Ethernet frame header */
 struct eth_hdr {
@@ -15,6 +16,11 @@ struct eth_hdr {
     __be16 ethertype;   /* Frame payload type, see ethertype.h */
 }__attribute((packed));
 
+
+/* Returns a struct eth_hdr from the frame->head */
+struct eth_hdr *eth_hdr(struct frame *frame);
+
+struct eth_hdr *recv_ether(struct frame *frame);
 
 /* String formatting functions */
 

@@ -2,6 +2,7 @@
 #define NETD_TCP_H
 
 #include <stdint.h>
+#include <libnet/frame.h>
 
 /*
     Source: https://tools.ietf.org/html/rfc793#page-15
@@ -65,6 +66,13 @@ struct tcp_hdr {
     /* Options go here */
 
 }__attribute((packed));
+
+
+/* Returns a struct tcp_hdr from the frame->head */
+struct tcp_hdr *tcp_hdr(struct frame *frame);
+
+struct tcp_hdr *recv_tcp(struct frame *frame);
+
 
 int fmt_tcp_flags(struct tcp_hdr* hdr, char* buffer);
 

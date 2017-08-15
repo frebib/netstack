@@ -41,6 +41,11 @@ struct ipv4_hdr {
     /* Options are now specified, optionally of course */
 }__attribute((packed));
 
+/* Returns a struct ipv4_hdr from the frame->head */
+struct ipv4_hdr *ipv4_hdr(struct frame *frame);
+
+struct ipv4_hdr *recv_ipv4(struct frame *frame);
+
 #define fmt_ipv4(ip, buff) \
     sprintf(buff, "%d.%d.%d.%d", \
         (ip >> 24) & 0xFF, \
