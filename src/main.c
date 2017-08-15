@@ -94,7 +94,8 @@ int main(int argc, char **argv) {
             printf("\t\tIHL:\t\t%u words\n", ipv4_hdr->ihl);
             printf("\t\tLength:\t\t%u bytes\n", ipv4_hdr->len);
             printf("\t\tTTL:\t\t%u\n", ipv4_hdr->ttl);
-            printf("\t\tProtocol:\t0x%02X\n", ipv4_hdr->proto);
+            printf("\t\tProtocol:\t0x%02X > %s\n", ipv4_hdr->proto,
+                   fmt_ipproto(ipv4_hdr->proto));
             printf("\t\tChecksum:\t%u\n", ipv4_hdr->csum);
             printf("\t\tSource:\t\t%s\n", ip4_ssaddr);
             printf("\t\tDestination:\t%s\n", ip4_sdaddr);
