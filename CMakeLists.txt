@@ -9,7 +9,7 @@ project(libnet)
 
 include_directories(include)
 
-file(GLOB_RECURSE SOURCE_FILES src/**)
+file(GLOB_RECURSE SOURCE_FILES lib/**)
 add_library(net SHARED ${SOURCE_FILES})
 
 
