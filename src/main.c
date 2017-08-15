@@ -6,6 +6,7 @@
 #include <sys/capability.h>
 #include <linux/if_ether.h>
 #include "../libnet/src/eth/ether.h"
+#include "../libnet/src/ip/ipv4.h"
 
 int main(int argc, char **argv) {
 
@@ -65,12 +66,38 @@ int main(int argc, char **argv) {
         // Convert network endianess to host
         eth_hdr->ethertype = ntohs(eth_hdr->ethertype);
 
+        /*
+         * ETHERNET
+         */
         char ssaddr[18], sdaddr[18];
         fmt_mac(eth_hdr->saddr, ssaddr);
         fmt_mac(eth_hdr->daddr, sdaddr);
+        printf("==> Ethernet Frame\n");
         printf("\tSource: %s\n\tDest:   %s\n\tType:   0x%04X > %s\n",
                ssaddr, sdaddr, eth_hdr->ethertype,
                fmt_ethertype(eth_hdr->ethertype));
+
+        /*
+         * IPv4
+         */
+        if (eth_hdr->ethertype == ETH_P_IP) {
+            void *ipv4_ptr = (buffer + ETH_HDR_LEN);
+            struct ipv4_hdr *ipv4_hdr = (struct ipv4_hdr *) ipv4_ptr;
+
+            char ip4_ssaddr[16], ip4_sdaddr[16];
+            fmt_ipv4(ntohl(ipv4_hdr->saddr), ip4_ssaddr);
+            fmt_ipv4(ntohl(ipv4_hdr->daddr), ip4_sdaddr);
+
+            printf("\t==> IP Packet\n");
+            printf("\t\tVersion:\t%d\n", ipv4_hdr->version);
+            printf("\t\tIHL:\t\t%d words\n", ipv4_hdr->ihl);
+            printf("\t\tLength:\t\t%d bytes\n", ntohs(ipv4_hdr->len));
+            printf("\t\tTTL:\t\t%d\n", ipv4_hdr->ttl);
+            printf("\t\tProtocol:\t%d\n", ipv4_hdr->proto);
+            printf("\t\tChecksum:\t%d\n", ipv4_hdr->csum);
+            printf("\t\tSource:\t\t%s\n", ip4_ssaddr);
+            printf("\t\tDestination:\t%s\n", ip4_sdaddr);
+        }
 
         free(buffer);
     }

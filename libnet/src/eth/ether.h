@@ -4,7 +4,8 @@
 #include <linux/types.h>
 #include "ethertype.h"
 
-#define ETH_ADDR_LEN 6     /* # of octets per address 00:00:00:00:00:00 */
+#define ETH_HDR_LEN  14     /* this is always fixed */
+#define ETH_ADDR_LEN 6      /* # of octets per address 00:00:00:00:00:00 */
 
 /* Ethernet frame header */
 struct eth_hdr {
