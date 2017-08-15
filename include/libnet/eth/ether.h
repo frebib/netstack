@@ -1,6 +1,7 @@
 #ifndef NETD_ETHER_H
 #define NETD_ETHER_H
 
+#include <stdint.h>
 #include <linux/types.h>
 #include "ethertype.h"
 

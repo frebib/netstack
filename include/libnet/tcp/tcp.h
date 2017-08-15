@@ -1,6 +1,8 @@
 #ifndef NETD_TCP_H
 #define NETD_TCP_H
 
+#include <stdint.h>
+
 /*
     Source: https://tools.ietf.org/html/rfc793#page-15
 
