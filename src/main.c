@@ -8,6 +8,7 @@
 
 #include <libnet/frame.h>
 #include <libnet/eth/ether.h>
+#include <libnet/eth/arp.h>
 #include <libnet/ip/ipv4.h>
 #include <libnet/ip/ipproto.h>
 #include <libnet/tcp/tcp.h>
@@ -79,9 +80,27 @@ int main(int argc, char **argv) {
                fmt_ethertype(eth_hdr->ethertype));
 
         /*
+         * ARP
+         */
+        if (eth_hdr->ethertype == ETH_P_ARP) {
+            struct frame *arp_frame = frame_child_copy(eth_frame);
+            struct arp_hdr *msg = recv_arp(arp_frame);
+            struct arp_ipv4 *req = (struct arp_ipv4 *) arp_frame->data;
+
+            char ssmac[18], sdmac[18];
+            char ssipv4[16], sdipv4[16];
+            fmt_mac(req->saddr, ssmac);
+            fmt_mac(req->daddr, sdmac);
+            fmt_ipv4(req->sipv4, ssipv4);
+            fmt_ipv4(req->dipv4, sdipv4);
+            printf("\t==> ARP Packet\n");
+            printf("\t\t(%s) Who has %s, tell %s (%s)\n", fmt_arp_op(msg->op),
+                   sdipv4, ssipv4, ssmac);
+        }
+        /*
          * IPv4
          */
-        if (eth_hdr->ethertype == ETH_P_IP) {
+        else if (eth_hdr->ethertype == ETH_P_IP) {
             struct frame *ipv4_frame = frame_child_copy(eth_frame);
             struct ipv4_hdr *ipv4_hdr = recv_ipv4(ipv4_frame);
 
