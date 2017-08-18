@@ -28,13 +28,15 @@ target_link_libraries(netd
         dl       # dynamic libraries for overriding syscalls
 )
 
-SET(SUDO_COMMAND gksudo)
-IF($ENV{USE_SUDO})
-    SET(SUDO_COMMAND sudo)
-ENDIF($ENV{USE_SUDO})
+IF (NOT $ENV{USER} STREQUAL "root")
+    SET(SUDO_COMMAND gksudo)
+    IF($ENV{USE_SUDO})
+        SET(SUDO_COMMAND sudo)
+    ENDIF($ENV{USE_SUDO})
+ENDIF (NOT $ENV{USER} STREQUAL "root")
 
-IF(NOT DEFINED $ENV{NO_SETCAP})
-add_custom_command(TARGET netd POST_BUILD
+IF(NOT "$ENV{NO_SETCAP}")
+    add_custom_command(TARGET netd POST_BUILD
         COMMAND ${SUDO_COMMAND} setcap cap_net_raw+ep netd
         WORKING_DIRECTORY ${EXECUTABLE_OUTPUT_PATH})
-ENDIF(NOT DEFINED $ENV{NO_SETCAP})
+ENDIF(NOT "$ENV{NO_SETCAP}")
