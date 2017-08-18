@@ -2,6 +2,7 @@
 #define NETD_FRAME_H
 
 #include <stdint.h>
+#include <stddef.h>
 #include <libnet/socket.h>
 
 #define FRAME_LEN sizeof(struct frame)
