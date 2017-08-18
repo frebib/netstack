@@ -13,8 +13,8 @@
 
 /* Ethernet frame header */
 struct eth_hdr {
-    uint8_t saddr[ETH_ADDR_LEN];  /* Source address */
     uint8_t daddr[ETH_ADDR_LEN];  /* Destination address */
+    uint8_t saddr[ETH_ADDR_LEN];  /* Source address */
     __be16 ethertype;   /* Frame payload type, see ethertype.h */
 }__attribute((packed));
 
