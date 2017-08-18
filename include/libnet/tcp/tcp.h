@@ -36,7 +36,7 @@ struct tcp_hdr {
                 ackn;           /* Acknowledgement number */
     struct {
 #if THE_HOST_IS_BIG_ENDIAN
-    uint8_t     data_ofs:4,     /* Size of TCP header in 32-bit words */
+    uint8_t     hdr_len:4,      /* Size of TCP header in 32-bit words */
                 rsvd:4,         /* Empty reserved space for ctrl flags */
                 /* Ignoring the experimental NS bit here: RFC 3540 */
                 cwr:1,
@@ -50,7 +50,7 @@ struct tcp_hdr {
 #else
                 /* Ignoring the experimental NS bit here: RFC 3540 */
     uint8_t     rsvd:4,         /* Empty reserved space for ctrl flags */
-                data_ofs:4,     /* Size of TCP header in 32-bit words */
+                hdr_len:4,      /* Size of TCP header in 32-bit words */
                 fin:1,
                 syn:1,
                 rst:1,

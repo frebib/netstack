@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
 
             printf("\t==> IP Packet\n");
             printf("\t\tVersion:\t%u\n", ipv4_hdr->version);
-            printf("\t\tIHL:\t\t%u words\n", ipv4_hdr->ihl);
+            printf("\t\tIHL:\t\t%u words\n", ipv4_hdr->hdr_len);
             printf("\t\tLength:\t\t%u bytes\n", ipv4_hdr->len);
             printf("\t\tTTL:\t\t%u\n", ipv4_hdr->ttl);
             printf("\t\tProtocol:\t0x%02X > %s\n", ipv4_hdr->proto,
