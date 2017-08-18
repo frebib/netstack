@@ -3,10 +3,6 @@
 
 #include <libnet/tcp/tcp.h>
 
-struct tcp_hdr *tcp_hdr(struct frame *frame) {
-    return (struct tcp_hdr *) frame->head;
-}
-
 struct tcp_hdr *recv_tcp(struct frame *frame) {
     struct tcp_hdr *tcp_hdr = (struct tcp_hdr *) frame->data;
 

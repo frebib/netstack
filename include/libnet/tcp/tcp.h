@@ -71,7 +71,7 @@ struct tcp_hdr {
 
 
 /* Returns a struct tcp_hdr from the frame->head */
-struct tcp_hdr *tcp_hdr(struct frame *frame);
+#define tcp_hdr(frame) ((struct tcp_hdr *) (frame)->head)
 
 struct tcp_hdr *recv_tcp(struct frame *frame);
 

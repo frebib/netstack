@@ -42,7 +42,7 @@ struct ipv4_hdr {
 }__attribute((packed));
 
 /* Returns a struct ipv4_hdr from the frame->head */
-struct ipv4_hdr *ipv4_hdr(struct frame *frame);
+#define ipv4_hdr(frame) ((struct ipv4_hdr *) (frame)->head)
 
 struct ipv4_hdr *recv_ipv4(struct frame *frame);
 

@@ -46,6 +46,9 @@ struct arp_ipv4 {
     uint32_t dipv4;
 }__attribute((packed));
 
+/* Returns a struct arp_hdr from the frame->head */
+#define arp_hdr(frame) ((struct arp_hdr *) (frame)->head)
+
 struct arp_hdr *recv_arp(struct frame *frame);
 
 #endif //NETD_ARP_H

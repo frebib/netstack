@@ -20,7 +20,7 @@ struct eth_hdr {
 
 
 /* Returns a struct eth_hdr from the frame->head */
-struct eth_hdr *eth_hdr(struct frame *frame);
+#define eth_hdr(frame) ((struct eth_hdr *) (frame)->head)
 
 struct eth_hdr *recv_ether(struct frame *frame);
 

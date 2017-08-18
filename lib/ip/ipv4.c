@@ -3,10 +3,6 @@
 #include <libnet/frame.h>
 #include <libnet/ip/ipv4.h>
 
-struct ipv4_hdr *ipv4_hdr(struct frame *frame) {
-    return (struct ipv4_hdr *) frame->head;
-}
-
 struct ipv4_hdr *recv_ipv4(struct frame *frame) {
 
     struct ipv4_hdr *hdr = (struct ipv4_hdr *) frame->head;
