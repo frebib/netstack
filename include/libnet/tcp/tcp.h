@@ -34,12 +34,12 @@ struct tcp_hdr {
                 dport;          /* Destination port */
     uint32_t    seqn,           /* Sequence number */
                 ackn;           /* Acknowledgement number */
-    struct {
 #if THE_HOST_IS_BIG_ENDIAN
     uint8_t     hdr_len:4,      /* Size of TCP header in 32-bit words */
-                rsvd:4,         /* Empty reserved space for ctrl flags */
+                rsvd:4;         /* Empty reserved space for ctrl flags */
+    struct {
                 /* Ignoring the experimental NS bit here: RFC 3540 */
-                cwr:1,
+    uint8_t     cwr:1,
                 ece:1,
                 urg:1,
                 ack:1,           /* Various control bits */
@@ -48,10 +48,11 @@ struct tcp_hdr {
                 syn:1,
                 fin:1;
 #else
-                /* Ignoring the experimental NS bit here: RFC 3540 */
+    /* Ignoring the experimental NS bit here: RFC 3540 */
     uint8_t     rsvd:4,         /* Empty reserved space for ctrl flags */
-                hdr_len:4,      /* Size of TCP header in 32-bit words */
-                fin:1,
+                hdr_len:4;      /* Size of TCP header in 32-bit words */
+    struct {
+        uint8_t fin:1,
                 syn:1,
                 rst:1,
                 psh:1,
