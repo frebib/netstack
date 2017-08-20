@@ -2,7 +2,7 @@
 #define NETD_TCP_H
 
 #include <stdint.h>
-#include <libnet/frame.h>
+#include <libnet/interface.h>
 
 /*
     Source: https://tools.ietf.org/html/rfc793#page-15
@@ -74,7 +74,16 @@ struct tcp_hdr {
 /* Returns a struct tcp_hdr from the frame->head */
 #define tcp_hdr(frame) ((struct tcp_hdr *) (frame)->head)
 
-struct tcp_hdr *recv_tcp(struct frame *frame);
+/* Returns the size in bytes of a header
+ * hdr->hdr_len is 1 byte, soo 4x is 1 word size */
+#define tcp_hdr_len(hdr) ((uint8_t) (hdr->hdr_len * 4))
+
+/* Given a network tcp packet buffer, this
+ * mutates network values to host values */
+struct tcp_hdr *parse_tcp(void *data);
+
+/* Receives a tcp frame for processing in the network stack */
+void recv_tcp(struct interface *intf, struct frame *frame);
 
 
 /* Returns a string of characters/dots representing a set/unset TCP flag */

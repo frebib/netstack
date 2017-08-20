@@ -1,6 +1,7 @@
 #ifndef NETD_FRAME_H
 #define NETD_FRAME_H
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <libnet/socket.h>

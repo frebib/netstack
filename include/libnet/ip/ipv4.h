@@ -2,6 +2,8 @@
 #define NETD_IPV4_H
 
 #include <stdint.h>
+#include <libnet/interface.h>
+#include "ipproto.h"
 
 /*
     Source: https://tools.ietf.org/html/rfc791#page-11
@@ -44,13 +46,22 @@ struct ipv4_hdr {
 /* Returns a struct ipv4_hdr from the frame->head */
 #define ipv4_hdr(frame) ((struct ipv4_hdr *) (frame)->head)
 
-struct ipv4_hdr *recv_ipv4(struct frame *frame);
+/* Returns the size in bytes of a header
+ * hdr->hdr_len is 1 byte, soo 4x is 1 word size */
+#define ipv4_hdr_len(hdr) ((hdr)->hdr_len * 4)
+
+/* Given a network ipv4 packet buffer, this
+ * mutates network values to host values */
+struct ipv4_hdr *parse_ipv4(void *data);
+
+/* Receives an ipv4 frame for processing in the network stack */
+void recv_ipv4(struct interface *intf, struct frame *frame);
 
 #define fmt_ipv4(ip, buff) \
     sprintf(buff, "%d.%d.%d.%d", \
-        (ip >> 24) & 0xFF, \
-        (ip >> 16) & 0xFF, \
-        (ip >> 8) & 0xFF, \
-        ip & 0xFF)
+        ((ip) >> 24) & 0xFF, \
+        ((ip) >> 16) & 0xFF, \
+        ((ip) >> 8) & 0xFF, \
+        (ip) & 0xFF)
 
 #endif //NETD_IPV4_H

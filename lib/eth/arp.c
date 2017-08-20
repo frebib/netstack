@@ -1,15 +1,21 @@
-#include <netinet/in.h>
-#include <libnet/frame.h>
-#include <libnet/eth/arp.h>
 #include <stdio.h>
 
-struct arp_hdr *recv_arp(struct frame *frame) {
-    struct arp_hdr *msg = (struct arp_hdr *) frame->head;
-    frame->data += ARP_HDR_LEN;
+#include <netinet/in.h>
+#include <libnet/eth/arp.h>
 
-    msg->hw_type = ntohs(msg->hw_type);
-    msg->prot_type = ntohs(msg->prot_type);
-    msg->op = ntohs(msg->op);
+struct arp_hdr *parse_arp(void *data) {
+    struct arp_hdr *hdr = (struct arp_hdr *) data;
+
+    hdr->hw_type = ntohs(hdr->hw_type);
+    hdr->prot_type = ntohs(hdr->prot_type);
+    hdr->op = ntohs(hdr->op);
+
+    return hdr;
+}
+
+void recv_arp(struct interface *intf, struct frame *frame) {
+    struct arp_hdr *msg = parse_arp(frame->data);
+    frame->data += ARP_HDR_LEN;
 
     switch (msg->hw_type) {
         case ARP_HW_ETHER:
@@ -17,22 +23,20 @@ struct arp_hdr *recv_arp(struct frame *frame) {
             break;
         default:
             fprintf(stderr, "ARP hardware %d not supported\n", msg->hw_type);
-            return NULL;
     }
+
+    // TODO: If we sent a request, cache the reply
 
     struct arp_ipv4 *req;
     switch (msg->prot_type) {
         case ETH_P_IP:
+            // also good
             req = (struct arp_ipv4 *) frame->data;
             req->sipv4 = ntohl(req->sipv4);
             req->dipv4 = ntohl(req->dipv4);
-            // also good
             break;
         default:
             fprintf(stderr, "ARP protocol %s not supported\n",
                     fmt_ethertype(msg->prot_type));
-            return NULL;
     }
-
-    return msg;
 }
