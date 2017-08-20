@@ -70,6 +70,27 @@ struct tcp_hdr {
 
 }__attribute((packed));
 
+/*
+    Pseudo-header for calculating TCP checksum
+
+      0         1         2         3
+      0 2 4 6 8 0 2 4 6 8 0 2 4 6 8 0 2
+    +--------+--------+--------+--------+
+    |           Source Address          |
+    +--------+--------+--------+--------+
+    |         Destination Address       |
+    +--------+--------+--------+--------+
+    |  zero  |  proto |   TCP Length    |
+    +--------+--------+--------+--------+
+*/
+struct tcp_ipv4_phdr {
+    uint32_t saddr,
+            daddr;
+    uint8_t rsvd,
+            proto;
+    uint16_t len;               /* Total length of TCP header */
+}__attribute((packed));
+
 
 /* Returns a struct tcp_hdr from the frame->head */
 #define tcp_hdr(frame) ((struct tcp_hdr *) (frame)->head)
@@ -83,7 +104,7 @@ struct tcp_hdr {
 struct tcp_hdr *parse_tcp(void *data);
 
 /* Receives a tcp frame for processing in the network stack */
-void recv_tcp(struct interface *intf, struct frame *frame);
+void recv_tcp(struct interface *intf, struct frame *frame, uint16_t net_csum);
 
 
 /* Returns a string of characters/dots representing a set/unset TCP flag */

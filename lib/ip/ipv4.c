@@ -55,8 +55,19 @@ void recv_ipv4(struct interface *intf, struct frame *frame) {
 
     struct frame *child_frame = frame_child_copy(frame);
     switch (hdr->proto) {
-        case IP_P_TCP:
-            return recv_tcp(intf, child_frame);
+        case IP_P_TCP: {
+            /* Calculate TCP pseudo-header checksum */
+            struct tcp_ipv4_phdr pseudo_hdr;
+            pseudo_hdr.saddr = htonl(hdr->saddr);
+            pseudo_hdr.daddr = htonl(hdr->daddr);
+            pseudo_hdr.len   = htons(payload_len);
+            pseudo_hdr.proto = hdr->proto;
+            pseudo_hdr.rsvd  = 0;
+            uint16_t ipv4_csum = ~in_csum(&pseudo_hdr, sizeof(pseudo_hdr), 0);
+
+            /* Pass initial network csum as TCP packet csum seed */
+            return recv_tcp(intf, child_frame, ipv4_csum);
+        }
         case IP_P_UDP:
         case IP_P_ICMP:
             fprintf(stderr, "IPv4: Unimplemented packet type %s\n",

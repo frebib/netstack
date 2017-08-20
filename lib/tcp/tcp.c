@@ -1,5 +1,7 @@
+#include <stdio.h>
 #include <netinet/in.h>
 #include <libnet/tcp/tcp.h>
+#include <libnet/checksum.h>
 
 struct tcp_hdr *parse_tcp(void *data) {
     struct tcp_hdr *tcp_hdr = (struct tcp_hdr *) data;
@@ -15,13 +17,21 @@ struct tcp_hdr *parse_tcp(void *data) {
     return tcp_hdr;
 }
 
-void recv_tcp(struct interface *intf, struct frame *frame) {
+void recv_tcp(struct interface *intf, struct frame *frame, uint16_t net_csum) {
 
     /* Don't parse yet, we need to check the checksum first */
     struct tcp_hdr *hdr = tcp_hdr(frame);
     /* hdr->hdr_len is 1 byte, soo 4x is 1 word size */
     frame->data += tcp_hdr_len(hdr);
     uint16_t pkt_len = (uint16_t) (frame->tail - frame->head);
+
+    // TODO: Investigate TCP checksums invalid with long packets
+    // Could be something to do with TCP checksum offloading in Linux?
+    // Regardless, large packets are discarded unless it is fixed
+    if (in_csum(frame->head, pkt_len, net_csum) != 0) {
+        fprintf(stderr, "\n\n\n\nError: TCP packet checksum is "
+                "corrupt (size %d)\n\n\n\n\n", pkt_len);
+    }
 
     // TODO: Other integrity checks
 
