@@ -5,6 +5,8 @@ pipeline:
       - NO_SETCAP=true
       - PACKAGES=libcap-dev
     commands:
+      # Run the default entrypoint
+      - /usr/local/bin/entrypoint true
       - mkdir -p build
       - cd build
       - cmake ..
