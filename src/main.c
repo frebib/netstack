@@ -98,23 +98,23 @@ int main(int argc, char **argv) {
         // Print time received and payload size
         printf("%s Received a frame of %5lu bytes\t\n", buf, count);
 
-        struct eth_hdr *eth_hdr = recv_ether(eth_frame);
+        struct eth_hdr *ethhdr = recv_ether(eth_frame);
 
         /*
          * ETHERNET
          */
         char ssaddr[18], sdaddr[18];
-        fmt_mac(eth_hdr->saddr, ssaddr);
-        fmt_mac(eth_hdr->daddr, sdaddr);
+        fmt_mac(ethhdr->saddr, ssaddr);
+        fmt_mac(ethhdr->daddr, sdaddr);
         printf("==> Ethernet Frame\n");
         printf("\tSource: %s\n\tDest:   %s\n\tType:   0x%04X > %s\n",
-               ssaddr, sdaddr, eth_hdr->ethertype,
-               fmt_ethertype(eth_hdr->ethertype));
+               ssaddr, sdaddr, ethhdr->ethertype,
+               fmt_ethertype(ethhdr->ethertype));
 
         /*
          * ARP
          */
-        if (eth_hdr->ethertype == ETH_P_ARP) {
+        if (ethhdr->ethertype == ETH_P_ARP) {
             struct frame *arp_frame = frame_child_copy(eth_frame);
             struct arp_hdr *msg = recv_arp(arp_frame);
             struct arp_ipv4 *req = (struct arp_ipv4 *) arp_frame->data;
@@ -132,38 +132,38 @@ int main(int argc, char **argv) {
         /*
          * IPv4
          */
-        else if (eth_hdr->ethertype == ETH_P_IP) {
+        else if (ethhdr->ethertype == ETH_P_IP) {
             struct frame *ipv4_frame = frame_child_copy(eth_frame);
-            struct ipv4_hdr *ipv4_hdr = recv_ipv4(ipv4_frame);
+            struct ipv4_hdr *ipv4hdr = recv_ipv4(ipv4_frame);
 
             char ip4_ssaddr[16], ip4_sdaddr[16];
-            fmt_ipv4(ipv4_hdr->saddr, ip4_ssaddr);
-            fmt_ipv4(ipv4_hdr->daddr, ip4_sdaddr);
+            fmt_ipv4(ipv4hdr->saddr, ip4_ssaddr);
+            fmt_ipv4(ipv4hdr->daddr, ip4_sdaddr);
 
             printf("\t==> IP Packet\n");
-            printf("\t\tVersion:\t%u\n", ipv4_hdr->version);
-            printf("\t\tIHL:\t\t%u words\n", ipv4_hdr->hdr_len);
-            printf("\t\tLength:\t\t%u bytes\n", ipv4_hdr->len);
-            printf("\t\tTTL:\t\t%u\n", ipv4_hdr->ttl);
-            printf("\t\tProtocol:\t0x%02X > %s\n", ipv4_hdr->proto,
-                   fmt_ipproto(ipv4_hdr->proto));
-            printf("\t\tChecksum:\t%u\n", ipv4_hdr->csum);
+            printf("\t\tVersion:\t%u\n", ipv4hdr->version);
+            printf("\t\tIHL:\t\t%u words\n", ipv4hdr->hdr_len);
+            printf("\t\tLength:\t\t%u bytes\n", ipv4hdr->len);
+            printf("\t\tTTL:\t\t%u\n", ipv4hdr->ttl);
+            printf("\t\tProtocol:\t0x%02X > %s\n", ipv4hdr->proto,
+                   fmt_ipproto(ipv4hdr->proto));
+            printf("\t\tChecksum:\t%u\n", ipv4hdr->csum);
             printf("\t\tSource:\t\t%s\n", ip4_ssaddr);
             printf("\t\tDestination:\t%s\n", ip4_sdaddr);
 
-            if (ipv4_hdr->proto == IP_P_TCP) {
+            if (ipv4hdr->proto == IP_P_TCP) {
                 struct frame *tcp_frame = frame_child_copy(ipv4_frame);
-                struct tcp_hdr *tcp_hdr = recv_tcp(tcp_frame);
+                struct tcp_hdr *tcphdr = recv_tcp(tcp_frame);
 
                 char flags[10];
-                fmt_tcp_flags(tcp_hdr, flags);
+                fmt_tcp_flags(tcphdr, flags);
 
                 printf("\t\t==> TCP Packet\n");
-                printf("\t\t\tS-Port:\t%u\n", tcp_hdr->sport);
-                printf("\t\t\tD-Port:\t%u\n", tcp_hdr->dport);
+                printf("\t\t\tS-Port:\t%u\n", tcphdr->sport);
+                printf("\t\t\tD-Port:\t%u\n", tcphdr->dport);
                 // TODO: Check seq/ack numbers, they seem too big
-                printf("\t\t\tSeq #:\t%u\n", tcp_hdr->seqn);
-                printf("\t\t\tAck #:\t%u\n", tcp_hdr->ackn);
+                printf("\t\t\tSeq #:\t%u\n", tcphdr->seqn);
+                printf("\t\t\tAck #:\t%u\n", tcphdr->ackn);
                 printf("\t\t\tFlags:\t%s\n", flags);
             }
         }
