@@ -4,6 +4,7 @@
 #include <time.h>
 #include <string.h>
 #include <stropts.h>
+#include <sysexits.h>
 
 #include <net/if.h>
 #include <sys/ioctl.h>
@@ -87,6 +88,15 @@ int main(int argc, char **argv) {
         if (count != lookahead) {
             fprintf(stderr, "Warning: MSG_PEEK != recv(): %zi != %zi\n",
                     lookahead, count);
+
+            // realloc a (larger?) new buffer if the size differs, just in case
+            void *newbuf;
+            if ((newbuf = realloc(eth_frame->buffer, (size_t) count)) == NULL) {
+                fprintf(stderr, "Fatal: Failed to reallocate new buffer of "
+                        "size %zi bytes\n", count);
+                exit(EX_OSERR);
+            }
+            eth_frame->buffer = newbuf;
         }
 
         // Format and print time the same as tcpdump for comparison
