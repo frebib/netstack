@@ -1,14 +1,17 @@
 pipeline:
   build:
-    image: alpine:3.6
+    image: frebib/alpine-cmake:3.6
     environment:
       - NO_SETCAP=true
+      - PACKAGES=libcap-dev
     commands:
-      - apk --no-cache add cmake make gcc g++ libc-dev
-                           linux-headers libcap-dev 
       - mkdir -p build
       - cd build
       - cmake ..
       - make
-      - test -f ./netd -a -x ./netd
-      - test -f ./libnet.so
+
+  test:
+    image: alpine:3.6
+    commands:
+      - test -f build/libnet.so
+      - test -f build/netd -a -x build/netd
