@@ -4,7 +4,7 @@
 #include <libnet/frame.h>
 #include <libnet/ip/ipv4.h>
 #include <libnet/tcp/tcp.h>
-
+#include <libnet/checksum.h>
 
 struct ipv4_hdr *parse_ipv4(void *data) {
     struct ipv4_hdr *hdr = (struct ipv4_hdr *) data;
@@ -41,9 +41,14 @@ void recv_ipv4(struct interface *intf, struct frame *frame) {
         return;
     }
 
-    // TODO: Check checksum & other integrity checks
-
     // TODO: Take options into account here
+
+    if (in_csum(frame->head, (size_t) hdr_len, 0) != 0) {
+        fprintf(stderr, "Error: IPv4 packet checksum is corrupt\n");
+        return;
+    }
+
+    // TODO: Other integrity checks
 
     /* Fix network endianness in header */
     hdr = parse_ipv4(frame->head);
