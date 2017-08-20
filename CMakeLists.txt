@@ -37,6 +37,6 @@ ENDIF (NOT $ENV{USER} STREQUAL "root")
 
 IF(NOT "$ENV{NO_SETCAP}")
     add_custom_command(TARGET netd POST_BUILD
-        COMMAND ${SUDO_COMMAND} setcap cap_net_raw+ep netd
+        COMMAND ${SUDO_COMMAND} setcap cap_net_raw,cap_net_admin+ep netd
         WORKING_DIRECTORY ${EXECUTABLE_OUTPUT_PATH})
 ENDIF(NOT "$ENV{NO_SETCAP}")

@@ -11,6 +11,11 @@
 #define ETH_HDR_LEN  sizeof(struct eth_hdr)
 #define ETH_ADDR_LEN 6      /* # of octets per address */
 
+/* Temporary define constant values for debugging */
+#define INTF_NAME "enp3s0"
+#define ETH_ADDR ((uint8_t[6]){ 0x44, 0x8A, 0x5B, 0x9F, 0x50, 0x5A })
+
+
 /* Ethernet frame header */
 struct eth_hdr {
     uint8_t daddr[ETH_ADDR_LEN];  /* Destination address */

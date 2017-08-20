@@ -2,7 +2,11 @@
 #include <stdlib.h>
 #include <netdb.h>
 #include <time.h>
+#include <string.h>
+#include <stropts.h>
 
+#include <net/if.h>
+#include <sys/ioctl.h>
 #include <sys/capability.h>
 #include <linux/if_ether.h>
 
@@ -15,16 +19,24 @@
 
 int main(int argc, char **argv) {
 
-    // Check for effective CAP_NET_RAW capability
-    cap_flag_value_t hasRaw = CAP_CLEAR;
+    // Check for effective CAP_NET_RAW,CAP_NET_ADMIN capabilities
+    cap_flag_value_t hasRaw = CAP_CLEAR,
+                     hasAdmin = CAP_CLEAR;
     cap_t capabilities = cap_get_proc();
-    if (cap_get_flag(capabilities, CAP_NET_RAW, CAP_EFFECTIVE, &hasRaw)) {
+    if (cap_get_flag(capabilities, CAP_NET_RAW, CAP_EFFECTIVE, &hasRaw) ||
+        cap_get_flag(capabilities, CAP_NET_ADMIN, CAP_EFFECTIVE, &hasAdmin)) {
         perror("Error checking capabilities");
     }
     cap_free(capabilities);
+
+    // Check and error if capabilities aren't set
     if (hasRaw != CAP_SET) {
         fprintf(stderr, "You don't have the CAP_NET_RAW capability.\n"
                 "Use 'setcap cap_net_raw+ep %s' or run as root\n", argv[0]);
+        exit(1);
+    } else if (hasAdmin != CAP_SET) {
+        fprintf(stderr, "You don't have the CAP_NET_ADMIN capability.\n"
+                "Use 'setcap cap_net_admin+ep %s' or run as root\n", argv[0]);
         exit(1);
     }
 
@@ -35,6 +47,26 @@ int main(int argc, char **argv) {
         perror("Error: could not create socket");
         return -1;
     }
+
+    struct ifreq ifr;
+    strcpy(ifr.ifr_name, INTF_NAME);
+    // Get the current flags that the device might have
+    if (ioctl(sock, SIOCGIFFLAGS, &ifr) == -1) {
+        perror("Error: Could not retrive the flags from the device.\n");
+        exit(1);
+    }
+    // Set the old flags plus the IFF_PROMISC flag
+    ifr.ifr_flags |= IFF_PROMISC;
+    if (ioctl(sock, SIOCSIFFLAGS, &ifr) == -1) {
+        perror("Error: Could not set flag IFF_PROMISC");
+        exit(1);
+    }
+    // Configure the device
+    if (ioctl(sock, SIOCGIFINDEX, &ifr) < 0) {
+        perror("Error: Error getting the device index.\n");
+        exit(1);
+    }
+
 
     // Count is raw eth packet size (inc eth + ip headers)
     ssize_t lookahead = 0,
