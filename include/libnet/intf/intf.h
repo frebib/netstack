@@ -1,7 +1,9 @@
 #ifndef NETD_INTERFACE_H
 #define NETD_INTERFACE_H
 
+#include <net/if.h>
 #include <sys/types.h>
+
 #include <libnet/frame.h>
 
 #define INTF_RAWSOCK    1
@@ -11,6 +13,7 @@
 // `man netdevice` gives a good overview
 struct intf {
     uint8_t type;
+    char name[IFNAMSIZ];
     void *intf_lower;
 
     /* Blocking function call that reads a frame from the interface. */
