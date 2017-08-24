@@ -5,11 +5,8 @@
 #include <time.h>
 #include <ctype.h>
 #include <string.h>
-#include <stropts.h>
 #include <sysexits.h>
 
-#include <net/if.h>
-#include <sys/ioctl.h>
 #include <sys/capability.h>
 #include <linux/if_ether.h>
 
@@ -18,12 +15,13 @@
 #include <libnet/eth/arp.h>
 #include <libnet/ip/ipv4.h>
 #include <libnet/tcp/tcp.h>
+#include <libnet/intf/rawsock.h>
 
 int main(int argc, char **argv) {
 
     // Check for effective CAP_NET_RAW,CAP_NET_ADMIN capabilities
     cap_flag_value_t hasRaw = CAP_CLEAR,
-                     hasAdmin = CAP_CLEAR;
+            hasAdmin = CAP_CLEAR;
     cap_t capabilities = cap_get_proc();
     if (cap_get_flag(capabilities, CAP_NET_RAW, CAP_EFFECTIVE, &hasRaw) ||
         cap_get_flag(capabilities, CAP_NET_ADMIN, CAP_EFFECTIVE, &hasAdmin)) {
@@ -42,68 +40,26 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    // Open a raw socket (raw layer 2/3 frames)
-    // Use SOCK_DGRAM to remove ethernet header
-    int sock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
-    if (sock < 0) {
-        perror("Error: could not create socket");
-        return -1;
-    }
+    // Create a INTF_RAWSOCK interface for sending/recv'ing data
+    struct intf intf = {0};
+    struct frame *eth_frame = NULL;
+    ssize_t count;
 
-    struct ifreq ifr;
-    strcpy(ifr.ifr_name, INTF_NAME);
-    // Get the current flags that the device might have
-    if (ioctl(sock, SIOCGIFFLAGS, &ifr) == -1) {
-        perror("Error: Could not retrive the flags from the device.\n");
-        exit(1);
+    // TODO: Take different socket types into account here
+    // e.g. TUN vs TAP, ignoring ETHER layer for example
+    // TODO: For now, assume everything is ethernet
+    if (new_rawsock(&intf) != 0) {
+        perror("Error creating INTF_RAWSOCK");
+        return EX_IOERR;
     }
-    // Set the old flags plus the IFF_PROMISC flag
-    ifr.ifr_flags |= IFF_PROMISC;
-    if (ioctl(sock, SIOCSIFFLAGS, &ifr) == -1) {
-        perror("Error: Could not set flag IFF_PROMISC");
-        exit(1);
-    }
-    // Configure the device
-    if (ioctl(sock, SIOCGIFINDEX, &ifr) < 0) {
-        perror("Error: Error getting the device index.\n");
-        exit(1);
-    }
-
-
-    // Count is raw eth packet size (inc eth + ip headers)
-    ssize_t lookahead = 0,
-            count = 0;
 
     // Read data into the buffer
-    while ((lookahead = recv(sock, NULL, 0, (MSG_PEEK | MSG_TRUNC))) != -1) {
+    while ((count = intf.recv_frame(&intf, &eth_frame)) != -1) {
         struct timespec ts;
         timespec_get(&ts, TIME_UTC);
 
-        // Allocate a buffer of the correct size
-        struct frame *eth_frame = init_frame(NULL, (size_t) lookahead);
-        count = recv(sock, eth_frame->buffer, (size_t) lookahead, 0);
-
-        if (count == -1) {
-            perror("recv error");
-        }
-        // Warn if the sizes don't match (should probably never happen)
-        //assert(count != lookahead);
-        if (count != lookahead) {
-            fprintf(stderr, "Warning: MSG_PEEK != recv(): %zi != %zi\n",
-                    lookahead, count);
-
-            // realloc a (larger?) new buffer if the size differs, just in case
-            void *newbuf;
-            if ((newbuf = realloc(eth_frame->buffer, (size_t) count)) == NULL) {
-                fprintf(stderr, "Fatal: Failed to reallocate new buffer of "
-                        "size %zi bytes\n", count);
-                exit(EX_OSERR);
-            }
-            eth_frame->buffer = newbuf;
-        }
-
         // Packet received. Notify the virtual 'interface' for processing
-        recv_if(NULL, eth_frame);
+        recv_ether(&intf, eth_frame);
 
         struct eth_hdr *ethhdr = eth_hdr(eth_frame);
         if (memcmp(ethhdr->daddr, ETH_ADDR, ETH_ADDR_LEN) != 0) {
@@ -186,6 +142,7 @@ int main(int argc, char **argv) {
                 printf("\t\t\tAck #:\t%u\n", tcphdr->ackn);
                 printf("\t\t\tFlags:\t%s\n", flags);
                 printf("\t\t\tLength:\t%d\n", data_len);
+                printf("\t\t\tTCP HL:\t%d words\n", tcphdr->hdr_len);
                 printf("\n");
 
                 // Print xxd-style hex-dump of packet contents

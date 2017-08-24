@@ -18,7 +18,7 @@ struct ipv4_hdr *parse_ipv4(void *data) {
     return hdr;
 }
 
-void recv_ipv4(struct interface *intf, struct frame *frame) {
+void recv_ipv4(struct intf *intf, struct frame *frame) {
 
     /* Don't parse yet, we need to check the checksum first */
     struct ipv4_hdr *hdr = ipv4_hdr(frame);

@@ -2,7 +2,7 @@
 #define NETD_IPV4_H
 
 #include <stdint.h>
-#include <libnet/interface.h>
+#include <libnet/intf/intf.h>
 #include "ipproto.h"
 
 /*
@@ -55,7 +55,7 @@ struct ipv4_hdr {
 struct ipv4_hdr *parse_ipv4(void *data);
 
 /* Receives an ipv4 frame for processing in the network stack */
-void recv_ipv4(struct interface *intf, struct frame *frame);
+void recv_ipv4(struct intf *intf, struct frame *frame);
 
 #define fmt_ipv4(ip, buff) \
     sprintf(buff, "%d.%d.%d.%d", \

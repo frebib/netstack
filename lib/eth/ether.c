@@ -11,7 +11,7 @@ struct eth_hdr *parse_ether(void *data) {
     return hdr;
 }
 
-void recv_ether(struct interface *intf, struct frame *frame) {
+void recv_ether(struct intf *intf, struct frame *frame) {
 
     struct eth_hdr *hdr = parse_ether(frame->buffer);
     /* Frame data is after fixed header size */

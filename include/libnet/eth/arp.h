@@ -54,6 +54,6 @@ struct arp_ipv4 {
 struct arp_hdr *parse_arp(void *data);
 
 /* Receives an arp frame for processing in the network stack */
-void recv_arp(struct interface *intf, struct frame *frame);
+void recv_arp(struct intf *intf, struct frame *frame);
 
 #endif //NETD_ARP_H

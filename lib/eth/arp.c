@@ -13,7 +13,7 @@ struct arp_hdr *parse_arp(void *data) {
     return hdr;
 }
 
-void recv_arp(struct interface *intf, struct frame *frame) {
+void recv_arp(struct intf *intf, struct frame *frame) {
     struct arp_hdr *msg = parse_arp(frame->data);
     frame->data += ARP_HDR_LEN;
 

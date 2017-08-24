@@ -15,7 +15,7 @@ struct tcp_hdr *parse_tcp(void *data) {
     return tcp_hdr;
 }
 
-void recv_tcp(struct interface *intf, struct frame *frame) {
+void recv_tcp(struct intf *intf, struct frame *frame) {
 
     /* Don't parse yet, we need to check the checksum first */
     struct tcp_hdr *hdr = tcp_hdr(frame);

@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <linux/types.h>
 
-#include <libnet/interface.h>
+#include <libnet/intf/intf.h>
 
 #include "ethertype.h"
 
@@ -32,7 +32,7 @@ struct eth_hdr {
 struct eth_hdr *parse_ether(void *data);
 
 /* Receives an ether frame for processing in the network stack */
-void recv_ether(struct interface *intf, struct frame *frame);
+void recv_ether(struct intf *intf, struct frame *frame);
 
 
 /* Formats a MAC address from an uint8_t[6] into a character buffer.
