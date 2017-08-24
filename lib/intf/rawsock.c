@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sysexits.h>
+#include <errno.h>
 
 #include <net/if.h>
 #include <sys/ioctl.h>
@@ -14,6 +15,7 @@
 
 int new_rawsock(struct intf *interface) {
     if (interface == NULL) {
+        errno = EINVAL;
         return -1;
     }
 
