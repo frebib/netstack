@@ -44,8 +44,13 @@ int new_rawsock(struct intf *interface) {
         return -1;
     }
 
+    // Use container pointer to ensure int always fits
+    // This also avoids lots of horrible type warnings
+    int *sockptr = malloc(sizeof(int));
+    *sockptr = sock;
+
+    interface->intf_lower = sockptr;
     interface->type = INTF_RAWSOCK;
-    interface->intf_lower = (void *) sock;
     interface->recv_frame = rawsock_recv_frame;
     interface->send_frame = rawsock_send_frame;
     interface->recv_peek = rawsock_peek;
@@ -54,7 +59,9 @@ int new_rawsock(struct intf *interface) {
 }
 
 void free_rawsock(struct intf *intf) {
-    close((int) intf->intf_lower);
+    int *sockptr = (int *) intf->intf_lower;
+    close(*sockptr);
+    free(sockptr);
     free(intf);
 }
 
@@ -62,7 +69,7 @@ ssize_t rawsock_recv_frame(struct intf *interface, struct frame **frame) {
     // Count is raw eth packet size (inc eth + ip + transport)
     ssize_t lookahead = 0,
             count = 0;
-    int sock = (int) interface->intf_lower;
+    int sock = *((int *) interface->intf_lower);
 
     // Use peek method in struct, it may have been overridden
     if ((lookahead = interface->recv_peek(interface)) == -1) {
@@ -103,11 +110,11 @@ ssize_t rawsock_recv_frame(struct intf *interface, struct frame **frame) {
 
 ssize_t rawsock_send_frame(struct intf *interface, struct frame *frame) {
     // TODO: Move this into a separate thread and use signalling
-    int sock = (int) interface->intf_lower;
+    int sock = *((int *) interface->intf_lower);
     return write(sock, frame->buffer, frame->buf_size);
 }
 
 ssize_t rawsock_peek(struct intf *interface) {
-    int sock = (int) interface->intf_lower;
+    int sock = *((int *) interface->intf_lower);
     return recv(sock, NULL, 0, (MSG_PEEK | MSG_TRUNC));
 }
