@@ -41,25 +41,25 @@ int main(int argc, char **argv) {
     }
 
     // Create a INTF_RAWSOCK interface for sending/recv'ing data
-    struct intf intf = {0};
+    struct intf *intf = malloc(sizeof(struct intf));
     struct frame *eth_frame = NULL;
     ssize_t count;
 
     // TODO: Take different socket types into account here
     // e.g. TUN vs TAP, ignoring ETHER layer for example
     // TODO: For now, assume everything is ethernet
-    if (new_rawsock(&intf) != 0) {
+    if (new_rawsock(intf) != 0) {
         perror("Error creating INTF_RAWSOCK");
         return EX_IOERR;
     }
 
     // Read data into the buffer
-    while ((count = intf.recv_frame(&intf, &eth_frame)) != -1) {
+    while ((count = intf->recv_frame(intf, &eth_frame)) != -1) {
         struct timespec ts;
         timespec_get(&ts, TIME_UTC);
 
         // Packet received. Notify the virtual 'interface' for processing
-        recv_ether(&intf, eth_frame);
+        recv_ether(intf, eth_frame);
 
         struct eth_hdr *ethhdr = eth_hdr(eth_frame);
         if (memcmp(ethhdr->daddr, ETH_ADDR, ETH_ADDR_LEN) != 0) {
@@ -169,6 +169,9 @@ int main(int argc, char **argv) {
         cleanup:
         free_frame(eth_frame);
     }
+
+    intf->free(intf);
+    free(intf);
 
     perror("recv error (MSG_PEEK|MSG_TRUNC)");
 

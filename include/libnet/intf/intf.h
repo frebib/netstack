@@ -20,6 +20,8 @@ struct intf {
     ssize_t (*send_frame)(struct intf *, struct frame *);
 
     ssize_t (*recv_peek)(struct intf *);
+
+    void (*free)(struct intf *);
 };
 
 int if_type(struct intf *intf);

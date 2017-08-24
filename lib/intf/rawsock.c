@@ -54,6 +54,7 @@ int new_rawsock(struct intf *interface) {
     interface->recv_frame = rawsock_recv_frame;
     interface->send_frame = rawsock_send_frame;
     interface->recv_peek = rawsock_peek;
+    interface->free = free_rawsock;
 
     return 0;
 }
@@ -62,7 +63,6 @@ void free_rawsock(struct intf *intf) {
     int *sockptr = (int *) intf->intf_lower;
     close(*sockptr);
     free(sockptr);
-    free(intf);
 }
 
 ssize_t rawsock_recv_frame(struct intf *interface, struct frame **frame) {
