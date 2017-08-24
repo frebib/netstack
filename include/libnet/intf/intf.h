@@ -1,9 +1,7 @@
 #ifndef NETD_INTERFACE_H
 #define NETD_INTERFACE_H
 
-#include <stdlib.h>
-#include <stddef.h>
-#include <stdbool.h>
+#include <sys/types.h>
 #include <libnet/frame.h>
 
 #define INTF_RAWSOCK    1
