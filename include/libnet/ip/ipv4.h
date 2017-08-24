@@ -29,8 +29,13 @@ struct ipv4_hdr {
     // TODO: Take endianness into account here
     uint8_t     hdr_len:4,  /* Internet header length (# of 32bit words) */
                 version:4;  /* Always 4 for IPv4 */
-    uint8_t     dscp:6,
-                ecn:2;
+    union {
+        struct {
+            uint8_t dscp:6,
+                    ecn:2;
+        };
+        uint8_t tos;
+    };
     uint16_t    len,        /* Size of header + data in bytes */
                 id;         /* packet identification number */
     uint8_t     flags:3;
