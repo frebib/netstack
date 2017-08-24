@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <sysexits.h>
 
 #include <net/if.h>
 #include <sys/ioctl.h>
@@ -9,8 +11,6 @@
 #include <linux/if_ether.h>
 #include <libnet/eth/ether.h>
 #include <libnet/intf/rawsock.h>
-#include <unistd.h>
-#include <sysexits.h>
 
 int new_rawsock(struct intf *interface) {
     if (interface == NULL) {
