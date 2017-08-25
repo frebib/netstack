@@ -8,6 +8,7 @@
 
 struct intf_rawsock {
     int sock;
+    int if_index;
 };
 
 int new_rawsock(struct intf *interface);

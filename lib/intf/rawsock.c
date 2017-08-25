@@ -8,6 +8,7 @@
 #include <net/if.h>
 #include <sys/ioctl.h>
 #include <netinet/in.h>
+#include <netpacket/packet.h>
 
 #include <linux/if_ether.h>
 #include <libnet/eth/ether.h>
@@ -46,12 +47,11 @@ int new_rawsock(struct intf *interface) {
         return -1;
     }
 
-    // Use container pointer to ensure int always fits
-    // This also avoids lots of horrible type warnings
-    int *sockptr = malloc(sizeof(int));
-    *sockptr = sock;
+    struct intf_rawsock *ll = malloc(sizeof(struct intf_rawsock));
+    ll->sock = sock;
+    ll->if_index = ifr.ifr_ifindex;
 
-    interface->intf_lower = sockptr;
+    interface->ll = ll;
     interface->type = INTF_RAWSOCK;
     interface->recv_frame = rawsock_recv_frame;
     interface->send_frame = rawsock_send_frame;
@@ -62,8 +62,8 @@ int new_rawsock(struct intf *interface) {
 }
 
 void free_rawsock(struct intf *intf) {
-    int *sockptr = (int *) intf->intf_lower;
-    close(*sockptr);
+    struct intf_rawsock *sockptr = (struct intf_rawsock *) intf->ll;
+    close(sockptr->sock);
     free(sockptr);
 }
 
@@ -71,7 +71,7 @@ ssize_t rawsock_recv_frame(struct intf *interface, struct frame **frame) {
     // Count is raw eth packet size (inc eth + ip + transport)
     ssize_t lookahead = 0,
             count = 0;
-    int sock = *((int *) interface->intf_lower);
+    int sock = *((int *) interface->ll);
 
     // Use peek method in struct, it may have been overridden
     if ((lookahead = interface->recv_peek(interface)) == -1) {
@@ -112,11 +112,18 @@ ssize_t rawsock_recv_frame(struct intf *interface, struct frame **frame) {
 
 ssize_t rawsock_send_frame(struct intf *interface, struct frame *frame) {
     // TODO: Move this into a separate thread and use signalling
-    int sock = *((int *) interface->intf_lower);
-    return write(sock, frame->buffer, frame->buf_size);
+    struct intf_rawsock *ll = (struct intf_rawsock *) interface->ll;
+    struct sockaddr_ll sa;
+    sa.sll_family = AF_PACKET;
+    sa.sll_ifindex = ll->if_index;
+    sa.sll_halen = ETH_ADDR_LEN;
+    memcpy(sa.sll_addr, eth_hdr(frame)->daddr, ETH_ADDR_LEN);
+
+    return sendto(ll->sock, frame->buffer, frame->buf_size, 0,
+                  (const struct sockaddr *) &sa, sizeof(sa));
 }
 
 ssize_t rawsock_peek(struct intf *interface) {
-    int sock = *((int *) interface->intf_lower);
+    int sock = *((int *) interface->ll);
     return recv(sock, NULL, 0, (MSG_PEEK | MSG_TRUNC));
 }
