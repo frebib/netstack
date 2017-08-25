@@ -28,7 +28,11 @@ int new_rawsock(struct intf *interface) {
         return -1;
     }
 
-    struct if_nameindex *if_ni = if_nameindex();
+    // TODO: This is hacky, assuiming lo is loopback
+    // Request first non-loopback interface
+    struct if_nameindex *if_ni = NULL,
+                        *if_ni_head = if_nameindex();
+    if_ni = if_ni_head;
     while (if_ni != NULL && if_ni->if_index != 0) {
         if (strcmp(if_ni->if_name, "lo") != 0) {
             printf("Using interface (#%d) %s\n", if_ni->if_index,
@@ -37,6 +41,7 @@ int new_rawsock(struct intf *interface) {
         }
         if_ni++;
     }
+    if_freenameindex(if_ni_head);
 
     struct intf_rawsock *ll = malloc(sizeof(struct intf_rawsock));
     ll->sock = sock;
