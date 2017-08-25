@@ -28,28 +28,19 @@ int new_rawsock(struct intf *interface) {
         return -1;
     }
 
-    struct ifreq ifr;
-    strcpy(ifr.ifr_name, INTF_NAME);
-    // Get the current flags that the device might have
-    if (ioctl(sock, SIOCGIFFLAGS, &ifr) == -1) {
-        perror("Error: Could not retrive the flags from the device.\n");
-        return -1;
-    }
-    // Set the old flags plus the IFF_PROMISC flag
-    ifr.ifr_flags |= IFF_PROMISC;
-    if (ioctl(sock, SIOCSIFFLAGS, &ifr) == -1) {
-        perror("Error: Could not set flag IFF_PROMISC");
-        return -1;
-    }
-    // Configure the device
-    if (ioctl(sock, SIOCGIFINDEX, &ifr) < 0) {
-        perror("Error: Error getting the device index.\n");
-        return -1;
+    struct if_nameindex *if_ni = if_nameindex();
+    while (if_ni != NULL && if_ni->if_index != 0) {
+        if (strcmp(if_ni->if_name, "lo") != 0) {
+            printf("Using interface (#%d) %s\n", if_ni->if_index,
+                   if_ni->if_name);
+            break;
+        }
+        if_ni++;
     }
 
     struct intf_rawsock *ll = malloc(sizeof(struct intf_rawsock));
     ll->sock = sock;
-    ll->if_index = ifr.ifr_ifindex;
+    ll->if_index = if_ni->if_index;
 
     interface->ll = ll;
     interface->type = INTF_RAWSOCK;
