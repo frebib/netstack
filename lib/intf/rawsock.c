@@ -41,18 +41,34 @@ int new_rawsock(struct intf *interface) {
         }
         if_ni++;
     }
-    if_freenameindex(if_ni_head);
+    if (if_ni == NULL) {
+        errno = ENODEV;
+        return -1;
+    }
+
+    // Get chosen interface mac address
+    uint8_t *hwaddr = malloc(IFHWADDRLEN);
+    struct ifreq req;
+    strcpy(req.ifr_name, if_ni->if_name);
+    if (ioctl(sock, SIOCGIFHWADDR, &req) == 0) {
+        memcpy(hwaddr, req.ifr_addr.sa_data, IFHWADDRLEN);
+    } else {
+        return -1;
+    }
 
     struct intf_rawsock *ll = malloc(sizeof(struct intf_rawsock));
     ll->sock = sock;
     ll->if_index = if_ni->if_index;
 
     interface->ll = ll;
+    interface->ll_addr = hwaddr;
     interface->type = INTF_RAWSOCK;
     interface->recv_frame = rawsock_recv_frame;
     interface->send_frame = rawsock_send_frame;
     interface->recv_peek = rawsock_peek;
     interface->free = free_rawsock;
+
+    if_freenameindex(if_ni_head);
 
     return 0;
 }
@@ -61,6 +77,7 @@ void free_rawsock(struct intf *intf) {
     struct intf_rawsock *sockptr = (struct intf_rawsock *) intf->ll;
     close(sockptr->sock);
     free(sockptr);
+    free(intf->ll_addr);
 }
 
 ssize_t rawsock_recv_frame(struct intf *interface, struct frame **frame) {

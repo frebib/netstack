@@ -16,6 +16,7 @@ struct intf {
     char name[IFNAMSIZ];
     // Link layer information
     void *ll;
+    uint8_t *ll_addr;
 
     /* Blocking function call that reads a frame from the interface. */
     ssize_t (*recv_frame)(struct intf *, struct frame **);

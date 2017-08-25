@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
         recv_ether(intf, eth_frame);
 
         struct eth_hdr *ethhdr = eth_hdr(eth_frame);
-        if (memcmp(ethhdr->daddr, ETH_ADDR, ETH_ADDR_LEN) != 0) {
+        if (memcmp(ethhdr->daddr, intf->ll_addr, ETH_ADDR_LEN) != 0) {
             goto cleanup;
         }
 

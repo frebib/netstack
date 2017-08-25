@@ -20,7 +20,7 @@ void recv_ether(struct intf *intf, struct frame *frame) {
     // TODO: Move ethernet address into interface struct
 
     /* Ensure packet received has a matching address to our interface */
-    if (memcmp(hdr->daddr, ETH_ADDR, ETH_ADDR_LEN) != 0) {
+    if (memcmp(hdr->daddr, intf->ll_addr, ETH_ADDR_LEN) != 0) {
         return;
     }
 
