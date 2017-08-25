@@ -69,4 +69,13 @@ void recv_ipv4(struct intf *intf, struct frame *frame);
         ((ip) >> 8) & 0xFF, \
         (ip) & 0xFF)
 
+// Converts 4 bytes to a uint32_t IPv4 address
+// e.g. num_ipv4(192, 168, 10, 1) represents 192.168.10.1
+#define num_ipv4(a, b, c, d) (\
+        ((a) << 24) + \
+        ((b) << 16) + \
+        ((c) << 8) + \
+        (d) \
+    )
+
 #endif //NETD_IPV4_H
