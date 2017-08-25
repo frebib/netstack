@@ -38,8 +38,7 @@ struct ipv4_hdr {
     };
     uint16_t    len,        /* Size of header + data in bytes */
                 id;         /* packet identification number */
-    uint8_t     flags:3;
-    uint16_t    frag_ofs:13;
+    uint16_t    frag_ofs;
     uint8_t     ttl;
     uint8_t     proto;
     uint16_t    csum;
@@ -47,6 +46,12 @@ struct ipv4_hdr {
                 daddr;
     /* Options are now specified, optionally of course */
 }__attribute((packed));
+
+/* IP flags. */
+#define IP_CE		0x8000		/* Flag: "Congestion"		*/
+#define IP_DF		0x4000		/* Flag: "Don't Fragment"	*/
+#define IP_MF		0x2000		/* Flag: "More Fragments"	*/
+#define IP_OFFSET	0x1FFF		/* "Fragment Offset" part	*/
 
 /* Returns a struct ipv4_hdr from the frame->head */
 #define ipv4_hdr(frame) ((struct ipv4_hdr *) (frame)->head)
