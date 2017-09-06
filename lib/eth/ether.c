@@ -25,15 +25,19 @@ void recv_ether(struct intf *intf, struct frame *frame) {
     struct frame *child_frame = frame_child_copy(frame);
     switch (hdr->ethertype) {
         case ETH_P_ARP:
-            return recv_arp(intf, child_frame);
+            recv_arp(intf, child_frame);
+            return;
         case ETH_P_IP:
-            return recv_ipv4(intf, child_frame);
+            recv_ipv4(intf, child_frame);
+            return;
         case ETH_P_IPV6:
             fprintf(stderr, "ETH: Unimplemented frame type %s\n",
                     fmt_ipproto(hdr->ethertype));
+            return;
         default:
             fprintf(stderr, "ETH: Unrecognised frame type: %s\n",
                     fmt_ethertype(hdr->ethertype));
+            return;
     }
 }
 
