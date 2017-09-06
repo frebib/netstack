@@ -17,8 +17,6 @@ void recv_ether(struct intf *intf, struct frame *frame) {
     /* Frame data is after fixed header size */
     frame->data += ETH_HDR_LEN;
 
-    // TODO: Move ethernet address into interface struct
-
     /* Ensure packet received has a matching address to our interface */
     if (memcmp(hdr->daddr, intf->ll_addr, ETH_ADDR_LEN) != 0) {
         return;
