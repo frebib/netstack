@@ -21,13 +21,16 @@ struct frame *init_frame(struct sock *sock, size_t size) {
 }
 
 void free_frame(struct frame *frame) {
+    if (frame == NULL) {
+        return;
+    }
     // free() performs the null check for us
     if (frame->parent == NULL) {
         // Only free the buffer if we created it!
         free(frame->buffer);
     }
     // Iterate through children only, we want to keep the parents
-    struct frame* child;
+    struct frame *child;
     do {
         child = frame->child;
         free(frame);
