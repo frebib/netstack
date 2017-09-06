@@ -67,6 +67,8 @@ int new_rawsock(struct intf *interface) {
     interface->send_frame = rawsock_send_frame;
     interface->recv_peek = rawsock_peek;
     interface->free = free_rawsock;
+    // Newly recv'd frames are of type 'ether'
+    interface->input = recv_ether;
 
     if_freenameindex(if_ni_head);
 

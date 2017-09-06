@@ -26,6 +26,7 @@ target_link_libraries(netd
         net      # libnet, the network stack implementation
         cap      # libcap for capabilities (CAP_NET_RAW)
         dl       # dynamic libraries for overriding syscalls
+        pthread  # POSIX threads
 )
 
 IF (NOT $ENV{USER} STREQUAL "root")

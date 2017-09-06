@@ -10,6 +10,11 @@
 #define INTF_RAWSOCK    1
 #define INTF_TUNTAP     2
 
+// Interface thread ids
+#define INTF_THR_RECV   0
+#define INTF_THR_SEND   1
+#define INTF_THR_MAX    2
+
 // TODO: Implement 'virtual' network interfaces
 // `man netdevice` gives a good overview
 struct intf {
@@ -18,6 +23,9 @@ struct intf {
     char name[IFNAMSIZ];
     void *ll;
     uint8_t *ll_addr;
+
+    // Interface send/recv thread ids
+    pthread_t threads[INTF_THR_MAX];
 
     // Blocking function call that reads a frame from the interface.
     ssize_t (*recv_frame)(struct intf *, struct frame **);
@@ -31,8 +39,15 @@ struct intf {
     // Cleans up an allocated interface data, excluding the interface struct
     // itself (may not have been dynamically allocated)
     void (*free)(struct intf *);
+
+    // Stack input for recv'd data
+    // Called by the interface with the appropriate frame type
+    // e.g. ether frames for an ethernet device, IP frames for TUN
+    void (*input)(struct intf *, struct frame *);
 };
 
 int if_type(struct intf *intf);
+
+int init_intf(struct intf *intf);
 
 #endif //NETD_INTERFACE_H

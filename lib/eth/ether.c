@@ -17,22 +17,30 @@ void recv_ether(struct intf *intf, struct frame *frame) {
     /* Frame data is after fixed header size */
     frame->data += ETH_HDR_LEN;
 
+    // Print ether addresses
+    char ssaddr[18], sdaddr[18];
+    fmt_mac(hdr->saddr, ssaddr);
+    fmt_mac(hdr->daddr, sdaddr);
+    printf(" %s > %s ", ssaddr, sdaddr);
+
     /* Ensure packet received has a matching address to our interface */
     if (memcmp(hdr->daddr, intf->ll_addr, ETH_ADDR_LEN) != 0) {
+        printf("Packet not destined for us");
         return;
     }
 
     struct frame *child_frame = frame_child_copy(frame);
     switch (hdr->ethertype) {
         case ETH_P_ARP:
+            printf("ARP");
             recv_arp(intf, child_frame);
             return;
         case ETH_P_IP:
+            printf("IPv4");
             recv_ipv4(intf, child_frame);
             return;
         case ETH_P_IPV6:
-            fprintf(stderr, "ETH: Unimplemented frame type %s\n",
-                    fmt_ipproto(hdr->ethertype));
+            printf("IPv6 unimpl");
             return;
         default:
             fprintf(stderr, "ETH: Unrecognised frame type: %s\n",
