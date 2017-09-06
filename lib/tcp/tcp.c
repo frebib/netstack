@@ -19,7 +19,6 @@ void recv_tcp(struct intf *intf, struct frame *frame) {
 
     /* Don't parse yet, we need to check the checksum first */
     struct tcp_hdr *hdr = tcp_hdr(frame);
-    /* hdr->hdr_len is 1 byte, soo 4x is 1 word size */
     frame->data += tcp_hdr_len(hdr);
     uint16_t pkt_len = (uint16_t) (frame->tail - frame->head);
 
