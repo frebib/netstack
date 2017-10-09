@@ -23,6 +23,7 @@ DESTDIR =
 
 export PREFIX DESTDIR
 
+
 .PHONY: default all build
 default: all
 all: build doc
@@ -33,7 +34,7 @@ $(TARGET_BIN): $(TARGET_LIB_PATH) $(OBJ)
 	$(CC) $(LDFLAGS) $(OBJ) $(LDLIBS) -o $@
 
 $(TARGET_LIB_PATH):
-	$(MAKE) -C $(LIBDIR) $(TARGET_LIB)
+	make -C $(LIBDIR) $(TARGET_LIB)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c $(INC)
 	@mkdir -p $(@D)
@@ -45,13 +46,13 @@ doc:
 	@echo 'No documentation to build yet'
 
 install: $(TARGET_BIN) $(TARGET_LIB_PATH)
-	$(MAKE) -C $(LIBDIR) install
-	$(INSTALL) -Dm755 $(TARGET_BIN) $(DESTDIR)/$(PREFIX)/bin/$(TARGET_BIN)
+	make -C $(LIBDIR) install
+	install -Dm755 $(TARGET_BIN) $(DESTDIR)/$(PREFIX)/bin/$(TARGET_BIN)
 
 uninstall:
-	$(MAKE) -C $(LIBDIR) uninstall
+	make -C $(LIBDIR) uninstall
 	$(RM) $(DESTDIR)/$(PREFIX)/bin/$(TARGET_BIN)
 
 clean:
-	$(MAKE) -C $(LIBDIR) clean
+	make -C $(LIBDIR) clean
 	$(RM) -r $(OBJDIR) $(TARGET_BIN)
