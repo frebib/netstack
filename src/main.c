@@ -10,10 +10,7 @@
 #include <sys/capability.h>
 
 #include <netstack/frame.h>
-#include <netstack/frame.h>
 #include <netstack/eth/ether.h>
-#include <netstack/eth/ether.h>
-#include <netstack/intf/rawsock.h>
 #include <netstack/intf/rawsock.h>
 
 // TODO: Add many configurable interfaces
