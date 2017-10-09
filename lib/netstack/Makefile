@@ -8,7 +8,6 @@ override LDLIBS  += -lpthread
 
 # Source and header files
 SRC = $(shell find $(SRCDIR) -type f -name '*.c')
-LIB = $(shell find $(LIBDIR) -type f -name '*.c')
 INC = $(shell find $(INCDIR) -type f -name '*.h')
 OBJ = $(patsubst $(SRCDIR)%,$(OBJDIR)%,$(patsubst %.c, %.o, $(SRC)))
 
@@ -26,7 +25,7 @@ all: build doc
 build: $(TARGET_LIB)
 
 # Compilation
-$(TARGET_LIB): $(OBJ) | $(LIBDIR)
+$(TARGET_LIB): $(OBJ)
 	$(CC) $(LDFLAGS) $(OBJ) $(LDLIBS) -o $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c $(INC)
