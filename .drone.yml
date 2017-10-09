@@ -19,8 +19,8 @@ pipeline:
       - RAWSOCK_NOBIND=true
     commands:
       - apk --no-cache --quiet add libcap coreutils
-      - test -f build/libnet.so
+      - test -f build/lib/netstack/libnetstack.so
       - test -f build/netd -a -x build/netd
       - ldd build/netd
       # ret 124 is a timeout therefore it did not crash
-      - timeout 10 build/netd || test $? -eq 124
+      - timeout 10 build/netd >/dev/null || test $? -eq 124
