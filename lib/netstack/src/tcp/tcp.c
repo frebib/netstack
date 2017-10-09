@@ -1,5 +1,5 @@
 #include <netinet/in.h>
-#include <libnet/tcp/tcp.h>
+#include <netstack/tcp/tcp.h>
 
 struct tcp_hdr *parse_tcp(void *data) {
     struct tcp_hdr *tcp_hdr = (struct tcp_hdr *) data;

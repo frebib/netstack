@@ -1,10 +1,10 @@
 #include <stdio.h>
 
 #include <netinet/in.h>
-#include <libnet/frame.h>
-#include <libnet/ip/ipv4.h>
-#include <libnet/tcp/tcp.h>
-#include <libnet/checksum.h>
+#include <netstack/frame.h>
+#include <netstack/ip/ipv4.h>
+#include <netstack/tcp/tcp.h>
+#include <netstack/checksum.h>
 
 struct ipv4_hdr *parse_ipv4(void *data) {
     struct ipv4_hdr *hdr = (struct ipv4_hdr *) data;

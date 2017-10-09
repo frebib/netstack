@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 #include <netinet/in.h>
-#include <libnet/eth/arp.h>
+#include <netstack/eth/arp.h>
 
 struct arp_hdr *parse_arp(void *data) {
     struct arp_hdr *hdr = (struct arp_hdr *) data;

@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include <libnet/intf/intf.h>
+#include <netstack/intf/intf.h>
 
 /*
     Source: https://tools.ietf.org/html/rfc793#page-15

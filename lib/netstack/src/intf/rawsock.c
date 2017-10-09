@@ -11,8 +11,8 @@
 #include <netpacket/packet.h>
 
 #include <linux/if_ether.h>
-#include <libnet/eth/ether.h>
-#include <libnet/intf/rawsock.h>
+#include <netstack/eth/ether.h>
+#include <netstack/intf/rawsock.h>
 
 int new_rawsock(struct intf *interface) {
     if (interface == NULL) {

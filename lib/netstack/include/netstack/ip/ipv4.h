@@ -2,7 +2,7 @@
 #define NETD_IPV4_H
 
 #include <stdint.h>
-#include <libnet/intf/intf.h>
+#include <netstack/intf/intf.h>
 #include "ipproto.h"
 
 /*

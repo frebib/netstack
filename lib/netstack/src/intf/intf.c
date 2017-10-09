@@ -5,7 +5,7 @@
 //#define __USE_GNU
 #include <pthread.h>
 
-#include <libnet/intf/intf.h>
+#include <netstack/intf/intf.h>
 
 int if_type(struct intf *intf) {
     return intf->type;

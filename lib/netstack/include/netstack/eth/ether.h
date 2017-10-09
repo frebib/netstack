@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <linux/types.h>
 
-#include <libnet/intf/intf.h>
+#include <netstack/intf/intf.h>
 
 #include "ethertype.h"
 

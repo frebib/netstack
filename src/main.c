@@ -9,9 +9,12 @@
 #include <sys/wait.h>
 #include <sys/capability.h>
 
-#include <libnet/frame.h>
-#include <libnet/eth/ether.h>
-#include <libnet/intf/rawsock.h>
+#include <netstack/frame.h>
+#include <netstack/frame.h>
+#include <netstack/eth/ether.h>
+#include <netstack/eth/ether.h>
+#include <netstack/intf/rawsock.h>
+#include <netstack/intf/rawsock.h>
 
 // TODO: Add many configurable interfaces
 // TODO: Add loopback interface

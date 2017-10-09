@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include <libnet/socket.h>
+#include <netstack/socket.h>
 
 #define FRAME_LEN sizeof(struct frame)
 

@@ -1,7 +1,7 @@
 #include <string.h>
 #include <malloc.h>
 
-#include <libnet/frame.h>
+#include <netstack/frame.h>
 
 struct frame *init_frame(struct sock *sock, size_t size) {
     struct frame *frame = malloc(sizeof(struct frame));

@@ -1,4 +1,4 @@
-#include <libnet/checksum.h>
+#include <netstack/checksum.h>
 
 /* Source: https://tools.ietf.org/html/rfc1071#section-4.1 */
 #if _WORDSIZE == 32

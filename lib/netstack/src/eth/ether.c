@@ -2,8 +2,8 @@
 #include <string.h>
 
 #include <netinet/in.h>
-#include <libnet/ip/ipv4.h>
-#include <libnet/eth/arp.h>
+#include <netstack/ip/ipv4.h>
+#include <netstack/eth/arp.h>
 
 struct eth_hdr *parse_ether(void *data) {
     struct eth_hdr *hdr = (struct eth_hdr *) data;

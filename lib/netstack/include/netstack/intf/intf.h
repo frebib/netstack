@@ -4,7 +4,7 @@
 #include <net/if.h>
 #include <sys/types.h>
 
-#include <libnet/frame.h>
+#include <netstack/frame.h>
 
 // Interface types
 #define INTF_RAWSOCK    1
