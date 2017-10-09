@@ -56,7 +56,8 @@ void recv_ipv4(struct intf *intf, struct frame *frame) {
     struct frame *child_frame = frame_child_copy(frame);
     switch (hdr->proto) {
         case IP_P_TCP:
-            return recv_tcp(intf, child_frame);
+            recv_tcp(intf, child_frame);
+            return;
         case IP_P_UDP:
         case IP_P_ICMP:
             fprintf(stderr, "IPv4: Unimplemented packet type %s\n",

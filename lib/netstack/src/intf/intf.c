@@ -55,11 +55,13 @@ void intf_recv(struct intf *intf) {
 int nthread_create(pthread_t *id, char *name,
                    void (*fn)(struct intf *), void *arg) {
     // Create and start thread
-    pthread_create(id, NULL, (void *(*)(void *)) fn, arg);
+    int ret = pthread_create(id, NULL, (void *(*)(void *)) fn, arg);
 #ifdef __USE_GNU
     // Set the thread name, if available
     pthread_setname_np(*id, name);
 #endif
+
+    return ret;
 }
 
 int init_intf(struct intf *intf) {

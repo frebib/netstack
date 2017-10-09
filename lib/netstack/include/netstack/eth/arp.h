@@ -21,7 +21,7 @@
 #define ARP_OP_REQUEST      0x001
 #define ARP_OP_REPLY        0x002
 
-static inline const char const *fmt_arp_op(unsigned short op) {
+static inline char const *fmt_arp_op(unsigned short op) {
     switch (op) {
         case ARP_OP_REQUEST:    return "ARP_OP_REQUEST";
         case ARP_OP_REPLY:      return "ARP_OP_REPLY";

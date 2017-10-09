@@ -2,7 +2,7 @@
 
 /* Source: https://tools.ietf.org/html/rfc1071#section-4.1 */
 #if _WORDSIZE == 32
-uint16_t in_cksum(const uint8_t *ptr, size_t len, uint16_t initial) {
+uint16_t in_csum(const uint8_t *ptr, size_t len, uint16_t initial) {
 
     uint32_t sum = initial;
     uint16_t *data = (uint16_t *) ptr;
@@ -42,23 +42,23 @@ uint16_t in_csum(const void *ptr, size_t len, uint64_t initial) {
     }
 
     /* Handle tail less than 8-bytes long */
-    ptr = (const uint8_t *) data;
+    uint8_t* tail = (uint8_t *) data;
     if (len & 4) {
-        uint32_t s = *(uint32_t *) ptr;
+        uint32_t s = *(uint32_t *) tail;
         sum += s;
         if (sum < s) sum++;
-        ptr += 4;
+        tail += 4;
     }
 
     if (len & 2) {
-        uint16_t s = *(uint16_t *) ptr;
+        uint16_t s = *(uint16_t *) tail;
         sum += s;
         if (sum < s) sum++;
-        ptr += 2;
+        tail += 2;
     }
 
     if (len & 1) {
-        uint8_t s = *(uint8_t *) ptr;
+        uint8_t s = *tail;
         sum += s;
         if (sum < s) sum++;
     }
