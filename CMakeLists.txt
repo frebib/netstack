@@ -2,28 +2,22 @@ cmake_minimum_required(VERSION 3.8)
 set(CMAKE_C_STANDARD 11)
 
 ##################
-##    libnet    ##
-##################
-
-project(libnet)
-
-include_directories(include)
-
-file(GLOB_RECURSE SOURCE_FILES lib/**)
-add_library(net SHARED ${SOURCE_FILES})
-
-
-##################
 ##     netd     ##
 ##################
 
 project(netd)
 
-file(GLOB_RECURSE SOURCE_FILES src/**)
-add_executable(netd ${SOURCE_FILES})
+file(GLOB_RECURSE NETD_SOURCE_FILES src/**)
+add_executable(netd ${NETD_SOURCE_FILES})
+
+# include libnetstack
+add_subdirectory(lib/netstack)
+
+# add libnetstack header files
+include_directories(lib/netstack/include)
 
 target_link_libraries(netd
-        net      # libnet, the network stack implementation
+        netstack # the network stack implementation
         cap      # libcap for capabilities (CAP_NET_RAW)
         dl       # dynamic libraries for overriding syscalls
         pthread  # POSIX threads
