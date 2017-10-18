@@ -1,4 +1,4 @@
-# A complete TCP & networking stack in userspace
+# A complete TCP & networking stack in userland
 [![Build Status](https://drone.adam-ant.co.uk/api/badges/frebib/netd/status.svg)](https://drone.adam-ant.co.uk/frebib/netd)
 
 This is made up of two integral parts:
