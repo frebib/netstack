@@ -1,11 +1,11 @@
 /.idea/
-/build/
-/cmake-build-*/
-/obj/
+build/
+cmake-build-*/
+obj/
 
 /netd
 
-.o
-.so
-.a
+*.o
+*.so*
+*.a
 vgcore.*
