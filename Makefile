@@ -4,7 +4,7 @@ LIBDIR = lib/netstack
 INCDIR = $(LIBDIR)/include
 
 override CFLAGS  += -fPIC -I$(INCDIR) -Wall -Werror -Wpedantic -Wno-unused-variable
-override LDFLAGS += -L$(LIBDIR) -Wl,--as-needed
+override LDFLAGS += -L$(LIBDIR) -Wl,--as-needed -Wl,-rpath,"$(LIBDIR)"
 override LDLIBS  += -lnetstack -lcap -ldl -lpthread
 
 # Source and header files
