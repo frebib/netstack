@@ -25,8 +25,14 @@ void recv_tcp(struct intf *intf, struct frame *frame, uint16_t net_csum) {
     uint16_t pkt_len = (uint16_t) (frame->tail - frame->head);
 
     // TODO: Investigate TCP checksums invalid with long packets
-    // Could be something to do with TCP checksum offloading in Linux?
-    // Regardless, large packets are discarded unless it is fixed
+    // Research suggests this is caused by 'segmentation offload', or
+    // more specifically 'generic-receive-offload' in Linux.
+    // See also:
+    //   - https://lwn.net/Articles/358910/
+    //   - https://www.kernel.org/doc/Documentation/networking/segmentation-offloads.txt
+
+    // TODO: Check for TSO and GRO and account for it, somehow..
+
     if (in_csum(frame->head, pkt_len, net_csum) != 0) {
         fprintf(stderr, "\n\n\n\nError: TCP packet checksum is "
                 "corrupt (size %d)\n\n\n\n\n", pkt_len);
