@@ -7,13 +7,17 @@ pipeline:
     commands:
       # Run the default entrypoint
       - /usr/local/bin/entrypoint true
-      - mkdir -p build
-      - cd build
-      - cmake ..
       - make
 
   test:
     image: alpine:3.6
+    privileged: true
+    environment:
+      - RAWSOCK_NOBIND=true
     commands:
-      - test -f build/libnet.so
-      - test -f build/netd -a -x build/netd
+      - apk --no-cache --quiet add coreutils libcap make
+      - make --warn-undefined-variables install PREFIX=/usr
+      - ldconfig /usr/lib
+      - ldd /usr/bin/netd
+      # ret 124 is a timeout therefore it did not crash
+      - timeout 10 netd >/dev/null || test $? -eq 124

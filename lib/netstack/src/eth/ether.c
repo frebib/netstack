@@ -2,8 +2,8 @@
 #include <string.h>
 
 #include <netinet/in.h>
-#include <libnet/ip/ipv4.h>
-#include <libnet/eth/arp.h>
+#include <netstack/ip/ipv4.h>
+#include <netstack/eth/arp.h>
 
 struct eth_hdr *parse_ether(void *data) {
     struct eth_hdr *hdr = (struct eth_hdr *) data;
@@ -11,31 +11,41 @@ struct eth_hdr *parse_ether(void *data) {
     return hdr;
 }
 
-void recv_ether(struct interface *intf, struct frame *frame) {
+void recv_ether(struct intf *intf, struct frame *frame) {
 
     struct eth_hdr *hdr = parse_ether(frame->buffer);
     /* Frame data is after fixed header size */
     frame->data += ETH_HDR_LEN;
 
-    // TODO: Move ethernet address into interface struct
+    // Print ether addresses
+    char ssaddr[18], sdaddr[18];
+    fmt_mac(hdr->saddr, ssaddr);
+    fmt_mac(hdr->daddr, sdaddr);
+    printf(" %s > %s ", ssaddr, sdaddr);
 
     /* Ensure packet received has a matching address to our interface */
-    if (memcmp(hdr->daddr, ETH_ADDR, ETH_ADDR_LEN) != 0) {
+    if (memcmp(hdr->daddr, intf->ll_addr, ETH_ADDR_LEN) != 0) {
+        printf("Packet not destined for us");
         return;
     }
 
     struct frame *child_frame = frame_child_copy(frame);
     switch (hdr->ethertype) {
         case ETH_P_ARP:
-            return recv_arp(intf, child_frame);
+            printf("ARP");
+            recv_arp(intf, child_frame);
+            return;
         case ETH_P_IP:
-            return recv_ipv4(intf, child_frame);
+            printf("IPv4");
+            recv_ipv4(intf, child_frame);
+            return;
         case ETH_P_IPV6:
-            fprintf(stderr, "ETH: Unimplemented frame type %s\n",
-                    fmt_ipproto(hdr->ethertype));
+            printf("IPv6 unimpl");
+            return;
         default:
             fprintf(stderr, "ETH: Unrecognised frame type: %s\n",
                     fmt_ethertype(hdr->ethertype));
+            return;
     }
 }
 

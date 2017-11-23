@@ -2,7 +2,8 @@
 #define NETD_TCP_H
 
 #include <stdint.h>
-#include <libnet/interface.h>
+#include <stddef.h>
+#include <netstack/intf/intf.h>
 
 /*
     Source: https://tools.ietf.org/html/rfc793#page-15
@@ -104,7 +105,7 @@ struct tcp_ipv4_phdr {
 struct tcp_hdr *parse_tcp(void *data);
 
 /* Receives a tcp frame for processing in the network stack */
-void recv_tcp(struct interface *intf, struct frame *frame, uint16_t net_csum);
+void recv_tcp(struct intf *intf, struct frame *frame, uint16_t net_csum);
 
 
 /* Returns a string of characters/dots representing a set/unset TCP flag */

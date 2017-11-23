@@ -1,10 +1,10 @@
 #include <stdio.h>
 
 #include <netinet/in.h>
-#include <libnet/frame.h>
-#include <libnet/ip/ipv4.h>
-#include <libnet/tcp/tcp.h>
-#include <libnet/checksum.h>
+#include <netstack/frame.h>
+#include <netstack/ip/ipv4.h>
+#include <netstack/tcp/tcp.h>
+#include <netstack/checksum.h>
 
 struct ipv4_hdr *parse_ipv4(void *data) {
     struct ipv4_hdr *hdr = (struct ipv4_hdr *) data;
@@ -18,7 +18,7 @@ struct ipv4_hdr *parse_ipv4(void *data) {
     return hdr;
 }
 
-void recv_ipv4(struct interface *intf, struct frame *frame) {
+void recv_ipv4(struct intf *intf, struct frame *frame) {
 
     /* Don't parse yet, we need to check the checksum first */
     struct ipv4_hdr *hdr = ipv4_hdr(frame);
@@ -66,7 +66,8 @@ void recv_ipv4(struct interface *intf, struct frame *frame) {
             uint16_t ipv4_csum = ~in_csum(&pseudo_hdr, sizeof(pseudo_hdr), 0);
 
             /* Pass initial network csum as TCP packet csum seed */
-            return recv_tcp(intf, child_frame, ipv4_csum);
+            recv_tcp(intf, child_frame, ipv4_csum);
+            return;
         }
         case IP_P_UDP:
         case IP_P_ICMP:

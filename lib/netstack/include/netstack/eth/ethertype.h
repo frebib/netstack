@@ -14,7 +14,7 @@
 
 
 /* Returns a matching `const char *` to a ETH_P_* value */
-static inline const char const *fmt_ethertype(unsigned short ethertype) {
+static inline char const *fmt_ethertype(unsigned short ethertype) {
     switch (ethertype) {
         case ETH_P_IP:      return "ETH_P_IP";
         case ETH_P_IPV6:    return "ETH_P_IPV6";
