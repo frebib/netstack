@@ -53,9 +53,16 @@ void recv_ipv4(struct intf *intf, struct frame *frame) {
     /* Fix network endianness in header */
     hdr = parse_ipv4(frame->head);
 
+    char ssaddr[32], sdaddr[32];
+    fmt_ipv4(hdr->saddr, ssaddr);
+    fmt_ipv4(hdr->daddr, sdaddr);
+    printf(" %s > %s", ssaddr, sdaddr);
+
     struct frame *child_frame = frame_child_copy(frame);
     switch (hdr->proto) {
         case IP_P_TCP: {
+            printf(" TCP");
+
             /* Calculate TCP pseudo-header checksum */
             struct tcp_ipv4_phdr pseudo_hdr;
             pseudo_hdr.saddr = htonl(hdr->saddr);

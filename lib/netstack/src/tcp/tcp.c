@@ -43,4 +43,6 @@ void recv_tcp(struct intf *intf, struct frame *frame, uint16_t net_csum) {
     // TODO: Check TCP packet checksum
 
     parse_tcp(frame->head);
+
+    printf(" %d > %d", hdr->sport, hdr->dport);
 }

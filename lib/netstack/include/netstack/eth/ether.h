@@ -11,6 +11,8 @@
 #define ETH_HDR_LEN  sizeof(struct eth_hdr)
 #define ETH_ADDR_LEN 6      /* # of octets per address */
 
+static uint8_t ETH_BRD_ADDR[ETH_ADDR_LEN] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
 
 /* Ethernet frame header */
 struct eth_hdr {
