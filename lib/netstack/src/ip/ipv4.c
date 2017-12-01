@@ -78,12 +78,18 @@ void recv_ipv4(struct intf *intf, struct frame *frame) {
         }
         case IP_P_UDP:
         case IP_P_ICMP:
+            printf(" unimpl %s", fmt_ipproto(hdr->proto));
+            /*
             fprintf(stderr, "IPv4: Unimplemented packet type %s\n",
                     fmt_ipproto(hdr->proto));
+            */
             return;
         default:
+            printf(" unsupported %s", fmt_ipproto(hdr->proto));
+            /*
             fprintf(stderr, "IPv4: Unsupported packet type: %s\n",
                     fmt_ipproto(hdr->proto));
+            */
             return;
     }
 }

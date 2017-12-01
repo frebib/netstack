@@ -17,6 +17,14 @@ void recv_ether(struct intf *intf, struct frame *frame) {
     /* Frame data is after fixed header size */
     frame->data += ETH_HDR_LEN;
 
+    /* Check for our sent packets */
+    if (memcmp(hdr->saddr, intf->ll_addr, ETH_ADDR_LEN) == 0)
+        printf("(out)");
+    else if (memcmp(hdr->daddr, intf->ll_addr, ETH_ADDR_LEN) == 0)
+        printf("(in) ");
+    else
+        printf("     ");
+
     // Print ether addresses
     char ssaddr[18], sdaddr[18];
     fmt_mac(hdr->saddr, ssaddr);
@@ -31,8 +39,7 @@ void recv_ether(struct intf *intf, struct frame *frame) {
 
     /* Ensure packet received has a matching address to our interface */
     if (memcmp(hdr->daddr, intf->ll_addr, ETH_ADDR_LEN) != 0) {
-        printf("Packet not destined for us");
-        return;
+        // printf("Packet not destined for us");
     }
 
     struct frame *child_frame = frame_child_copy(frame);
@@ -49,8 +56,7 @@ void recv_ether(struct intf *intf, struct frame *frame) {
             printf("IPv6 unimpl");
             return;
         default:
-            fprintf(stderr, "ETH: Unrecognised frame type: %s\n",
-                    fmt_ethertype(hdr->ethertype));
+            printf("unrecognised %s", fmt_ethertype(hdr->ethertype));
             return;
     }
 }
