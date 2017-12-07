@@ -1,5 +1,5 @@
-#ifndef NETD_IPV4_H
-#define NETD_IPV4_H
+#ifndef NETSTACK_IPV4_H
+#define NETSTACK_IPV4_H
 
 #include <stdint.h>
 #include <netstack/intf/intf.h>
@@ -83,4 +83,4 @@ void recv_ipv4(struct intf *intf, struct frame *frame);
         (d) \
     )
 
-#endif //NETD_IPV4_H
+#endif //NETSTACK_IPV4_H

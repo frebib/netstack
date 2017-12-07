@@ -1,5 +1,5 @@
-#ifndef NETD_ETHER_H
-#define NETD_ETHER_H
+#ifndef NETSTACK_ETHER_H
+#define NETSTACK_ETHER_H
 
 #include <stdint.h>
 #include <linux/types.h>
@@ -40,4 +40,4 @@ void recv_ether(struct intf *intf, struct frame *frame);
     sprintf(buff, "%02X:%02X:%02X:%02X:%02X:%02X", \
         (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5])
 
-#endif //NETD_ETHER_H
+#endif //NETSTACK_ETHER_H

@@ -1,5 +1,5 @@
-#ifndef NETD_RAWSOCK_H
-#define NETD_RAWSOCK_H
+#ifndef NETSTACK_RAWSOCK_H
+#define NETSTACK_RAWSOCK_H
 
 #include <stddef.h>
 #include <stdbool.h>
@@ -21,4 +21,4 @@ ssize_t rawsock_send_frame(struct intf *, struct frame *);
 
 ssize_t rawsock_peek(struct intf *);
 
-#endif //NETD_RAWSOCK_H
+#endif //NETSTACK_RAWSOCK_H

@@ -1,5 +1,5 @@
-#ifndef NETD_ETHERTYPE_H
-#define NETD_ETHERTYPE_H
+#ifndef NETSTACK_ETHERTYPE_H
+#define NETSTACK_ETHERTYPE_H
 
 /* IEEE registered ethertypes:
  http://standards-oui.ieee.org/ethertype/eth.txt */
@@ -24,4 +24,4 @@ static inline char const *fmt_ethertype(unsigned short ethertype) {
     }
 }
 
-#endif //NETD_ETHERTYPE_H
+#endif //NETSTACK_ETHERTYPE_H

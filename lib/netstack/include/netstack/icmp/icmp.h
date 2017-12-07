@@ -1,5 +1,5 @@
-#ifndef NETD_ICMP_H
-#define NETD_ICMP_H
+#ifndef NETSTACK_ICMP_H
+#define NETSTACK_ICMP_H
 
 #include <stdint.h>
 
@@ -48,4 +48,4 @@ struct icmp_echo {
 /* Returns a struct icmp_echo from the frame->data */
 #define icmp_echo(frame) ((struct icmp_echo *) (frame)->data)
 
-#endif //NETD_ICMP_H
+#endif //NETSTACK_ICMP_H

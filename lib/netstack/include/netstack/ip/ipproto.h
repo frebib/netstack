@@ -1,5 +1,5 @@
-#ifndef NETD_IP_PROTO_H
-#define NETD_IP_PROTO_H
+#ifndef NETSTACK_IP_PROTO_H
+#define NETSTACK_IP_PROTO_H
 
 /*
  * IP packet field protocol values
@@ -23,4 +23,4 @@ static inline char const *fmt_ipproto(unsigned short proto) {
     }
 }
 
-#endif //NETD_IP_PROTO_H
+#endif //NETSTACK_IP_PROTO_H

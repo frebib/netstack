@@ -1,9 +1,9 @@
-#ifndef NETD_SOCKET_H
-#define NETD_SOCKET_H
+#ifndef NETSTACK_SOCKET_H
+#define NETSTACK_SOCKET_H
 
 /*
 struct sock {
 };
 */
 
-#endif //NETD_SOCKET_H
+#endif //NETSTACK_SOCKET_H

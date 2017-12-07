@@ -1,5 +1,5 @@
-#ifndef NETD_ARP_H
-#define NETD_ARP_H
+#ifndef NETSTACK_ARP_H
+#define NETSTACK_ARP_H
 
 #include <stdint.h>
 #include "ether.h"
@@ -56,4 +56,4 @@ struct arp_hdr *parse_arp(void *data);
 /* Receives an arp frame for processing in the network stack */
 void recv_arp(struct intf *intf, struct frame *frame);
 
-#endif //NETD_ARP_H
+#endif //NETSTACK_ARP_H

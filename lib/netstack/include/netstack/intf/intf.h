@@ -1,5 +1,5 @@
-#ifndef NETD_INTERFACE_H
-#define NETD_INTERFACE_H
+#ifndef NETSTACK_INTERFACE_H
+#define NETSTACK_INTERFACE_H
 
 #include <net/if.h>
 #include <sys/types.h>
@@ -50,4 +50,4 @@ int if_type(struct intf *intf);
 
 int init_intf(struct intf *intf);
 
-#endif //NETD_INTERFACE_H
+#endif //NETSTACK_INTERFACE_H

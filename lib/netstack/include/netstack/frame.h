@@ -1,5 +1,5 @@
-#ifndef NETD_FRAME_H
-#define NETD_FRAME_H
+#ifndef NETSTACK_FRAME_H
+#define NETSTACK_FRAME_H
 
 #include <stdint.h>
 #include <stddef.h>
@@ -31,4 +31,4 @@ void free_frame(struct frame *frame);
  * child to the original frame. Returns the new child frame */
 struct frame *frame_child_copy(struct frame *parent);
 
-#endif //NETD_FRAME_H
+#endif //NETSTACK_FRAME_H

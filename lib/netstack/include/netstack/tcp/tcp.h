@@ -1,5 +1,5 @@
-#ifndef NETD_TCP_H
-#define NETD_TCP_H
+#ifndef NETSTACK_TCP_H
+#define NETSTACK_TCP_H
 
 #include <stdint.h>
 #include <stddef.h>
@@ -127,4 +127,4 @@ static inline const int fmt_tcp_flags(struct tcp_hdr *hdr, char *buffer) {
     return 0;
 }
 
-#endif //NETD_TCP_H
+#endif //NETSTACK_TCP_H
