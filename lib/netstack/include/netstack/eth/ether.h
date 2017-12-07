@@ -37,7 +37,7 @@ void recv_ether(struct intf *intf, struct frame *frame);
    WARNING: `buff` must be at least 18 characters in size as this macro
             does no bounds checking! */
 #define fmt_mac(a, buff) \
-    sprintf(buff, "%02X:%02X:%02X:%02X:%02X:%02X", \
+    sprintf((buff), "%02X:%02X:%02X:%02X:%02X:%02X", \
         (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5])
 
 #endif //NETSTACK_ETHER_H

@@ -33,8 +33,7 @@ void recv_ether(struct intf *intf, struct frame *frame) {
 
     /* Check for broadcast packets */
     if (memcmp(hdr->daddr, &ETH_BRD_ADDR, ETH_ADDR_LEN) == 0) {
-        printf("Broadcast packet");
-        return;
+        printf("Broadcast ");
     }
 
     /* Ensure packet received has a matching address to our interface */
