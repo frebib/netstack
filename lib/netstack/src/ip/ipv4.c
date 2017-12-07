@@ -53,7 +53,7 @@ void recv_ipv4(struct intf *intf, struct frame *frame) {
     /* Fix network endianness in header */
     hdr = parse_ipv4(frame->head);
 
-    char ssaddr[32], sdaddr[32];
+    char ssaddr[16], sdaddr[16];
     fmt_ipv4(hdr->saddr, ssaddr);
     fmt_ipv4(hdr->daddr, sdaddr);
     printf(" %s > %s", ssaddr, sdaddr);
