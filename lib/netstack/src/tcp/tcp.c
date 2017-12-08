@@ -34,8 +34,7 @@ void recv_tcp(struct intf *intf, struct frame *frame, uint16_t net_csum) {
     // TODO: Check for TSO and GRO and account for it, somehow..
 
     if (in_csum(frame->head, pkt_len, net_csum) != 0) {
-        fprintf(stderr, "\n\n\n\nError: TCP packet checksum is "
-                "corrupt (size %d)\n\n\n\n\n", pkt_len);
+        printf(" invalid csum (size %d)", pkt_len);
     }
 
     // TODO: Other integrity checks
