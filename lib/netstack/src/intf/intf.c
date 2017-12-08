@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-
-//#define __USE_GNU
 #include <pthread.h>
 
 #include <netstack/intf/intf.h>
@@ -56,7 +54,7 @@ int nthread_create(pthread_t *id, char *name,
                    void (*fn)(struct intf *), void *arg) {
     // Create and start thread
     int ret = pthread_create(id, NULL, (void *(*)(void *)) fn, arg);
-#ifdef __USE_GNU
+#ifdef _GNU_SOURCE
     // Set the thread name, if available
     pthread_setname_np(*id, name);
 #endif
