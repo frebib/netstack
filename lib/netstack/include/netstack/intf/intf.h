@@ -5,6 +5,7 @@
 #include <sys/types.h>
 
 #include <netstack/frame.h>
+#include <netstack/llist.h>
 
 // Interface types
 #define INTF_RAWSOCK    1
@@ -23,6 +24,9 @@ struct intf {
     char name[IFNAMSIZ];
     void *ll;
     uint8_t *ll_addr;
+
+    // TODO: Move this into an 'ethernet' hardware struct into `void *ll`
+    struct llist_elem *arptbl;
 
     // Interface send/recv thread ids
     pthread_t threads[INTF_THR_MAX];

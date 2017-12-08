@@ -75,6 +75,8 @@ int init_intf(struct intf *intf) {
     nthread_create(&th_ids[INTF_THR_SEND], "send", &intf_send, intf);
     nthread_create(&th_ids[INTF_THR_RECV], "recv", &intf_recv, intf);
 
+    intf->arptbl = NULL;
+
     return 0;
 }
 
