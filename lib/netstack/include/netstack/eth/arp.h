@@ -33,7 +33,7 @@ static inline char const *fmt_arp_op(unsigned short op) {
 
 /* ARP message header */
 struct arp_hdr {
-    uint16_t hw_type,
+    uint16_t hwtype,
              prot_type;
     uint8_t  hlen,
              plen;
@@ -82,7 +82,7 @@ static inline char const *fmt_arp_state(uint8_t state) {
 }
 
 struct arp_entry_ipv4 {
-    uint8_t  hwtype;
+    uint16_t hwtype;
     uint8_t  state;
     uint32_t ip;
     uint8_t  hwlen;
@@ -96,7 +96,7 @@ struct arp_entry_ipv4 {
 
 /* Add ethernet/IPv4 entries to the ARP table */
 /* Returns true if a new entry was inserted, false if an old updated */
-bool arp_cache_ipv4(struct intf *intf, uint32_t ipv4, uint8_t hwtype,
-                        uint8_t hwlen, uint8_t *hwaddr);
+bool arp_cache_ipv4(struct intf *intf, struct arp_hdr *hdr,
+                    struct arp_ipv4 *req);
 
 #endif //NETSTACK_ARP_H
