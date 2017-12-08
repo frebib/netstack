@@ -1,4 +1,4 @@
-/.idea/
+.idea/
 build/
 cmake-build-*/
 obj/
