@@ -25,7 +25,7 @@ struct intf {
     void *ll;
     uint8_t *ll_addr;
 
-    // TODO: Move this into an 'ethernet' hardware struct into `void *ll`
+    // TODO: Move arptbl into an 'ethernet' hardware struct into `void *ll`
     struct llist_elem *arptbl;
 
     // Interface send/recv thread ids

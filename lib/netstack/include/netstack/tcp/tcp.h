@@ -30,7 +30,7 @@
 */
 
 struct tcp_hdr {
-    // TODO: Take endianness into account here
+    // TODO: Take endianness into account in tcp_hdr
     uint16_t    sport,          /* Source port */
                 dport;          /* Destination port */
     uint32_t    seqn,           /* Sequence number */

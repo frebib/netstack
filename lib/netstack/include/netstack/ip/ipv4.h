@@ -26,7 +26,7 @@
 */
 
 struct ipv4_hdr {
-    // TODO: Take endianness into account here
+    // TODO: Take endianness into account in ipv4_hdr
     uint8_t     hdr_len:4,  /* Internet header length (# of 32bit words) */
                 version:4;  /* Always 4 for IPv4 */
     union {
