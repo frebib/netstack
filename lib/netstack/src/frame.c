@@ -4,7 +4,7 @@
 #include <netstack/frame.h>
 
 struct frame *init_frame(struct sock *sock, size_t size) {
-    struct frame *frame = malloc(sizeof(struct frame));
+    struct frame *frame = malloc(FRAME_LEN);
     if (size > 0) {
         frame->buffer = malloc(size);
         frame->buf_size = size;
