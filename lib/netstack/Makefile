@@ -38,7 +38,7 @@ doc:
 	@echo 'No documentation to build yet'
 
 install: $(TARGET_LIB)
-	install -Dm644 $(TARGET_LIB) $(DESTDIR)/$(PREFIX)/lib/$(TARGET_LIB)
+	install -Dm644 $(TARGET_LIB) $(DESTDIR)$(PREFIX)/lib/$(TARGET_LIB)
 
 uninstall:
 	$(RM) $(DESTDIR)/$(PREFIX)/lib/$(TARGET_LIB)

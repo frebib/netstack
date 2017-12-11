@@ -47,7 +47,7 @@ doc:
 
 install: $(TARGET_BIN) $(TARGET_LIB_PATH)
 	make -C $(LIBDIR) install
-	install -Dm755 $(TARGET_BIN) $(DESTDIR)/$(PREFIX)/bin/$(TARGET_BIN)
+	install -Dm755 $(TARGET_BIN) $(DESTDIR)$(PREFIX)/bin/$(TARGET_BIN)
 
 uninstall:
 	make -C $(LIBDIR) uninstall
