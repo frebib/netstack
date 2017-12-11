@@ -68,9 +68,10 @@ uint8_t *arp_ipv4_get_hwaddr(struct intf *intf, uint8_t hwtype, uint32_t ipv4);
 /* ARP table cache */
 
 /* ARP cache validity */
-#define ARP_UNKNOWN         0x000
-#define ARP_PENDING         0x001
-#define ARP_RESOLVED        0x002
+#define ARP_UNKNOWN         0x001
+#define ARP_PENDING         0x002
+#define ARP_RESOLVED        0x004
+#define ARP_PERMANENT       0x008
 
 static inline char const *fmt_arp_state(uint8_t state) {
     switch (state) {

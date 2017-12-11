@@ -131,7 +131,7 @@ bool arp_cache_ipv4(struct intf *intf, struct arp_hdr *hdr,
                 // Update hwaddr for IP
                 memcpy(&entry->hwaddr, req->saddr, hdr->hlen);
             }
-            entry->state = ARP_RESOLVED;
+            entry->state |= ARP_RESOLVED;
 
             // Don't insert a new entry if an old one was updated
             return false;
