@@ -33,7 +33,10 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c $(INC)
 	$(CC) $(CFLAGS) -c $< -o $@ $(LDLIBS)
 
 # Misc
-.PHONY: doc install uninstall clean
+.PHONY: test doc install uninstall clean
+test: $(TARGET_LIB)
+	make -C tests all
+
 doc:
 	@echo 'No documentation to build yet'
 

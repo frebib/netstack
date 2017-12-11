@@ -31,3 +31,11 @@ cd build
 cmake ..
 make
 ```
+
+## Testing
+
+There are several bundled unit tests to test various parts of core code. They depend on [`libcheck`](https://github.com/libcheck/check).
+These can be run with
+```
+make test
+```
