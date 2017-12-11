@@ -34,11 +34,12 @@ struct llist_elem *llist_append(struct llist_elem *list, void *data) {
         new->prev = list;
         if (list->next)
             list->next->prev = new;
+        list->next = new;
     } else {
         new->next = NULL;
         new->prev = NULL;
     }
-    return list;
+    return new;
 }
 void llist_remove(struct llist_elem *list) {
     if (!list)
