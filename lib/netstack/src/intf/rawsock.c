@@ -51,6 +51,9 @@ int new_rawsock(struct intf *interface) {
     }
     if (if_ni == NULL) {
         errno = ENODEV;
+
+        if_freenameindex(if_ni_head);
+        close(sock);
         return -1;
     }
 
@@ -61,6 +64,9 @@ int new_rawsock(struct intf *interface) {
     if (ioctl(sock, SIOCGIFHWADDR, &req) == 0) {
         memcpy(hwaddr, req.ifr_addr.sa_data, IFHWADDRLEN);
     } else {
+        free(hwaddr);
+        if_freenameindex(if_ni_head);
+        close(sock);
         return -1;
     }
 
