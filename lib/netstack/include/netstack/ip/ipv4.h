@@ -27,7 +27,7 @@
 
 struct ipv4_hdr {
     // TODO: Take endianness into account in ipv4_hdr
-    uint8_t     hdr_len:4,  /* Internet header length (# of 32bit words) */
+    uint8_t     hlen:4,     /* Internet header length (# of 32bit words) */
                 version:4;  /* Always 4 for IPv4 */
     union {
         struct {
@@ -57,8 +57,8 @@ struct ipv4_hdr {
 #define ipv4_hdr(frame) ((struct ipv4_hdr *) (frame)->head)
 
 /* Returns the size in bytes of a header
- * hdr->hdr_len is 1 byte, soo 4x is 1 word size */
-#define ipv4_hdr_len(hdr) ((hdr)->hdr_len * 4)
+ * hdr->hlen is 1 byte, soo 4x is 1 word size */
+#define ipv4_hdr_len(hdr) ((hdr)->hlen * 4)
 
 /* Given a network ipv4 packet buffer, this
  * mutates network values to host values */

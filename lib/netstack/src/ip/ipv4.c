@@ -66,7 +66,7 @@ void recv_ipv4(struct intf *intf, struct frame *frame) {
             struct tcp_ipv4_phdr pseudo_hdr;
             pseudo_hdr.saddr = htonl(hdr->saddr);
             pseudo_hdr.daddr = htonl(hdr->daddr);
-            pseudo_hdr.len   = htons(payload_len);
+            pseudo_hdr.hlen  = htons(payload_len);
             pseudo_hdr.proto = hdr->proto;
             pseudo_hdr.rsvd  = 0;
             uint16_t ipv4_csum = ~in_csum(&pseudo_hdr, sizeof(pseudo_hdr), 0);

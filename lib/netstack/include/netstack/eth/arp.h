@@ -34,7 +34,7 @@ static inline char const *fmt_arp_op(unsigned short op) {
 /* ARP message header */
 struct arp_hdr {
     uint16_t hwtype,
-             prot_type;
+             proto;
     uint8_t  hlen,
              plen;
     uint16_t op;
@@ -82,9 +82,9 @@ static inline char const *fmt_arp_state(uint8_t state) {
 }
 
 struct arp_entry_ipv4 {
-    uint16_t hwtype;
     uint8_t  state;
     uint32_t ip;
+    uint16_t hwtype;
     uint8_t  hwlen;
     // Not enough space allocated for hw address.
     uint8_t  hwaddr;

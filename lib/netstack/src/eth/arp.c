@@ -11,7 +11,7 @@ struct arp_hdr *parse_arp(void *data) {
     struct arp_hdr *hdr = (struct arp_hdr *) data;
 
     hdr->hwtype = ntohs(hdr->hwtype);
-    hdr->prot_type = ntohs(hdr->prot_type);
+    hdr->proto = ntohs(hdr->proto);
     hdr->op = ntohs(hdr->op);
 
     return hdr;
@@ -32,7 +32,7 @@ void recv_arp(struct intf *intf, struct frame *frame) {
     // https://tools.ietf.org/html/rfc826
 
     struct arp_ipv4 *req;
-    switch (msg->prot_type) {
+    switch (msg->proto) {
         case ETH_P_IP:
             // also good
             req = (struct arp_ipv4 *) frame->data;
@@ -78,7 +78,7 @@ void recv_arp(struct intf *intf, struct frame *frame) {
             break;
         default:
             fprintf(stderr, "ARP protocol %s not supported\n",
-                    fmt_ethertype(msg->prot_type));
+                    fmt_ethertype(msg->proto));
     }
 }
 

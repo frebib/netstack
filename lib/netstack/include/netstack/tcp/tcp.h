@@ -36,7 +36,7 @@ struct tcp_hdr {
     uint32_t    seqn,           /* Sequence number */
                 ackn;           /* Acknowledgement number */
 #if THE_HOST_IS_BIG_ENDIAN
-    uint8_t     hdr_len:4,      /* Size of TCP header in 32-bit words */
+    uint8_t     hlen:4,      /* Size of TCP header in 32-bit words */
                 rsvd:4;         /* Empty reserved space for ctrl flags */
     struct {
                 /* Ignoring the experimental NS bit here: RFC 3540 */
@@ -51,7 +51,7 @@ struct tcp_hdr {
 #else
     /* Ignoring the experimental NS bit here: RFC 3540 */
     uint8_t     rsvd:4,         /* Empty reserved space for ctrl flags */
-                hdr_len:4;      /* Size of TCP header in 32-bit words */
+                hlen:4;         /* Size of TCP header in 32-bit words */
     struct {
         uint8_t fin:1,
                 syn:1,
@@ -86,10 +86,10 @@ struct tcp_hdr {
 */
 struct tcp_ipv4_phdr {
     uint32_t saddr,
-            daddr;
-    uint8_t rsvd,
-            proto;
-    uint16_t len;               /* Total length of TCP header */
+             daddr;
+    uint8_t  rsvd,
+             proto;
+    uint16_t hlen;              /* Total length of TCP header */
 }__attribute((packed));
 
 
@@ -97,8 +97,8 @@ struct tcp_ipv4_phdr {
 #define tcp_hdr(frame) ((struct tcp_hdr *) (frame)->head)
 
 /* Returns the size in bytes of a header
- * hdr->hdr_len is 1 byte, soo 4x is 1 word size */
-#define tcp_hdr_len(hdr) ((uint8_t) (hdr->hdr_len * 4))
+ * hdr->hlen is 1 byte, soo 4x is 1 word size */
+#define tcp_hdr_len(hdr) ((uint8_t) (hdr->hlen * 4))
 
 /* Given a network tcp packet buffer, this
  * mutates network values to host values */
