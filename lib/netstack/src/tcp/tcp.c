@@ -24,6 +24,15 @@ void recv_tcp(struct intf *intf, struct frame *frame, uint16_t net_csum) {
     frame->data += tcp_hdr_len(hdr);
     uint16_t pkt_len = (uint16_t) (frame->tail - frame->head);
 
+    printf(" %lu bytes", (frame->tail - frame->data));
+
+    /* Save and empty packet checksum */
+    uint16_t pkt_csum = hdr->csum;
+    hdr->csum = 0;
+
+    uint16_t calc_csum = in_csum(frame->head, pkt_len, net_csum);
+    printf(", csum 0x%04x", calc_csum);
+
     // TODO: Investigate TCP checksums invalid with long packets
     // Research suggests this is caused by 'segmentation offload', or
     // more specifically 'generic-receive-offload' in Linux.
@@ -32,9 +41,9 @@ void recv_tcp(struct intf *intf, struct frame *frame, uint16_t net_csum) {
     //   - https://www.kernel.org/doc/Documentation/networking/segmentation-offloads.txt
 
     // TODO: Check for TSO and GRO and account for it, somehow..
-
-    if (in_csum(frame->head, pkt_len, net_csum) != 0) {
-        printf(" invalid csum (size %d)", pkt_len);
+    if (pkt_csum != calc_csum) {
+        printf(" (invalid 0x%04x)", pkt_csum);
+        goto drop_pkt;
     }
 
     // TODO: Other integrity checks
@@ -43,5 +52,6 @@ void recv_tcp(struct intf *intf, struct frame *frame, uint16_t net_csum) {
 
     parse_tcp(frame->head);
 
-    printf(" %d > %d", hdr->sport, hdr->dport);
+    drop_pkt:
+    return;
 }

@@ -56,7 +56,6 @@ void recv_ipv4(struct intf *intf, struct frame *frame) {
     char ssaddr[16], sdaddr[16];
     fmt_ipv4(hdr->saddr, ssaddr);
     fmt_ipv4(hdr->daddr, sdaddr);
-    printf(" %s > %s", ssaddr, sdaddr);
 
     struct frame *child_frame = frame_child_copy(frame);
     switch (hdr->proto) {
@@ -72,12 +71,18 @@ void recv_ipv4(struct intf *intf, struct frame *frame) {
             pseudo_hdr.rsvd  = 0;
             uint16_t ipv4_csum = ~in_csum(&pseudo_hdr, sizeof(pseudo_hdr), 0);
 
+            /* Print ip:port > ip:port */
+            uint16_t sport = htons(tcp_hdr(child_frame)->sport);
+            uint16_t dport = htons(tcp_hdr(child_frame)->dport);
+            printf(" %s:%d > %s:%d", ssaddr, sport, sdaddr, dport);
+
             /* Pass initial network csum as TCP packet csum seed */
             recv_tcp(intf, child_frame, ipv4_csum);
             return;
         }
         case IP_P_UDP:
         case IP_P_ICMP:
+            printf(" %s > %s", ssaddr, sdaddr);
             printf(" unimpl %s", fmt_ipproto(hdr->proto));
             /*
             fprintf(stderr, "IPv4: Unimplemented packet type %s\n",
@@ -85,6 +90,7 @@ void recv_ipv4(struct intf *intf, struct frame *frame) {
             */
             return;
         default:
+            printf(" %s > %s", ssaddr, sdaddr);
             printf(" unsupported %s", fmt_ipproto(hdr->proto));
             /*
             fprintf(stderr, "IPv4: Unsupported packet type: %s\n",
