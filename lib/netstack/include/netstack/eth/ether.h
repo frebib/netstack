@@ -3,31 +3,20 @@
 
 #include <stdint.h>
 #include <linux/types.h>
+#include <linux/if_ether.h>
 
 #include <netstack/intf/intf.h>
 
-#include "ethertype.h"
+#define ETH_HDR_LEN  sizeof(struct ethhdr)
 
-#define ETH_HDR_LEN  sizeof(struct eth_hdr)
-#define ETH_ADDR_LEN 6      /* # of octets per address */
+static uint8_t ETH_BRD_ADDR[ETH_ALEN] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
-static uint8_t ETH_BRD_ADDR[ETH_ADDR_LEN] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-
-
-/* Ethernet frame header */
-struct eth_hdr {
-    uint8_t daddr[ETH_ADDR_LEN];  /* Destination address */
-    uint8_t saddr[ETH_ADDR_LEN];  /* Source address */
-    __be16 ethertype;   /* Frame payload type, see ethertype.h */
-}__attribute((packed));
-
-
-/* Returns a struct eth_hdr from the frame->head */
-#define eth_hdr(frame) ((struct eth_hdr *) (frame)->head)
+/* Returns a struct ethhdr from the frame->head */
+#define eth_hdr(frame) ((struct ethhdr *) (frame)->head)
 
 /* Given a network ether frame buffer, this
  * mutates network values to host values */
-struct eth_hdr *parse_ether(void *data);
+struct ethhdr *parse_ether(void *data);
 
 /* Receives an ether frame for processing in the network stack */
 void recv_ether(struct intf *intf, struct frame *frame);
@@ -39,5 +28,15 @@ void recv_ether(struct intf *intf, struct frame *frame);
 #define fmt_mac(a, buff) \
     sprintf((buff), "%02X:%02X:%02X:%02X:%02X:%02X", \
         (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5])
+
+/* Returns a matching `const char *` to a ETH_P_* value */
+static inline char const *fmt_ethertype(uint16_t ethertype) {
+    switch (ethertype) {
+        case ETH_P_IP:      return "ETH_P_IP";
+        case ETH_P_IPV6:    return "ETH_P_IPV6";
+        case ETH_P_ARP:     return "ETH_P_ARP";
+        default:            return "ETH_P_?";
+    }
+}
 
 #endif //NETSTACK_ETHER_H

@@ -5,14 +5,14 @@
 #include <sysexits.h>
 #include <errno.h>
 
-#include <net/if.h>
 #include <sys/ioctl.h>
 #include <netinet/in.h>
 #include <netpacket/packet.h>
-
 #include <linux/if_ether.h>
+
 #include <netstack/eth/ether.h>
 #include <netstack/intf/rawsock.h>
+
 
 int new_rawsock(struct intf *interface) {
     if (interface == NULL) {
@@ -49,7 +49,7 @@ int new_rawsock(struct intf *interface) {
     // Get chosen interface mac address
     uint8_t *hwaddr = malloc(IFHWADDRLEN);
     struct ifreq req;
-    strcpy(req.ifr_name, if_ni->if_name);
+    strncpy(req.ifr_name, if_ni->if_name, IFNAMSIZ);
     if (ioctl(sock, SIOCGIFHWADDR, &req) == 0) {
         memcpy(hwaddr, req.ifr_addr.sa_data, IFHWADDRLEN);
     } else {
@@ -58,7 +58,6 @@ int new_rawsock(struct intf *interface) {
 
     struct intf_rawsock *ll = malloc(sizeof(struct intf_rawsock));
     ll->sock = sock;
-    ll->if_index = if_ni->if_index;
 
     interface->ll = ll;
     interface->ll_addr = hwaddr;
@@ -131,8 +130,8 @@ ssize_t rawsock_send_frame(struct intf *interface, struct frame *frame) {
     struct sockaddr_ll sa;
     sa.sll_family = AF_PACKET;
     sa.sll_ifindex = ll->if_index;
-    sa.sll_halen = ETH_ADDR_LEN;
-    memcpy(sa.sll_addr, eth_hdr(frame)->daddr, ETH_ADDR_LEN);
+    sa.sll_halen = ETH_ALEN;
+    memcpy(sa.sll_addr, eth_hdr(frame)->h_dest, ETH_ALEN);
 
     return sendto(ll->sock, frame->buffer, frame->buf_size, 0,
                   (const struct sockaddr *) &sa, sizeof(sa));

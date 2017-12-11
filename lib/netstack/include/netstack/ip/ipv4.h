@@ -2,8 +2,8 @@
 #define NETSTACK_IPV4_H
 
 #include <stdint.h>
+#include <linux/ip.h>
 #include <netstack/intf/intf.h>
-#include "ipproto.h"
 
 /*
     Source: https://tools.ietf.org/html/rfc791#page-11
@@ -25,44 +25,16 @@
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 */
 
-struct ipv4_hdr {
-    // TODO: Take endianness into account in ipv4_hdr
-    uint8_t     hdr_len:4,  /* Internet header length (# of 32bit words) */
-                version:4;  /* Always 4 for IPv4 */
-    union {
-        struct {
-            uint8_t dscp:6,
-                    ecn:2;
-        };
-        uint8_t tos;
-    };
-    uint16_t    len,        /* Size of header + data in bytes */
-                id;         /* packet identification number */
-    uint16_t    frag_ofs;
-    uint8_t     ttl;
-    uint8_t     proto;
-    uint16_t    csum;
-    uint32_t    saddr,
-                daddr;
-    /* Options are now specified, optionally of course */
-}__attribute((packed));
-
-/* IP flags. */
-#define IP_CE		0x8000		/* Flag: "Congestion"		*/
-#define IP_DF		0x4000		/* Flag: "Don't Fragment"	*/
-#define IP_MF		0x2000		/* Flag: "More Fragments"	*/
-#define IP_OFFSET	0x1FFF		/* "Fragment Offset" part	*/
-
 /* Returns a struct ipv4_hdr from the frame->head */
-#define ipv4_hdr(frame) ((struct ipv4_hdr *) (frame)->head)
+#define ipv4_hdr(frame) ((struct iphdr *) (frame)->head)
 
 /* Returns the size in bytes of a header
  * hdr->hdr_len is 1 byte, soo 4x is 1 word size */
-#define ipv4_hdr_len(hdr) ((hdr)->hdr_len * 4)
+#define ipv4_hdr_len(hdr) ((hdr)->ihl * 4)
 
 /* Given a network ipv4 packet buffer, this
  * mutates network values to host values */
-struct ipv4_hdr *parse_ipv4(void *data);
+struct iphdr *parse_ipv4(void *data);
 
 /* Receives an ipv4 frame for processing in the network stack */
 void recv_ipv4(struct intf *intf, struct frame *frame);
@@ -82,5 +54,16 @@ void recv_ipv4(struct intf *intf, struct frame *frame);
         ((c) << 8) + \
         (d) \
     )
+
+/* Returns a matching `const char *` to a IP_P_* value */
+static inline char const *fmt_ipproto(unsigned short proto) {
+    switch (proto) {
+        case IPPROTO_ICMP:  return "IP_P_ICMP";
+        case IPPROTO_IGMP:  return "IP_P_IGMP";
+        case IPPROTO_TCP:   return "IP_P_TCP";
+        case IPPROTO_UDP:   return "IP_P_UDP";
+        default:            return NULL;
+    }
+}
 
 #endif //NETSTACK_IPV4_H

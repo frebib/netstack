@@ -5,58 +5,35 @@
 #include <stdbool.h>
 
 #include <netstack/eth/ether.h>
+#include <linux/if_arp.h>
 
-#define ARP_HDR_LEN sizeof(struct arp_hdr)
-
-/* ARP supported hardware types */
-#define ARP_HW_ETHER        0x001
-#define ARP_HW_IEEE_802     0x006
-#define ARP_HW_ARCNET       0x007
-#define ARP_HW_FRM_RLY      0x00F
-#define ARP_HW_ATM16        0x010
-#define ARP_HW_HDLC         0x011
-#define ARP_HW_FIB_CH       0x012
-#define ARP_HW_ATM19        0x013
-#define ARP_HW_SERIAL       0x014
-
-/* ARP operation types */
-#define ARP_OP_REQUEST      0x001
-#define ARP_OP_REPLY        0x002
+#define ARP_HDR_LEN sizeof(struct arphdr)
 
 static inline char const *fmt_arp_op(unsigned short op) {
     switch (op) {
-        case ARP_OP_REQUEST:    return "ARP_OP_REQUEST";
-        case ARP_OP_REPLY:      return "ARP_OP_REPLY";
+        case ARPOP_REQUEST:    return "ARP_OP_REQUEST";
+        case ARPOP_REPLY:      return "ARP_OP_REPLY";
         default:                return NULL;
     }
 }
 
-/* ARP message header */
-struct arp_hdr {
-    uint16_t hwtype,
-             prot_type;
-    uint8_t  hlen,
-             plen;
-    uint16_t op;
-}__attribute((packed));
-
 /* ARP IPv4 payload */
 struct arp_ipv4 {
-    uint8_t  saddr[ETH_ADDR_LEN];
+    uint8_t  saddr[ETH_ALEN];
     uint32_t sipv4;
-    uint8_t  daddr[ETH_ADDR_LEN];
+    uint8_t  daddr[ETH_ALEN];
     uint32_t dipv4;
 }__attribute((packed));
 
 #define arp_entry_ipv4_len(hwlen) \
     (sizeof(struct arp_entry_ipv4) + (hwlen) - 1)
 
-/* Returns a struct arp_hdr from the frame->head */
-#define arp_hdr(frame) ((struct arp_hdr *) (frame)->head)
+/* Returns a struct arphdr from the frame->head */
+#define arp_hdr(frame) ((struct arphdr *) (frame)->head)
 
 /* Given a network arp message buffer, this
  * mutates network values to host values */
-struct arp_hdr *parse_arp(void *data);
+struct arphdr *parse_arp(void *data);
 
 /* Receives an arp frame for processing in the network stack */
 void recv_arp(struct intf *intf, struct frame *frame);
@@ -96,7 +73,7 @@ struct arp_entry_ipv4 {
 
 /* Add ethernet/IPv4 entries to the ARP table */
 /* Returns true if a new entry was inserted, false if an old updated */
-bool arp_cache_ipv4(struct intf *intf, struct arp_hdr *hdr,
+bool arp_cache_ipv4(struct intf *intf, struct arphdr *hdr,
                     struct arp_ipv4 *req);
 
 #endif //NETSTACK_ARP_H

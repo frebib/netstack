@@ -1,11 +1,13 @@
 #ifndef NETSTACK_INTERFACE_H
 #define NETSTACK_INTERFACE_H
 
-#include <net/if.h>
-#include <sys/types.h>
-
+#include <pthread.h>
 #include <netstack/frame.h>
 #include <netstack/llist.h>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <linux/if.h>
 
 // Interface types
 #define INTF_RAWSOCK    1

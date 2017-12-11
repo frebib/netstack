@@ -6,13 +6,13 @@
 #include <netstack/tcp/tcp.h>
 #include <netstack/checksum.h>
 
-struct ipv4_hdr *parse_ipv4(void *data) {
-    struct ipv4_hdr *hdr = (struct ipv4_hdr *) data;
+struct iphdr *parse_ipv4(void *data) {
+    struct iphdr *hdr = (struct iphdr *) data;
 
-    hdr->frag_ofs = ntohs(hdr->frag_ofs);
+    hdr->frag_off = ntohs(hdr->frag_off);
     hdr->saddr = ntohl(hdr->saddr);
     hdr->daddr = ntohl(hdr->daddr);
-    hdr->len = ntohs(hdr->len);
+    hdr->tot_len = ntohs(hdr->tot_len);
     hdr->id = ntohs(hdr->id);
 
     return hdr;
@@ -21,16 +21,16 @@ struct ipv4_hdr *parse_ipv4(void *data) {
 void recv_ipv4(struct intf *intf, struct frame *frame) {
 
     /* Don't parse yet, we need to check the checksum first */
-    struct ipv4_hdr *hdr = ipv4_hdr(frame);
+    struct iphdr *hdr = ipv4_hdr(frame);
     uint16_t hdr_len = (uint16_t) ipv4_hdr_len(hdr);
-    uint16_t pkt_len = ntohs(hdr->len);
+    uint16_t pkt_len = ntohs(hdr->tot_len);
     uint16_t payload_len = pkt_len - hdr_len;
     frame->data += hdr_len;
     frame->tail = frame->data + payload_len;
 
     // TODO: Keep track of invalid packets
 
-    if (hdr_len < sizeof(struct ipv4_hdr)) {
+    if (hdr_len < sizeof(struct iphdr)) {
         fprintf(stderr, "Error: IPv4 packet header is too short!");
         return;
     }
@@ -58,8 +58,8 @@ void recv_ipv4(struct intf *intf, struct frame *frame) {
     fmt_ipv4(hdr->daddr, sdaddr);
 
     struct frame *child_frame = frame_child_copy(frame);
-    switch (hdr->proto) {
-        case IP_P_TCP: {
+    switch (hdr->protocol) {
+        case IPPROTO_TCP: {
             printf(" TCP");
 
             /* Calculate TCP pseudo-header checksum */
@@ -67,23 +67,23 @@ void recv_ipv4(struct intf *intf, struct frame *frame) {
             pseudo_hdr.saddr = htonl(hdr->saddr);
             pseudo_hdr.daddr = htonl(hdr->daddr);
             pseudo_hdr.len   = htons(payload_len);
-            pseudo_hdr.proto = hdr->proto;
+            pseudo_hdr.proto = hdr->protocol;
             pseudo_hdr.rsvd  = 0;
             uint16_t ipv4_csum = ~in_csum(&pseudo_hdr, sizeof(pseudo_hdr), 0);
 
             /* Print ip:port > ip:port */
-            uint16_t sport = htons(tcp_hdr(child_frame)->sport);
-            uint16_t dport = htons(tcp_hdr(child_frame)->dport);
+            uint16_t sport = htons(tcp_hdr(child_frame)->th_sport);
+            uint16_t dport = htons(tcp_hdr(child_frame)->th_dport);
             printf(" %s:%d > %s:%d", ssaddr, sport, sdaddr, dport);
 
             /* Pass initial network csum as TCP packet csum seed */
             recv_tcp(intf, child_frame, ipv4_csum);
             return;
         }
-        case IP_P_UDP:
-        case IP_P_ICMP:
+        case IPPROTO_UDP:
+        case IPPROTO_ICMP:
             printf(" %s > %s", ssaddr, sdaddr);
-            printf(" unimpl %s", fmt_ipproto(hdr->proto));
+            printf(" unimpl %s", fmt_ipproto(hdr->protocol));
             /*
             fprintf(stderr, "IPv4: Unimplemented packet type %s\n",
                     fmt_ipproto(hdr->proto));
@@ -91,7 +91,7 @@ void recv_ipv4(struct intf *intf, struct frame *frame) {
             return;
         default:
             printf(" %s > %s", ssaddr, sdaddr);
-            printf(" unsupported %s", fmt_ipproto(hdr->proto));
+            printf(" unsupported %s", fmt_ipproto(hdr->protocol));
             /*
             fprintf(stderr, "IPv4: Unsupported packet type: %s\n",
                     fmt_ipproto(hdr->proto));

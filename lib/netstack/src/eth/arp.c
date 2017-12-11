@@ -7,32 +7,32 @@
 #include <netstack/eth/arp.h>
 #include <netstack/ip/ipv4.h>
 
-struct arp_hdr *parse_arp(void *data) {
-    struct arp_hdr *hdr = (struct arp_hdr *) data;
+struct arphdr *parse_arp(void *data) {
+    struct arphdr *hdr = (struct arphdr *) data;
 
-    hdr->hwtype = ntohs(hdr->hwtype);
-    hdr->prot_type = ntohs(hdr->prot_type);
-    hdr->op = ntohs(hdr->op);
+    hdr->ar_hrd = ntohs(hdr->ar_hrd);
+    hdr->ar_pro = ntohs(hdr->ar_pro);
+    hdr->ar_op = ntohs(hdr->ar_op);
 
     return hdr;
 }
 
 void recv_arp(struct intf *intf, struct frame *frame) {
-    struct arp_hdr *msg = parse_arp(frame->data);
+    struct arphdr *msg = parse_arp(frame->data);
     frame->data += ARP_HDR_LEN;
 
-    switch (msg->hwtype) {
-        case ARP_HW_ETHER:
+    switch (msg->ar_hrd) {
+        case ARPHRD_ETHER:
             // this is good
             break;
         default:
-            fprintf(stderr, "ARP hardware %d not supported\n", msg->hwtype);
+            fprintf(stderr, "ARP hardware %d not supported\n", msg->ar_hrd);
     }
 
     // https://tools.ietf.org/html/rfc826
 
     struct arp_ipv4 *req;
-    switch (msg->prot_type) {
+    switch (msg->ar_pro) {
         case ETH_P_IP:
             // also good
             req = (struct arp_ipv4 *) frame->data;
@@ -63,22 +63,22 @@ void recv_arp(struct intf *intf, struct frame *frame) {
             // TODO: Check for queued outgoing packets that can
             //       now be sent with the ARP information recv'd
 
-            switch (msg->op) {
-                case ARP_OP_REQUEST:
+            switch (msg->ar_op) {
+                case ARPOP_REQUEST:
                     printf(" Who has %s? Tell %s", sdaddr, ssaddr);
                     // If asking for us, send a reply with our LL address
                     // TODO: ARP Reply with our eth addr to requests
 //                    arp_send_ipv4(intf, our_ipaddr, ETH_P_IP, req->sipv4,
-//                                  req->saddr);
+//                                  req->h_source);
                     break;
-                case ARP_OP_REPLY:
+                case ARPOP_REPLY:
                     printf(" Reply %s is at %s", ssaddr, ssethaddr);
                     break;
             }
             break;
         default:
             fprintf(stderr, "ARP protocol %s not supported\n",
-                    fmt_ethertype(msg->prot_type));
+                    fmt_ethertype(msg->ar_pro));
     }
 }
 
@@ -111,7 +111,7 @@ uint8_t *arp_ipv4_get_hwaddr(struct intf *intf, uint8_t hwtype, uint32_t ipv4) {
 
 /* Insert IPv4 entry into the ARP table
    Returns true if new entry inserted, false if an old updated */
-bool arp_cache_ipv4(struct intf *intf, struct arp_hdr *hdr,
+bool arp_cache_ipv4(struct intf *intf, struct arphdr *hdr,
                     struct arp_ipv4 *req) {
 
     char sip[16];
@@ -125,11 +125,11 @@ bool arp_cache_ipv4(struct intf *intf, struct arp_hdr *hdr,
         // If existing IP match, update it
         if (entry->ip == req->sipv4) {
             // Only update hwaddr if it has actually changed
-            if (memcmp(&entry->hwaddr, req->saddr, hdr->hlen) != 0) {
+            if (memcmp(&entry->hwaddr, req->saddr, hdr->ar_hln) != 0) {
                 fprintf(stderr, "INFO: ARP cache entry for %s changed\n", sip);
 
                 // Update hwaddr for IP
-                memcpy(&entry->hwaddr, req->saddr, hdr->hlen);
+                memcpy(&entry->hwaddr, req->saddr, hdr->ar_hln);
             }
             entry->state = ARP_RESOLVED;
 
@@ -144,12 +144,12 @@ bool arp_cache_ipv4(struct intf *intf, struct arp_hdr *hdr,
 
     fprintf(stderr, "DEBUG: Storing new ARP entry for %s\n", sip);
 
-    struct arp_entry_ipv4 *entry = malloc(arp_entry_ipv4_len(hdr->hlen));
-    entry->hwtype = hdr->hwtype;
+    struct arp_entry_ipv4 *entry = malloc(arp_entry_ipv4_len(hdr->ar_hln));
+    entry->hwtype = hdr->ar_hrd;
     entry->state = ARP_RESOLVED;
     entry->ip = req->sipv4;
-    entry->hwlen = hdr->hlen;
-    memcpy(&entry->hwaddr, req->saddr, hdr->hlen);
+    entry->hwlen = hdr->ar_hln;
+    memcpy(&entry->hwaddr, req->saddr, hdr->ar_hln);
 
     intf->arptbl = llist_prepend(intf->arptbl, entry);
 

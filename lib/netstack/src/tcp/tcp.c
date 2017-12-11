@@ -3,32 +3,32 @@
 #include <netstack/tcp/tcp.h>
 #include <netstack/checksum.h>
 
-struct tcp_hdr *parse_tcp(void *data) {
-    struct tcp_hdr *tcp_hdr = (struct tcp_hdr *) data;
+struct tcphdr *parse_tcp(void *data) {
+    struct tcphdr *hdr = (struct tcphdr *) data;
 
-    tcp_hdr->sport = ntohs(tcp_hdr->sport);
-    tcp_hdr->dport = ntohs(tcp_hdr->dport);
-    tcp_hdr->seqn = ntohl(tcp_hdr->seqn);
-    tcp_hdr->ackn = ntohl(tcp_hdr->ackn);
-    tcp_hdr->wind = ntohs(tcp_hdr->wind);
-    tcp_hdr->csum = ntohs(tcp_hdr->csum);
-    tcp_hdr->urg_ptr = ntohs(tcp_hdr->urg_ptr);
+    hdr->th_sport = ntohs(hdr->th_sport);
+    hdr->th_dport = ntohs(hdr->th_dport);
+    hdr->th_seq   = ntohl(hdr->th_seq);
+    hdr->th_ack   = ntohl(hdr->th_ack);
+    hdr->th_win   = ntohs(hdr->th_win);
+    hdr->th_sum   = ntohs(hdr->th_sum);
+    hdr->th_urp   = ntohs(hdr->th_urp);
 
-    return tcp_hdr;
+    return hdr;
 }
 
 void recv_tcp(struct intf *intf, struct frame *frame, uint16_t net_csum) {
 
     /* Don't parse yet, we need to check the checksum first */
-    struct tcp_hdr *hdr = tcp_hdr(frame);
+    struct tcphdr *hdr = tcp_hdr(frame);
     frame->data += tcp_hdr_len(hdr);
     uint16_t pkt_len = (uint16_t) (frame->tail - frame->head);
 
     printf(" %lu bytes", (frame->tail - frame->data));
 
     /* Save and empty packet checksum */
-    uint16_t pkt_csum = hdr->csum;
-    hdr->csum = 0;
+    uint16_t pkt_csum = hdr->th_sum;
+    hdr->th_sum = 0;
 
     uint16_t calc_csum = in_csum(frame->head, pkt_len, net_csum);
     printf(", csum 0x%04x", calc_csum);
