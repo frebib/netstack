@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <pthread.h>
 
@@ -24,7 +25,12 @@ void intf_recv(struct intf *intf) {
     while ((count = intf->recv_frame(intf, &rawframe)) != -1) {
         // Capture time as packet is read
         struct timespec ts;
-        timespec_get(&ts, TIME_UTC);
+        // TODO: Implement rx 'software' timestamping
+        if (false) {
+            timespec_get(&ts, TIME_UTC);
+        } else {
+            ts = rawframe->time;
+        }
 
         // TODO: Use logging
         // TODO: Conditionally print debugging information

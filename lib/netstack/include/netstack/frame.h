@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <time.h>
 #include <netstack/socket.h>
 
 #define FRAME_LEN sizeof(struct frame)
@@ -10,6 +11,7 @@
 struct frame {
     struct sock *sock;
     size_t buf_size;
+    struct timespec time;   /* Send/recv time for frame */
     uint8_t *buffer,
             *head,
             *data,

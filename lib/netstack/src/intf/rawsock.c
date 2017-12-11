@@ -28,6 +28,14 @@ int new_rawsock(struct intf *interface) {
         return -1;
     }
 
+    int opt = true;
+    int err = setsockopt(sock, SOL_SOCKET, SO_TIMESTAMPNS, &opt, sizeof(int));
+    if (err < 0) {
+        perror("Could not set SO_TIMESTAMPNS on socket");
+        close(sock);
+        return -1;
+    }
+
     // TODO: This is hacky, assuiming lo is loopback
     // Request first non-loopback interface
     struct if_nameindex *if_ni = NULL,
@@ -97,12 +105,32 @@ ssize_t rawsock_recv_frame(struct intf *interface, struct frame **frame) {
     *frame = init_frame(NULL, (size_t) lookahead);
     struct frame *eth_frame = *frame;
 
+    // Allocate msghdr to receive packet & ancillary data into
+    uint8_t ctrl[1024];
+    struct msghdr msgh = {0};
+    struct iovec iov = {0};
+    iov.iov_base = eth_frame->data;
+    iov.iov_len = (size_t) lookahead;
+    msgh.msg_iov = &iov;
+    msgh.msg_iovlen = 1;
+    msgh.msg_control = &ctrl;
+    msgh.msg_controllen = 1024;
+
     // Read network data into the frame
-    count = recv(sock, eth_frame->buffer, (size_t) lookahead, 0);
+    count = recvmsg(sock, &msgh, 0);
 
     // There was an error. errno should be set
     if (count == -1) {
         return count;
+    }
+
+    struct cmsghdr *cmsg;
+    for (cmsg = CMSG_FIRSTHDR(&msgh);
+         cmsg != NULL;
+         cmsg = CMSG_NXTHDR(&msgh, cmsg)) {
+        if ((cmsg->cmsg_level == SOL_SOCKET)
+            && (cmsg->cmsg_type == SO_TIMESTAMPNS))
+            memcpy(&eth_frame->time, CMSG_DATA(cmsg), sizeof(eth_frame->time));
     }
 
     // Warn if the sizes don't match (should probably never happen)
