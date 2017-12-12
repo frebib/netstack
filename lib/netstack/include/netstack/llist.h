@@ -18,3 +18,4 @@ void llist_clear(struct llist_elem *head);
     for (struct llist_elem *elem = (head); elem != NULL; elem = elem->next)
 
 #endif //NETSTACK_LLIST_H
+

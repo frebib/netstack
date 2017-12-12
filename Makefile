@@ -38,7 +38,7 @@ $(TARGET_LIB_PATH):
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c $(INC)
 	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) -c $< -o $@ $(LDLIBS)
+	$(CC) $(CFLAGS) -c $< -o $@
 
 # Misc
 .PHONY: test doc install uninstall clean
