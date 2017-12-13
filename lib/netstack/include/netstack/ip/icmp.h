@@ -2,11 +2,13 @@
 #define NETSTACK_ICMP_H
 
 #include <stdint.h>
+#include <netstack/frame.h>
+#include <netstack/intf/intf.h>
 
-#define ICMP_T_PONG     0       /* Echo reply */
-#define ICMP_T_PING     8       /* Echo request */
+#define ICMP_T_ECHORPLY         0       /* Echo reply */
+#define ICMP_T_ECHOREQ          8       /* Echo request */
 
-#define ICMP_T_DESTUNR  3
+#define ICMP_T_DESTUNR          3
 
 #define ICMP_C_DESTUNR_NET      0
 #define ICMP_C_DESTUNR_HOST     1
@@ -31,21 +33,27 @@
 */
 
 struct icmp_hdr {
-    uint8_t  type,
-             code;
-    uint16_t csum;
-};
+    uint8_t     type,
+                code;
+    uint16_t    csum;
+}__attribute((packed));
 
 struct icmp_echo {
-    uint16_t ident,
-             seq;
-    uint32_t payload;
-};
+    uint16_t    id,
+                seq;
+    uint32_t    payload;
+}__attribute((packed));
 
 /* Returns a struct icmp_hdr from the frame->head */
 #define icmp_hdr(frame) ((struct icmp_hdr *) (frame)->head)
 
-/* Returns a struct icmp_echo from the frame->data */
-#define icmp_echo(frame) ((struct icmp_echo *) (frame)->data)
+/* Receives an icmp frame for processing in the network stack */
+void recv_icmp(struct intf *intf, struct frame *frame);
+
+/* Converts network to host values in header */
+struct icmp_echo *icmp_echo(void *data);
+
+/* Generates and dispatches an ICMP echo packet */
+void send_icmp_reply(struct intf *intf, struct frame *frame);
 
 #endif //NETSTACK_ICMP_H

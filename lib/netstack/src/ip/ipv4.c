@@ -3,6 +3,7 @@
 #include <netinet/in.h>
 #include <netstack/frame.h>
 #include <netstack/ip/ipv4.h>
+#include <netstack/ip/icmp.h>
 #include <netstack/tcp/tcp.h>
 #include <netstack/checksum.h>
 
@@ -81,7 +82,6 @@ void recv_ipv4(struct intf *intf, struct frame *frame) {
             return;
         }
         case IP_P_UDP:
-        case IP_P_ICMP:
             printf(" %s > %s", ssaddr, sdaddr);
             printf(" unimpl %s", fmt_ipproto(hdr->proto));
             /*
@@ -89,6 +89,12 @@ void recv_ipv4(struct intf *intf, struct frame *frame) {
                     fmt_ipproto(hdr->proto));
             */
             return;
+        case IP_P_ICMP: {
+            printf(" ICMP");
+            printf(" %s > %s", ssaddr, sdaddr);
+            recv_icmp(intf, child_frame);
+            return;
+        }
         default:
             printf(" %s > %s", ssaddr, sdaddr);
             printf(" unsupported %s", fmt_ipproto(hdr->proto));
