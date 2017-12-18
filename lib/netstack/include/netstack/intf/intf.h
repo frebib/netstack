@@ -24,6 +24,7 @@ struct intf {
     char name[IFNAMSIZ];
     void *ll;
     uint8_t *ll_addr;
+    int mtu;
 
     // TODO: Move arptbl into an 'ethernet' hardware struct into `void *ll`
     struct llist_elem *arptbl;

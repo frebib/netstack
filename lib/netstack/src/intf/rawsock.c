@@ -43,7 +43,7 @@ int new_rawsock(struct intf *interface) {
     if_ni = if_ni_head;
     while (if_ni != NULL && if_ni->if_index != 0) {
         if (strcmp(if_ni->if_name, "lo") != 0) {
-            printf("Using interface (#%d) %s\n", if_ni->if_index,
+            printf("Using interface (#%d) %s", if_ni->if_index,
                    if_ni->if_name);
             break;
         }
@@ -52,6 +52,7 @@ int new_rawsock(struct intf *interface) {
     if (if_ni == NULL) {
         errno = ENODEV;
 
+        printf("\n");
         if_freenameindex(if_ni_head);
         close(sock);
         return -1;
@@ -64,18 +65,33 @@ int new_rawsock(struct intf *interface) {
     if (ioctl(sock, SIOCGIFHWADDR, &req) == 0) {
         memcpy(hwaddr, req.ifr_addr.sa_data, IFHWADDRLEN);
     } else {
+        printf("\n");
         free(hwaddr);
         if_freenameindex(if_ni_head);
         close(sock);
         return -1;
     }
 
+    int mtu;
+    if (ioctl(sock, SIOCGIFMTU, &req) == 0) {
+        mtu = req.ifr_mtu;
+        printf(", mtu %d", mtu);
+    } else {
+        printf("\n");
+        free(hwaddr);
+        if_freenameindex(if_ni_head);
+        close(sock);
+        return -1;
+    }
+
+    printf("\n");
     struct intf_rawsock *ll = malloc(sizeof(struct intf_rawsock));
     ll->sock = sock;
     ll->if_index = if_ni->if_index;
 
     interface->ll = ll;
     interface->ll_addr = hwaddr;
+    interface->mtu = mtu;
     interface->type = INTF_RAWSOCK;
     interface->recv_frame = rawsock_recv_frame;
     interface->send_frame = rawsock_send_frame;
