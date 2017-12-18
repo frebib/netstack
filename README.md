@@ -6,6 +6,8 @@ This is made up of two integral parts:
 * **netd** - A network daemon to process and control network communications, using libnetstack
 * **libnetstack** - A full userspace network stack implementation in a library
 
+_It should be noted that until a far distant time, there is no guarantee of API or ABI stability. Most things can and likely will change, until a stable release (if ever)._
+
 ## Building
 
 ### GNU Make
