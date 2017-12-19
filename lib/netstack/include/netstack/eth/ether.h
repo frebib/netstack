@@ -27,10 +27,10 @@ struct eth_hdr {
 
 /* Given a network ether frame buffer, this
  * mutates network values to host values */
-struct eth_hdr *parse_ether(void *data);
+struct eth_hdr *ether_ntoh(void *data);
 
 /* Receives an ether frame for processing in the network stack */
-void recv_ether(struct intf *intf, struct frame *frame);
+void ether_recv(struct intf *intf, struct frame *frame);
 
 
 /* Formats a MAC address from an uint8_t[6] into a character buffer.

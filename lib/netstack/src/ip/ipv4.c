@@ -7,7 +7,7 @@
 #include <netstack/tcp/tcp.h>
 #include <netstack/checksum.h>
 
-struct ipv4_hdr *parse_ipv4(void *data) {
+struct ipv4_hdr *ipv4_ntoh(void *data) {
     struct ipv4_hdr *hdr = (struct ipv4_hdr *) data;
 
     hdr->frag_ofs = ntohs(hdr->frag_ofs);
@@ -19,7 +19,7 @@ struct ipv4_hdr *parse_ipv4(void *data) {
     return hdr;
 }
 
-void recv_ipv4(struct intf *intf, struct frame *frame) {
+void ipv4_recv(struct intf *intf, struct frame *frame) {
 
     /* Don't parse yet, we need to check the checksum first */
     struct ipv4_hdr *hdr = ipv4_hdr(frame);
@@ -52,7 +52,7 @@ void recv_ipv4(struct intf *intf, struct frame *frame) {
     // TODO: Other integrity checks
 
     /* Fix network endianness in header */
-    hdr = parse_ipv4(frame->head);
+    hdr = ipv4_ntoh(frame->head);
 
     char ssaddr[16], sdaddr[16];
     fmt_ipv4(hdr->saddr, ssaddr);
@@ -78,7 +78,7 @@ void recv_ipv4(struct intf *intf, struct frame *frame) {
             printf(" %s:%d > %s:%d", ssaddr, sport, sdaddr, dport);
 
             /* Pass initial network csum as TCP packet csum seed */
-            recv_tcp(intf, child_frame, ipv4_csum);
+            tcp_recv(intf, child_frame, ipv4_csum);
             return;
         }
         case IP_P_UDP:
@@ -92,7 +92,7 @@ void recv_ipv4(struct intf *intf, struct frame *frame) {
         case IP_P_ICMP: {
             printf(" ICMP");
             printf(" %s > %s", ssaddr, sdaddr);
-            recv_icmp(intf, child_frame);
+            icmp_recv(intf, child_frame);
             return;
         }
         default:

@@ -102,10 +102,10 @@ struct tcp_ipv4_phdr {
 
 /* Given a network tcp packet buffer, this
  * mutates network values to host values */
-struct tcp_hdr *parse_tcp(void *data);
+struct tcp_hdr *tcp_ntoh(void *data);
 
 /* Receives a tcp frame for processing in the network stack */
-void recv_tcp(struct intf *intf, struct frame *frame, uint16_t net_csum);
+void tcp_recv(struct intf *intf, struct frame *frame, uint16_t net_csum);
 
 
 /* Returns a string of characters/dots representing a set/unset TCP flag */

@@ -46,13 +46,13 @@ int main(int argc, char **argv) {
 
     // Create a INTF_RAWSOCK interface for sending/recv'ing data
     intf = malloc(sizeof(struct intf));
-    if (new_rawsock(intf) != 0) {
+    if (rawsock_new(intf) != 0) {
         perror("Error creating INTF_RAWSOCK");
         return EX_IOERR;
     }
 
     // Create interface send/recv threads
-    init_intf(intf);
+    intf_init(intf);
 
     // Initialise signal handling
     sigset_t sigs;

@@ -48,7 +48,7 @@ struct icmp_echo {
 #define icmp_hdr(frame) ((struct icmp_hdr *) (frame)->head)
 
 /* Receives an icmp frame for processing in the network stack */
-void recv_icmp(struct intf *intf, struct frame *frame);
+void icmp_recv(struct intf *intf, struct frame *frame);
 
 /* Converts network to host values in header */
 struct icmp_echo *icmp_echo(void *data);

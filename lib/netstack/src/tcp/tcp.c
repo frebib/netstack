@@ -3,7 +3,7 @@
 #include <netstack/tcp/tcp.h>
 #include <netstack/checksum.h>
 
-struct tcp_hdr *parse_tcp(void *data) {
+struct tcp_hdr *tcp_ntoh(void *data) {
     struct tcp_hdr *tcp_hdr = (struct tcp_hdr *) data;
 
     tcp_hdr->sport = ntohs(tcp_hdr->sport);
@@ -17,7 +17,7 @@ struct tcp_hdr *parse_tcp(void *data) {
     return tcp_hdr;
 }
 
-void recv_tcp(struct intf *intf, struct frame *frame, uint16_t net_csum) {
+void tcp_recv(struct intf *intf, struct frame *frame, uint16_t net_csum) {
 
     /* Don't parse yet, we need to check the checksum first */
     struct tcp_hdr *hdr = tcp_hdr(frame);
@@ -50,7 +50,7 @@ void recv_tcp(struct intf *intf, struct frame *frame, uint16_t net_csum) {
 
     // TODO: Check TCP packet checksum
 
-    parse_tcp(frame->head);
+    tcp_ntoh(frame->head);
 
     drop_pkt:
     return;

@@ -3,7 +3,7 @@
 
 #include <netstack/frame.h>
 
-struct frame *init_frame(struct sock *sock, size_t size) {
+struct frame *frame_init(struct sock *sock, size_t size) {
     struct frame *frame = malloc(FRAME_LEN);
     if (size > 0) {
         frame->buffer = malloc(size);
@@ -20,7 +20,7 @@ struct frame *init_frame(struct sock *sock, size_t size) {
     return frame;
 }
 
-void free_frame(struct frame *frame) {
+void frame_free(struct frame *frame) {
     if (frame == NULL) {
         return;
     }

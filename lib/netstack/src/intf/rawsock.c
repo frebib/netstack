@@ -14,7 +14,7 @@
 #include <netstack/eth/ether.h>
 #include <netstack/intf/rawsock.h>
 
-int new_rawsock(struct intf *interface) {
+int rawsock_new(struct intf *interface) {
     if (interface == NULL) {
         errno = EINVAL;
         return -1;
@@ -96,16 +96,16 @@ int new_rawsock(struct intf *interface) {
     interface->recv_frame = rawsock_recv_frame;
     interface->send_frame = rawsock_send_frame;
     interface->recv_peek = rawsock_peek;
-    interface->free = free_rawsock;
+    interface->free = rawsock_free;
     // Newly recv'd frames are of type 'ether'
-    interface->input = recv_ether;
+    interface->input = ether_recv;
 
     if_freenameindex(if_ni_head);
 
     return 0;
 }
 
-void free_rawsock(struct intf *intf) {
+void rawsock_free(struct intf *intf) {
     struct intf_rawsock *sockptr = (struct intf_rawsock *) intf->ll;
     close(sockptr->sock);
     free(sockptr);
@@ -124,7 +124,7 @@ ssize_t rawsock_recv_frame(struct intf *interface, struct frame **frame) {
     }
 
     // Allocate a buffer of the correct size
-    *frame = init_frame(NULL, (size_t) lookahead);
+    *frame = frame_init(NULL, (size_t) lookahead);
     struct frame *eth_frame = *frame;
 
     // Allocate msghdr to receive packet & ancillary data into

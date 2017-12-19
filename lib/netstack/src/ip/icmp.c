@@ -17,7 +17,7 @@ struct icmp_echo *icmp_echo(void *data) {
     return echo;
 }
 
-void recv_icmp(struct intf *intf, struct frame *frame) {
+void icmp_recv(struct intf *intf, struct frame *frame) {
 
     struct icmp_hdr *hdr = icmp_hdr(frame);
     frame->data += sizeof(struct icmp_hdr);

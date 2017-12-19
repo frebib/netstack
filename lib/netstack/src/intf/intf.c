@@ -6,7 +6,7 @@
 
 #include <netstack/intf/intf.h>
 
-int if_type(struct intf *intf) {
+int intf_type(struct intf *intf) {
     return intf->type;
 }
 
@@ -45,7 +45,7 @@ void intf_recv(struct intf *intf) {
 
         printf("\n");
 
-        free_frame(rawframe);
+        frame_free(rawframe);
     }
 
     // Run cleanup if rawframe was allocated
@@ -68,7 +68,7 @@ int nthread_create(pthread_t *id, char *name,
     return ret;
 }
 
-int init_intf(struct intf *intf) {
+int intf_init(struct intf *intf) {
     if (intf == NULL) {
         errno = EINVAL;
         return -1;

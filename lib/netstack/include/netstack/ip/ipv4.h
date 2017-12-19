@@ -62,10 +62,10 @@ struct ipv4_hdr {
 
 /* Given a network ipv4 packet buffer, this
  * mutates network values to host values */
-struct ipv4_hdr *parse_ipv4(void *data);
+struct ipv4_hdr *ipv4_ntoh(void *data);
 
 /* Receives an ipv4 frame for processing in the network stack */
-void recv_ipv4(struct intf *intf, struct frame *frame);
+void ipv4_recv(struct intf *intf, struct frame *frame);
 
 #define fmt_ipv4(ip, buff) \
     sprintf(buff, "%d.%d.%d.%d", \

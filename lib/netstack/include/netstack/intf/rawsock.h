@@ -11,9 +11,9 @@ struct intf_rawsock {
     int if_index;
 };
 
-int new_rawsock(struct intf *interface);
+int rawsock_new(struct intf *interface);
 
-void free_rawsock(struct intf *interface);
+void rawsock_free(struct intf *interface);
 
 ssize_t rawsock_recv_frame(struct intf *, struct frame **);
 

@@ -5,15 +5,15 @@
 #include <netstack/ip/ipv4.h>
 #include <netstack/eth/arp.h>
 
-struct eth_hdr *parse_ether(void *data) {
+struct eth_hdr *ether_ntoh(void *data) {
     struct eth_hdr *hdr = (struct eth_hdr *) data;
     hdr->ethertype = ntohs(hdr->ethertype);
     return hdr;
 }
 
-void recv_ether(struct intf *intf, struct frame *frame) {
+void ether_recv(struct intf *intf, struct frame *frame) {
 
-    struct eth_hdr *hdr = parse_ether(frame->buffer);
+    struct eth_hdr *hdr = ether_ntoh(frame->buffer);
     /* Frame data is after fixed header size */
     frame->data += ETH_HDR_LEN;
 
@@ -45,11 +45,11 @@ void recv_ether(struct intf *intf, struct frame *frame) {
     switch (hdr->ethertype) {
         case ETH_P_ARP:
             printf("ARP");
-            recv_arp(intf, child_frame);
+            arp_recv(intf, child_frame);
             return;
         case ETH_P_IP:
             printf("IPv4");
-            recv_ipv4(intf, child_frame);
+            ipv4_recv(intf, child_frame);
             return;
         case ETH_P_IPV6:
             printf("IPv6 unimpl");

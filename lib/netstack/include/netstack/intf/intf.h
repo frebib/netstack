@@ -51,8 +51,8 @@ struct intf {
     void (*input)(struct intf *, struct frame *);
 };
 
-int if_type(struct intf *intf);
+int intf_type(struct intf *intf);
 
-int init_intf(struct intf *intf);
+int intf_init(struct intf *intf);
 
 #endif //NETSTACK_INTERFACE_H
