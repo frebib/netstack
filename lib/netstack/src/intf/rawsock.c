@@ -95,6 +95,7 @@ int rawsock_new(struct intf *interface) {
     interface->type = INTF_RAWSOCK;
     interface->recv_frame = rawsock_recv_frame;
     interface->send_frame = rawsock_send_frame;
+    interface->free_frame = rawsock_free_frame;
     interface->recv_peek = rawsock_peek;
     interface->free = rawsock_free;
     // Newly recv'd frames are of type 'ether'
@@ -112,7 +113,9 @@ void rawsock_free(struct intf *intf) {
     free(intf->ll_addr);
 }
 
-ssize_t rawsock_recv_frame(struct intf *interface, struct frame **frame) {
+int rawsock_recv_frame(struct frame *frame) {
+
+    struct intf* interface = frame->intf;
     // Count is raw eth packet size (inc eth + ip + transport)
     ssize_t lookahead = 0,
             count = 0;
@@ -120,18 +123,18 @@ ssize_t rawsock_recv_frame(struct intf *interface, struct frame **frame) {
 
     // Use peek method in struct, it may have been overridden
     if ((lookahead = interface->recv_peek(interface)) == -1) {
-        return lookahead;
+        return (int) lookahead;
     }
 
-    // Allocate a buffer of the correct size
-    *frame = frame_init(NULL, (size_t) lookahead);
-    struct frame *eth_frame = *frame;
+    // TODO: Allocate a buffer from the interface for frame storage
+    frame_init_buf(frame, malloc((size_t) lookahead), lookahead);
+    frame->data = frame->buffer;
 
     // Allocate msghdr to receive packet & ancillary data into
     uint8_t ctrl[1024];
     struct msghdr msgh = {0};
     struct iovec iov = {0};
-    iov.iov_base = eth_frame->data;
+    iov.iov_base = frame->data;
     iov.iov_len = (size_t) lookahead;
     msgh.msg_iov = &iov;
     msgh.msg_iovlen = 1;
@@ -152,7 +155,7 @@ ssize_t rawsock_recv_frame(struct intf *interface, struct frame **frame) {
          cmsg = CMSG_NXTHDR(&msgh, cmsg)) {
         if ((cmsg->cmsg_level == SOL_SOCKET)
             && (cmsg->cmsg_type == SO_TIMESTAMPNS))
-            memcpy(&eth_frame->time, CMSG_DATA(cmsg), sizeof(eth_frame->time));
+            memcpy(&frame->time, CMSG_DATA(cmsg), sizeof(frame->time));
     }
 
     // Warn if the sizes don't match (should probably never happen)
@@ -164,31 +167,35 @@ ssize_t rawsock_recv_frame(struct intf *interface, struct frame **frame) {
 
         // realloc a (larger?) new buffer if the size differs, just in case
         void *newbuf;
-        if ((newbuf = realloc(eth_frame->buffer, (size_t) count)) == NULL) {
+        if ((newbuf = realloc(frame->buffer, (size_t) count)) == NULL) {
             fprintf(stderr, "Fatal: Failed to reallocate new buffer of "
                     "size %zi bytes\n", count);
             exit(EX_OSERR);
         }
-        eth_frame->buffer = newbuf;
+        frame->buffer = newbuf;
     }
 
     return 0;
 }
 
-ssize_t rawsock_send_frame(struct intf *interface, struct frame *frame) {
-    // TODO: Move this into a separate thread and use signalling
-    struct intf_rawsock *ll = (struct intf_rawsock *) interface->ll;
+int rawsock_send_frame(struct frame *frame) {
+    struct intf_rawsock *ll = (struct intf_rawsock *) frame->intf->ll;
     struct sockaddr_ll sa;
     sa.sll_family = AF_PACKET;
     sa.sll_ifindex = ll->if_index;
     sa.sll_halen = ETH_ADDR_LEN;
     memcpy(sa.sll_addr, eth_hdr(frame)->daddr, ETH_ADDR_LEN);
 
-    return sendto(ll->sock, frame->buffer, frame->buf_size, 0,
-                  (const struct sockaddr *) &sa, sizeof(sa));
+    return (int) sendto(ll->sock, frame->head, frame->tail - frame->head, 0,
+                        (const struct sockaddr *) &sa, sizeof(sa));
 }
 
-ssize_t rawsock_peek(struct intf *interface) {
+void rawsock_free_frame(struct frame * frame) {
+    free(frame->buffer);
+    frame_free(frame);
+}
+
+int rawsock_peek(struct intf *interface) {
     int sock = *((int *) interface->ll);
-    return recv(sock, NULL, 0, (MSG_PEEK | MSG_TRUNC));
+    return (int) recv(sock, NULL, 0, (MSG_PEEK | MSG_TRUNC));
 }

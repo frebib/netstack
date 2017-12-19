@@ -11,9 +11,11 @@ struct eth_hdr *ether_ntoh(void *data) {
     return hdr;
 }
 
-void ether_recv(struct intf *intf, struct frame *frame) {
+void ether_recv(struct frame *frame) {
 
     struct eth_hdr *hdr = ether_ntoh(frame->buffer);
+    struct intf *intf = frame->intf;
+
     /* Frame data is after fixed header size */
     frame->data += ETH_HDR_LEN;
 

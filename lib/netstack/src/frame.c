@@ -3,31 +3,26 @@
 
 #include <netstack/frame.h>
 
-struct frame *frame_init(struct sock *sock, size_t size) {
-    struct frame *frame = malloc(FRAME_LEN);
-    if (size > 0) {
-        frame->buffer = malloc(size);
-        frame->buf_size = size;
-    } else {
-        frame->buffer = NULL;
-    }
-    frame->head = frame->buffer;
-    frame->data = frame->head;
-    frame->tail = frame->buffer + size;
-    frame->sock = sock;
-    frame->parent = frame->child = NULL;
+struct frame *frame_init(struct intf *intf, void *buffer, size_t buf_size) {
+    struct frame *frame = calloc(1, sizeof(struct frame));
+    frame->intf = intf;
+    if (buffer != NULL)
+        frame_init_buf(frame, buffer, buf_size);
 
     return frame;
+}
+
+void frame_init_buf(struct frame* frame, void *buffer, size_t buf_size) {
+    frame->buffer = buffer;
+    frame->buf_size = buf_size;
+    frame->head = frame->buffer;
+    frame->tail = frame->buffer + buf_size;
+    frame->data = frame->tail;
 }
 
 void frame_free(struct frame *frame) {
     if (frame == NULL) {
         return;
-    }
-    // free() performs the null check for us
-    if (frame->parent == NULL) {
-        // Only free the buffer if we created it!
-        free(frame->buffer);
     }
     // Iterate through children only, we want to keep the parents
     struct frame *child;
@@ -43,8 +38,8 @@ struct frame *frame_child_copy(struct frame *parent) {
         return NULL;
     }
 
-    struct frame *child = malloc(FRAME_LEN);
-    memcpy(child, parent, FRAME_LEN);
+    struct frame *child = malloc(sizeof(struct frame));
+    memcpy(child, parent, sizeof(struct frame));
 
     parent->child = child;
     child->parent = parent;

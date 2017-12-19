@@ -7,6 +7,9 @@
 #include <netstack/frame.h>
 #include <netstack/llist.h>
 
+// Fix circular include issue
+struct frame;
+
 // Interface types
 #define INTF_RAWSOCK    1
 #define INTF_TUNTAP     2
@@ -33,13 +36,20 @@ struct intf {
     pthread_t threads[INTF_THR_MAX];
 
     // Blocking function call that reads a frame from the interface.
-    ssize_t (*recv_frame)(struct intf *, struct frame **);
+    /* Implementing method is responsible for populating frame->buffer using
+     * frame_init_buf() and providing a suitable frame buffer (can be using
+     * malloc) */
+    int (*recv_frame)(struct frame *);
 
-    ssize_t (*send_frame)(struct intf *, struct frame *);
+    int (*send_frame)(struct frame *);
+
+    /* Frees the frame structure as well as the enclosed
+     * interface-managed buffer */
+    void (*free_frame)(struct frame *);
 
     // Peeks at the amount of bytes available, or 0 if no frame available
     // Returns -1 on error
-    ssize_t (*recv_peek)(struct intf *);
+    int (*recv_peek)(struct intf *);
 
     // Cleans up an allocated interface data, excluding the interface struct
     // itself (may not have been dynamically allocated)
@@ -48,7 +58,7 @@ struct intf {
     // Stack input for recv'd data
     // Called by the interface with the appropriate frame type
     // e.g. ether frames for an ethernet device, IP frames for TUN
-    void (*input)(struct intf *, struct frame *);
+    void (*input)(struct frame *);
 };
 
 int intf_type(struct intf *intf);

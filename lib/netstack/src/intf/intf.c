@@ -22,7 +22,9 @@ void intf_recv(struct intf *intf) {
     // execution so the cleanup routines are run, freeing allocated memory
     pthread_cleanup_push(free, rawframe);
 
-    while ((count = intf->recv_frame(intf, &rawframe)) != -1) {
+    rawframe = frame_init(intf, NULL, 0);
+
+    while ((count = intf->recv_frame(rawframe)) != -1) {
         // Capture time as packet is read
         struct timespec ts;
         // TODO: Implement rx 'software' timestamping
@@ -41,11 +43,13 @@ void intf_recv(struct intf *intf) {
         printf("%s ", buf);
 
         // Push received data into the stack
-        intf->input(intf, rawframe);
+        intf->input(rawframe);
 
         printf("\n");
 
-        frame_free(rawframe);
+        // Allocate a new frame
+        intf->free_frame(rawframe);
+        rawframe = frame_init(intf, NULL, 0);
     }
 
     // Run cleanup if rawframe was allocated

@@ -30,8 +30,10 @@ struct eth_hdr {
 struct eth_hdr *ether_ntoh(void *data);
 
 /* Receives an ether frame for processing in the network stack */
-void ether_recv(struct intf *intf, struct frame *frame);
+void ether_recv(struct frame *frame);
 
+int ether_send(struct frame *frame, uint16_t ethertype,
+               uint8_t mac[ETH_ADDR_LEN]);
 
 /* Formats a MAC address from an uint8_t[6] into a character buffer.
    WARNING: `buff` must be at least 18 characters in size as this macro

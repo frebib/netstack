@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-#include "intf.h"
+#include <netstack/intf/intf.h>
 
 struct intf_rawsock {
     int sock;
@@ -15,10 +15,12 @@ int rawsock_new(struct intf *interface);
 
 void rawsock_free(struct intf *interface);
 
-ssize_t rawsock_recv_frame(struct intf *, struct frame **);
+int rawsock_recv_frame(struct frame *);
 
-ssize_t rawsock_send_frame(struct intf *, struct frame *);
+int rawsock_send_frame(struct frame *);
 
-ssize_t rawsock_peek(struct intf *);
+void rawsock_free_frame(struct frame *);
+
+int rawsock_peek(struct intf *);
 
 #endif //NETSTACK_RAWSOCK_H
