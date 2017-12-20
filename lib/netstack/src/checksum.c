@@ -2,7 +2,7 @@
 
 /* Source: https://tools.ietf.org/html/rfc1071#section-4.1 */
 #if _WORDSIZE == 32
-uint16_t in_csum(const uint8_t *ptr, size_t len, uint16_t initial) {
+uint16_t in_csum(const void *ptr, size_t len, uint32_t initial) {
 
     uint32_t sum = initial;
     uint16_t *data = (uint16_t *) ptr;
