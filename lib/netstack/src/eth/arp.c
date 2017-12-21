@@ -50,8 +50,8 @@ void arp_recv(struct intf *intf, struct frame *frame) {
             if (added) {
                 // Print ARP table
                 fprintf(stderr, "IPv4\t\tHW Address\t\tHW type\tState\n");
-                for_each_llist(intf->arptbl) {
-                    struct arp_entry_ipv4 *entry = (elem->data);
+                for_each_llist(&frame->intf->arptbl) {
+                    struct arp_entry_ipv4 *entry = llist_elem_data();
                     char sip[16], shw[18];
                     fmt_ipv4(entry->ip, sip);
                     fmt_mac(&entry->hwaddr, shw);
@@ -86,8 +86,8 @@ void arp_recv(struct intf *intf, struct frame *frame) {
 uint8_t *arp_ipv4_get_hwaddr(struct intf *intf, uint8_t hwtype, uint32_t ipv4) {
 
     // TODO: Implement ARP cache locking
-    for_each_llist(intf->arptbl) {
-        struct arp_entry_ipv4 *entry = (elem->data);
+    for_each_llist(&intf->arptbl) {
+        struct arp_entry_ipv4 *entry = llist_elem_data();
 
         if (entry->ip == ipv4) {
             if (entry->state != ARP_RESOLVED)
@@ -117,10 +117,10 @@ bool arp_cache_ipv4(struct intf *intf, struct arp_hdr *hdr,
     char sip[16];
     fmt_ipv4(req->sipv4, sip);
 
-    // TODO: Use hashtable for ARP lookups on both IPv4 & HW addresses
+    // TODO: Use hashtable for ARP lookups on IPv4
 
-    for_each_llist(intf->arptbl) {
-        struct arp_entry_ipv4 *entry = (elem->data);
+    for_each_llist(&intf->arptbl) {
+        struct arp_entry_ipv4 *entry = llist_elem_data();
 
         // If existing IP match, update it
         if (entry->ip == req->sipv4) {
@@ -151,7 +151,7 @@ bool arp_cache_ipv4(struct intf *intf, struct arp_hdr *hdr,
     entry->hwlen = hdr->hlen;
     memcpy(&entry->hwaddr, req->saddr, hdr->hlen);
 
-    intf->arptbl = llist_prepend(intf->arptbl, entry);
+    llist_append(&intf->arptbl, entry);
 
     return true;
 }

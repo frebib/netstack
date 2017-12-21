@@ -30,7 +30,7 @@ struct intf {
     int mtu;
 
     // TODO: Move arptbl into an 'ethernet' hardware struct into `void *ll`
-    struct llist_elem *arptbl;
+    struct llist arptbl;
 
     // Interface send/recv thread ids
     pthread_t threads[INTF_THR_MAX];
