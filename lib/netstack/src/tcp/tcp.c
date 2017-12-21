@@ -17,7 +17,7 @@ struct tcp_hdr *tcp_ntoh(void *data) {
     return tcp_hdr;
 }
 
-void tcp_recv(struct intf *intf, struct frame *frame, uint16_t net_csum) {
+void tcp_recv(struct frame *frame, uint16_t net_csum) {
 
     /* Don't parse yet, we need to check the checksum first */
     struct tcp_hdr *hdr = tcp_hdr(frame);

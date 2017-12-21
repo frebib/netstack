@@ -65,7 +65,7 @@ struct ipv4_hdr {
 struct ipv4_hdr *ipv4_ntoh(void *data);
 
 /* Receives an ipv4 frame for processing in the network stack */
-void ipv4_recv(struct intf *intf, struct frame *frame);
+void ipv4_recv(struct frame *frame);
 
 #define fmt_ipv4(ip, buff) \
     sprintf(buff, "%d.%d.%d.%d", \

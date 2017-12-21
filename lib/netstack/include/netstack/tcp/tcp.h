@@ -105,7 +105,7 @@ struct tcp_ipv4_phdr {
 struct tcp_hdr *tcp_ntoh(void *data);
 
 /* Receives a tcp frame for processing in the network stack */
-void tcp_recv(struct intf *intf, struct frame *frame, uint16_t net_csum);
+void tcp_recv(struct frame *frame, uint16_t net_csum);
 
 
 /* Returns a string of characters/dots representing a set/unset TCP flag */

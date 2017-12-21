@@ -17,7 +17,7 @@ struct arp_hdr *parse_arp(void *data) {
     return hdr;
 }
 
-void arp_recv(struct intf *intf, struct frame *frame) {
+void arp_recv(struct frame *frame) {
     struct arp_hdr *msg = parse_arp(frame->data);
     frame->data += ARP_HDR_LEN;
 
@@ -45,7 +45,7 @@ void arp_recv(struct intf *intf, struct frame *frame) {
 
             // TODO: Don't cache ARP that we sent..
 
-            bool added = arp_cache_ipv4(intf, msg, req);
+            bool added = arp_cache_ipv4(frame->intf, msg, req);
 
             if (added) {
                 // Print ARP table

@@ -59,7 +59,7 @@ struct arp_ipv4 {
 struct arp_hdr *parse_arp(void *data);
 
 /* Receives an arp frame for processing in the network stack */
-void arp_recv(struct intf *intf, struct frame *frame);
+void arp_recv(struct frame *frame);
 
 /* Retrieve a hwaddress from ARP cache, or NULL of no cache hit */
 /* Does NOT send ARP requests for cache misses.. */

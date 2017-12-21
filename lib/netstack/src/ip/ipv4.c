@@ -19,7 +19,7 @@ struct ipv4_hdr *ipv4_ntoh(void *data) {
     return hdr;
 }
 
-void ipv4_recv(struct intf *intf, struct frame *frame) {
+void ipv4_recv(struct frame *frame) {
 
     /* Don't parse yet, we need to check the checksum first */
     struct ipv4_hdr *hdr = ipv4_hdr(frame);
@@ -78,7 +78,7 @@ void ipv4_recv(struct intf *intf, struct frame *frame) {
             printf(" %s:%d > %s:%d", ssaddr, sport, sdaddr, dport);
 
             /* Pass initial network csum as TCP packet csum seed */
-            tcp_recv(intf, child_frame, ipv4_csum);
+            tcp_recv(child_frame, ipv4_csum);
             return;
         }
         case IP_P_UDP:
@@ -92,7 +92,7 @@ void ipv4_recv(struct intf *intf, struct frame *frame) {
         case IP_P_ICMP: {
             printf(" ICMP");
             printf(" %s > %s", ssaddr, sdaddr);
-            icmp_recv(intf, child_frame);
+            icmp_recv(child_frame);
             return;
         }
         default:

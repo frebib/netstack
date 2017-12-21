@@ -47,11 +47,11 @@ void ether_recv(struct frame *frame) {
     switch (hdr->ethertype) {
         case ETH_P_ARP:
             printf("ARP");
-            arp_recv(intf, child_frame);
+            arp_recv(child_frame);
             return;
         case ETH_P_IP:
             printf("IPv4");
-            ipv4_recv(intf, child_frame);
+            ipv4_recv(child_frame);
             return;
         case ETH_P_IPV6:
             printf("IPv6 unimpl");
