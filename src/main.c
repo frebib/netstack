@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
     // TODO: For now, assume everything is ethernet
 
     // Create a INTF_RAWSOCK interface for sending/recv'ing data
-    intf = malloc(sizeof(struct intf));
+    intf = calloc(sizeof(struct intf), 1);
     if (rawsock_new(intf) != 0) {
         perror("Error creating INTF_RAWSOCK");
         return EX_IOERR;

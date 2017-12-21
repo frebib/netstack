@@ -184,7 +184,7 @@ int rawsock_recv_frame(struct frame *frame) {
 
 int rawsock_send_frame(struct frame *frame) {
     struct intf_rawsock *ll = (struct intf_rawsock *) frame->intf->ll;
-    struct sockaddr_ll sa;
+    struct sockaddr_ll sa = {0};
     sa.sll_family = AF_PACKET;
     sa.sll_ifindex = ll->if_index;
     sa.sll_halen = ETH_ADDR_LEN;
