@@ -96,6 +96,7 @@ int rawsock_new(struct intf *interface) {
     memset(interface->name, 0, IFNAMSIZ);
     memcpy(interface->name, if_ni->if_name, strlen(if_ni->if_name));
     interface->type = INTF_RAWSOCK;
+    interface->proto = PROTO_ETHER;
     interface->recv_frame = rawsock_recv_frame;
     interface->send_frame = rawsock_send_frame;
     interface->free_frame = rawsock_free_frame;

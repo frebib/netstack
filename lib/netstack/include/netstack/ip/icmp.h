@@ -41,11 +41,14 @@ struct icmp_hdr {
 struct icmp_echo {
     uint16_t    id,
                 seq;
-    uint32_t    payload;
+    /* Variable size payload */
 }__attribute((packed));
 
 /* Returns a struct icmp_hdr from the frame->head */
 #define icmp_hdr(frame) ((struct icmp_hdr *) (frame)->head)
+
+/* Returns a struct icmp_echo from the frame->head */
+#define icmp_echo_hdr(frame) ((struct icmp_echo *) (frame)->head)
 
 /* Receives an icmp frame for processing in the network stack */
 void icmp_recv(struct frame *frame);

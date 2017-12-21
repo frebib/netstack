@@ -42,7 +42,7 @@ struct ipv4_hdr {
     uint8_t     ttl;
     uint8_t     proto;
     uint16_t    csum;
-    uint32_t    saddr,
+    ip4_addr_t  saddr,
                 daddr;
     /* Options are now specified, optionally of course */
 }__attribute((packed));

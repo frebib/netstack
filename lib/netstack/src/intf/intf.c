@@ -89,3 +89,17 @@ int intf_init(struct intf *intf) {
     return 0;
 }
 
+
+bool intf_has_addr(struct intf *intf, addr_t *addr) {
+    if (addr->proto == 0) {
+        fprintf(stderr, "Error: intf_has_addr() called with empty protocol\n");
+        return false;
+    }
+
+    for_each_llist(&intf->inet) {
+        addr_t *intf_addr = llist_elem_data();
+        if (addreq(intf_addr, addr))
+            return true;
+    }
+    return false;
+}

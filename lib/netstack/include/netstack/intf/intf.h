@@ -4,6 +4,7 @@
 #include <net/if.h>
 #include <sys/types.h>
 
+#include <netstack/addr.h>
 #include <netstack/frame.h>
 #include <netstack/llist.h>
 
@@ -23,11 +24,15 @@ struct frame;
 // `man netdevice` gives a good overview
 struct intf {
     uint8_t type;
+    uint8_t proto;          /* Defines the protocol running in the interface */
     // Link layer information
     char name[IFNAMSIZ];
     void *ll;
     uint8_t *ll_addr;
     int mtu;
+
+    // Internet Addresses (IPv4/6)
+    struct llist inet;
 
     // TODO: Move arptbl into an 'ethernet' hardware struct into `void *ll`
     struct llist arptbl;
@@ -64,5 +69,13 @@ struct intf {
 int intf_type(struct intf *intf);
 
 int intf_init(struct intf *intf);
+
+/*!
+ * Checks whether an interface has the specified address
+ * @param intf interface to check
+ * @param addr address & protocol to check
+ * @return true if requested protocol and address match
+ */
+bool intf_has_addr(struct intf *intf, addr_t *addr);
 
 #endif //NETSTACK_INTERFACE_H

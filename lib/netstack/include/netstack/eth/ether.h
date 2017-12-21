@@ -9,15 +9,14 @@
 #include "ethertype.h"
 
 #define ETH_HDR_LEN  sizeof(struct eth_hdr)
-#define ETH_ADDR_LEN 6      /* # of octets per address */
 
-static uint8_t ETH_BRD_ADDR[ETH_ADDR_LEN] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+static eth_addr_t ETH_BRD_ADDR = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 
 /* Ethernet frame header */
 struct eth_hdr {
-    uint8_t daddr[ETH_ADDR_LEN];  /* Destination address */
-    uint8_t saddr[ETH_ADDR_LEN];  /* Source address */
+    eth_addr_t daddr;   /* Destination address */
+    eth_addr_t saddr;   /* Source address */
     __be16 ethertype;   /* Frame payload type, see ethertype.h */
 }__attribute((packed));
 
@@ -33,7 +32,7 @@ struct eth_hdr *ether_ntoh(void *data);
 void ether_recv(struct frame *frame);
 
 int ether_send(struct frame *frame, uint16_t ethertype,
-               uint8_t mac[ETH_ADDR_LEN]);
+               eth_addr_t mac);
 
 /* Formats a MAC address from an uint8_t[6] into a character buffer.
    WARNING: `buff` must be at least 18 characters in size as this macro

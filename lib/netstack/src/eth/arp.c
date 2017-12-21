@@ -138,9 +138,10 @@ bool arp_cache_ipv4(struct intf *intf, struct arp_hdr *hdr,
         }
     }
 
-    // TODO: Only save ARP if matches IP address from interface
-    //if (req->dipv4 != our_ipaddr)
-    //    return false;
+    // Don't cache ARP entry if it wasn't for us
+    addr_t ip = {.proto = PROTO_IPV4, .ipv4 = req->dipv4};
+    if (!intf_has_addr(intf, &ip))
+        return false;
 
     fprintf(stderr, "DEBUG: Storing new ARP entry for %s\n", sip);
 
