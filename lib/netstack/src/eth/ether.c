@@ -13,7 +13,7 @@ struct eth_hdr *ether_ntoh(void *data) {
 
 void ether_recv(struct frame *frame) {
 
-    struct eth_hdr *hdr = ether_ntoh(frame->buffer);
+    struct eth_hdr *hdr = ether_ntoh(frame->head);
     struct intf *intf = frame->intf;
 
     /* Frame data is after fixed header size */

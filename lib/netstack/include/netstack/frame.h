@@ -14,8 +14,8 @@ struct frame {
     size_t buf_size;
     struct timespec time;   /* Send/recv time for frame */
     uint8_t *buffer,
-            *head,
-            *data,
+            *head,          /* It cannot be assumed that head and data */
+            *data,          /* are a contiguous region of memory */
             *tail;
 
     struct frame *parent,
