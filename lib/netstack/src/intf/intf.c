@@ -37,9 +37,10 @@ void intf_recv(struct intf *intf) {
         // TODO: Use logging
         // TODO: Conditionally print debugging information
         // Format and print time the same as tcpdump for comparison
-        char buf[15];
+        char buf[20];
         strftime(buf, sizeof(buf), "%T", gmtime(&ts.tv_sec));
-        snprintf(buf + 8, 8, ".%ld", ts.tv_nsec);
+        snprintf(buf + 8, 11, ".%09ld", ts.tv_nsec);
+        buf[15] = '\0'; // Manually truncate nanoseconds to 6 chars long
         printf("%s ", buf);
 
         // Push received data into the stack
