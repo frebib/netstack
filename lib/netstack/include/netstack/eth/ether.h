@@ -34,6 +34,8 @@ void ether_recv(struct frame *frame);
 int ether_send(struct frame *frame, uint16_t ethertype,
                eth_addr_t mac);
 
+bool ether_should_accept(struct eth_hdr *hdr, struct intf *intf);
+
 /* Formats a MAC address from an uint8_t[6] into a character buffer.
    WARNING: `buff` must be at least 18 characters in size as this macro
             does no bounds checking! */

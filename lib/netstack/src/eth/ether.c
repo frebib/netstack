@@ -33,14 +33,8 @@ void ether_recv(struct frame *frame) {
     fmt_mac(hdr->daddr, sdaddr);
     printf(" %s > %s ", ssaddr, sdaddr);
 
-    /* Check for broadcast packets */
-    if (memcmp(hdr->daddr, &ETH_BRD_ADDR, ETH_ADDR_LEN) == 0) {
-        printf("Broadcast ");
-    }
-
-    /* Ensure packet received has a matching address to our interface */
-    if (memcmp(hdr->daddr, intf->ll_addr, ETH_ADDR_LEN) != 0) {
-        // printf("Packet not destined for us");
+    if (!ether_should_accept(hdr, intf)) {
+        return;
     }
 
     struct frame *child_frame = frame_child_copy(frame);
@@ -62,4 +56,19 @@ void ether_recv(struct frame *frame) {
     }
 }
 
+
+bool ether_should_accept(struct eth_hdr *hdr, struct intf *intf) {
+    /* Check for broadcast packets */
+    if (memcmp(hdr->daddr, &ETH_BRD_ADDR, ETH_ADDR_LEN) == 0) {
+        printf("Broadcast ");
+        return true;
+    }
+
+    /* Ensure packet received has a matching address to our interface */
+    if (memcmp(hdr->daddr, intf->ll_addr, ETH_ADDR_LEN) == 0) {
+        return true;
+    }
+
+    return false;
+}
 
