@@ -10,6 +10,7 @@
 #include <sys/capability.h>
 
 #include <netstack/frame.h>
+#include <netstack/ip/route.h>
 #include <netstack/eth/ether.h>
 #include <netstack/intf/rawsock.h>
 
@@ -92,6 +93,11 @@ int main(int argc, char **argv) {
                         pthread_join(intf->threads[i], NULL);
                     }
                 }
+
+                // Cleanup route table
+                for_each_llist(&route_tbl)
+                    free(llist_elem_data());
+                llist_clear(&route_tbl);
 
                 // Cleanup interface meta
                 intf->free(intf);
