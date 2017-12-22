@@ -7,7 +7,7 @@ pipeline:
     commands:
       # Run the default entrypoint
       - /usr/local/bin/entrypoint true
-      - CC=$CC make
+      - CC=$CC make clean all
 
   test:
     image: alpine:3.6
@@ -15,12 +15,18 @@ pipeline:
     environment:
       - RAWSOCK_NOBIND=true
     commands:
-      - apk --no-cache --quiet add coreutils libcap make
+      - apk --no-cache --quiet add coreutils libcap make valgrind
       - make --warn-undefined-variables install PREFIX=/usr
       - ldconfig /usr/lib
       - ldd /usr/bin/netd
       # ret 124 is a timeout therefore it did not crash
-      - timeout 10 netd >/dev/null || test $? -eq 124
+      - timeout 10
+          valgrind
+            --leak-check=full
+            --show-reachable=yes
+            --track-origins=yes
+            netd >/dev/null 
+          || test $? -eq 124
 
 matrix:
   CC:
