@@ -92,10 +92,6 @@ void ipv4_recv(struct frame *frame) {
         case IP_P_UDP:
             printf(" %s > %s", ssaddr, sdaddr);
             printf(" unimpl %s", fmt_ipproto(hdr->proto));
-            /*
-            fprintf(stderr, "IPv4: Unimplemented packet type %s\n",
-                    fmt_ipproto(hdr->proto));
-            */
             return;
         case IP_P_ICMP: {
             printf(" ICMP");
@@ -106,10 +102,6 @@ void ipv4_recv(struct frame *frame) {
         default:
             printf(" %s > %s", ssaddr, sdaddr);
             printf(" unsupported %s", fmt_ipproto(hdr->proto));
-            /*
-            fprintf(stderr, "IPv4: Unsupported packet type: %s\n",
-                    fmt_ipproto(hdr->proto));
-            */
             return;
     }
 }

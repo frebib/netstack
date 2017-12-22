@@ -48,8 +48,6 @@ void tcp_recv(struct frame *frame, uint16_t net_csum) {
 
     // TODO: Other integrity checks
 
-    // TODO: Check TCP packet checksum
-
     tcp_ntoh(frame->head);
 
     drop_pkt:
