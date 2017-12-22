@@ -179,6 +179,22 @@ int arp_send_req(struct intf *intf, uint16_t hwtype,
 
     // Sending ARP request was successful, add incomplete cache entry
     if (!ret) {
+        // Check if partial entry already exists, so to not add multiple
+        addr_t protoaddr = {.proto = PROTO_IPV4, .ipv4 = daddr};
+        bool entry_exist = false;
+        for_each_llist(&intf->arptbl) {
+            struct arp_entry *entry = llist_elem_data();
+            if (entry == NULL)
+                continue;
+            if (addreq(&entry->protoaddr, &protoaddr)) {
+                entry_exist = true;
+                break;
+            }
+        }
+        // Don't add another partial entry if one is there already
+        if (entry_exist)
+            return ret;
+
         struct arp_entry *entry = malloc(sizeof(struct arp_entry));
         entry->state = ARP_PENDING;
         *entry = (struct arp_entry){
