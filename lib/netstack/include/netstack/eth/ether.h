@@ -5,8 +5,7 @@
 #include <linux/types.h>
 
 #include <netstack/intf/intf.h>
-
-#include "ethertype.h"
+#include <netstack/eth/ethertype.h>
 
 #define ETH_HDR_LEN  sizeof(struct eth_hdr)
 

@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <netstack/intf/intf.h>
-#include "ipproto.h"
+#include <netstack/ip/ipproto.h>
 
 /*
     Source: https://tools.ietf.org/html/rfc791#page-11
