@@ -26,6 +26,9 @@ struct frame {
 #define frame_alloc(frame, size) \
         (void *) ((frame)->head = (frame)->data -= (size))
 
+/* Calculates the total length of the frame header and payload */
+#define frame_pkt_len(frame) (uint16_t) ((frame)->tail - (frame)->head)
+
 /* Initialises a new frame on the heap,
    with a buffer if a size is provided,
    linked to an optional socket */

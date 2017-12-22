@@ -22,7 +22,7 @@ void tcp_recv(struct frame *frame, uint16_t net_csum) {
     /* Don't parse yet, we need to check the checksum first */
     struct tcp_hdr *hdr = tcp_hdr(frame);
     frame->data += tcp_hdr_len(hdr);
-    uint16_t pkt_len = (uint16_t) (frame->tail - frame->head);
+    uint16_t pkt_len = frame_pkt_len(frame);
 
     printf(" %lu bytes", (frame->tail - frame->data));
 
