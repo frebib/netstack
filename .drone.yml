@@ -17,6 +17,8 @@ pipeline:
     commands:
       - apk --no-cache --quiet add coreutils libcap make valgrind
       - make --warn-undefined-variables install PREFIX=/usr
+      # Ensure there are no relative paths in range so netd links to /usr/bin
+      - cd /
       - ldconfig /usr/lib
       - ldd /usr/bin/netd
       # ret 124 is a timeout therefore it did not crash
