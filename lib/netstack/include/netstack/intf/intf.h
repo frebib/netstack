@@ -122,4 +122,6 @@ size_t intf_max_frame_size(struct intf *intf);
  */
 bool intf_has_addr(struct intf *intf, addr_t *addr);
 
+bool intf_get_addr(struct intf *intf, addr_t *addr);
+
 #endif //NETSTACK_INTERFACE_H

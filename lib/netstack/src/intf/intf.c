@@ -181,3 +181,21 @@ bool intf_has_addr(struct intf *intf, addr_t *addr) {
     }
     return false;
 }
+
+bool intf_get_addr(struct intf *intf, addr_t *addr) {
+    if (addr->proto == 0) {
+        fprintf(stderr, "Error: intf_get_addr() called with empty protocol\n");
+        return false;
+    }
+
+    for_each_llist(&intf->inet) {
+        addr_t *intf_addr = llist_elem_data();
+        // TODO: Selectively choose an appropriate address from intf
+        // for now just use the first with a matching protocol
+        if (addr->proto == intf_addr->proto) {
+            memcpy(addr, intf_addr, sizeof(addr_t));
+            return true;
+        }
+    }
+    return false;
+}

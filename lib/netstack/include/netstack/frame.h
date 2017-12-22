@@ -29,6 +29,12 @@ struct frame {
 /* Calculates the total length of the frame header and payload */
 #define frame_pkt_len(frame) (uint16_t) ((frame)->tail - (frame)->head)
 
+/* Calculates the total length of the frame header */
+#define frame_hdr_len(frame) (uint16_t) ((frame)->data - (frame)->head)
+
+/* Calculates the total length of the frame payload */
+#define frame_data_len(frame) (uint16_t) ((frame)->tail - (frame)->data)
+
 /* Initialises a new frame on the heap,
    with a buffer if a size is provided,
    linked to an optional socket */

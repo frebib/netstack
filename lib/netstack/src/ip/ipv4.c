@@ -1,9 +1,12 @@
 #include <stdio.h>
 
+#include <errno.h>
 #include <netinet/in.h>
 #include <netstack/frame.h>
+#include <netstack/eth/arp.h>
 #include <netstack/ip/ipv4.h>
 #include <netstack/ip/icmp.h>
+#include <netstack/ip/route.h>
 #include <netstack/tcp/tcp.h>
 #include <netstack/checksum.h>
 
@@ -105,3 +108,89 @@ void ipv4_recv(struct frame *frame) {
             return;
     }
 }
+
+int send_ipv4(struct frame *child, uint8_t proto, uint16_t flags,
+              ip4_addr_t daddr, ip4_addr_t saddr) {
+
+    struct frame *frame = frame_parent_copy(child);
+
+    struct route_entry *rt = route_lookup(daddr);
+    if (!rt) {
+        // If no route found, return DESTUNREACHABLE error
+        return -EHOSTUNREACH;
+    }
+
+    // TODO: Perform correct route/hardware address lookups when appropriate
+    if (rt->intf == NULL) {
+        fprintf(stderr, "Error: Route interface is null for %p\n", (void *) rt);
+        return -EINVAL;
+    }
+
+    // Set frame interface now it is known from route
+    frame->intf = rt->intf;
+
+    ip4_addr_t nexthop = (rt->flags & RT_GATEWAY) ? rt->gwaddr : daddr;
+
+    if (saddr) {
+        addr_t req_saddr = { .proto = PROTO_IPV4, .ipv4 = saddr };
+        if (!intf_has_addr(rt->intf, &req_saddr)) {
+            fprintf(stderr, "Error: The requested address %s is invalid for "
+                    "interface %s", fmtip4(saddr), rt->intf->name);
+            return -EADDRNOTAVAIL;
+        }
+    } else {
+        addr_t def_addr = { .proto = PROTO_IPV4, .ipv4 = 0 };
+        if (!intf_get_addr(rt->intf, &def_addr)) {
+            fprintf(stderr, "Error: could not get interface address for %s\n",
+                    rt->intf->name);
+            return -EADDRNOTAVAIL;
+        }
+
+        if (def_addr.ipv4 == 0) {
+            fprintf(stderr, "Error: interface %s has no address for IPv4\n",
+                    rt->intf->name);
+            return -EADDRNOTAVAIL;
+        }
+
+        // Set source-address to address obtained from rt->intf
+        saddr = def_addr.ipv4;
+    }
+
+    // TODO: Implement ARP cache locking
+    uint8_t *dmac = arp_ipv4_get_hwaddr(rt->intf, ARP_HW_ETHER, nexthop);
+
+    if (dmac == NULL) {
+        fprintf(stderr, "arp_request(rt->intf, saddr, nexthop);\n");
+        arp_send_req(rt->intf, ARP_HW_ETHER, saddr, nexthop);
+        return -EHOSTUNREACH;
+    }
+
+    // Construct IPv4 header
+    struct ipv4_hdr *hdr = frame_alloc(frame, sizeof(struct ipv4_hdr));
+    hdr->hlen = 5;
+    hdr->version = 4;
+    hdr->tos = 0;
+    hdr->len = htons((uint16_t) (ipv4_hdr_len(hdr) + frame_data_len(frame) -
+            20));
+    hdr->id  = htons(0);
+    hdr->frag_ofs = htons(flags);
+    // TODO: Make this user-configurable
+    hdr->ttl = IPV4_DEF_TTL;
+    hdr->proto = proto;
+    hdr->saddr = htonl(saddr);
+    hdr->daddr = htonl(daddr);
+    hdr->csum = 0;
+    hdr->csum = in_csum(hdr, (size_t) sizeof(struct ipv4_hdr), 0);
+
+    switch(rt->intf->proto) {
+        case PROTO_IP:
+        case PROTO_IPV4:
+            // Frame successfully made it to the bottom of the stack
+            // Dispatch it to the interface and return
+            return intf_dispatch(frame);
+        case PROTO_ETHER:
+            return ether_send(frame, ETH_P_IP, dmac);
+    }
+    return 0;
+}
+
