@@ -196,8 +196,7 @@ int arp_send_req(struct intf *intf, uint16_t hwtype,
             return ret;
 
         struct arp_entry *entry = malloc(sizeof(struct arp_entry));
-        entry->state = ARP_PENDING;
-        *entry = (struct arp_entry){
+        *entry = (struct arp_entry) {
             .state = ARP_PENDING,
             .hwaddr = {.proto = PROTO_ETHER, .ether = eth_arr(ETH_NUL_ADDR)},
             .protoaddr = {.proto = PROTO_IPV4, .ipv4 = daddr}
