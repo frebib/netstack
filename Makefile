@@ -3,7 +3,7 @@ OBJDIR = obj
 LIBDIR = lib/netstack
 INCDIR = $(LIBDIR)/include
 
-override CFLAGS  += -fPIC -I$(INCDIR) -Wall -Werror -Wpedantic -Wno-unused-variable
+override CFLAGS  += -fPIC -I$(INCDIR) -Wall -Werror -Wpedantic -Wno-unused-variable -g
 override LDFLAGS += -L$(LIBDIR) -Wl,--as-needed -Wl,-enable-new-dtags,-rpath,"$(LIBDIR)"
 override LDLIBS  += -lnetstack -lcap -ldl -lpthread
 
