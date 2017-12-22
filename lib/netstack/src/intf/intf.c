@@ -111,6 +111,7 @@ void _intf_recv_thread(struct intf *intf) {
         }
 
         printf("\n");
+        fflush(stdout);
 
         // Allocate a new frame
         intf_frame_free(rawframe);
