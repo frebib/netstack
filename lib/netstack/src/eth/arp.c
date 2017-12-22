@@ -102,7 +102,8 @@ addr_t *arp_get_hwaddr(struct intf *intf, uint16_t hwtype, addr_t *protoaddr) {
         }
         // Check matching protocols
         if (addreq(&entry->protoaddr, protoaddr)) {
-            if (entry->state != ARP_RESOLVED)
+            // Ignore entry if it doesn't have ARP_RESOLVED
+            if (!(entry->state & ARP_RESOLVED))
                 continue;
             if (entry->hwaddr.proto == hwtype)
                 return &entry->hwaddr;
