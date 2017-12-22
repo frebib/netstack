@@ -33,11 +33,11 @@ static inline char const *fmt_arp_op(unsigned short op) {
 
 /* ARP message header */
 struct arp_hdr {
-    uint16_t hwtype,
-             proto;
-    uint8_t  hlen,
-             plen;
-    uint16_t op;
+    uint16_t hwtype,    /* Hardware type */
+             proto;     /* Protocol type */
+    uint8_t  hlen,      /* Hardware address length */
+             plen;      /* Protocol address length */
+    uint16_t op;        /* ARP operation (ARP_OP_*) */
 }__attribute((packed));
 
 /* ARP IPv4 payload */
@@ -49,7 +49,7 @@ struct arp_ipv4 {
 }__attribute((packed));
 
 #define arp_entry_ipv4_len(hwlen) \
-    (sizeof(struct arp_entry_ipv4) + (hwlen) - 1)
+    (sizeof(struct arp_entry_ipv4) + (hwlen))
 
 /* Returns a struct arp_hdr from the frame->head */
 #define arp_hdr(frame) ((struct arp_hdr *) (frame)->head)
@@ -60,6 +60,13 @@ struct arp_hdr *parse_arp(void *data);
 
 /* Receives an arp frame for processing in the network stack */
 void arp_recv(struct frame *frame);
+
+// TODO: reduce redundant arguments passed to arp_send_req/reply
+// TODO: infer interface and hwtype based on routing rules
+int arp_send_req(struct intf *intf, uint16_t hwtype,
+                 uint32_t saddr, uint32_t daddr);
+int arp_send_reply(struct intf *intf, uint8_t hwtype, uint32_t sip,
+                   uint32_t dip, uint8_t *daddr);
 
 /* Retrieve a hwaddress from ARP cache, or NULL of no cache hit */
 /* Does NOT send ARP requests for cache misses.. */

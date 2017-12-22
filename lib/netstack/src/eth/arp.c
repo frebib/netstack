@@ -52,10 +52,10 @@ void arp_recv(struct frame *frame) {
                 fprintf(stderr, "IPv4\t\tHW Address\t\tHW type\tState\n");
                 for_each_llist(&frame->intf->arptbl) {
                     struct arp_entry_ipv4 *entry = llist_elem_data();
-                    char sip[16], shw[18];
-                    fmt_ipv4(entry->ip, sip);
-                    fmt_mac(&entry->hwaddr, shw);
-                    fprintf(stderr, "%s\t%s\t%d\t%s\n", sip, shw, entry->hwtype,
+                    fprintf(stderr, "%s\t%s\t%d\t%s\n",
+                            fmtip4(entry->ip),
+                            fmtmac(&entry->hwaddr),
+                            entry->hwtype,
                             fmt_arp_state(entry->state));
                 }
             }
@@ -67,9 +67,10 @@ void arp_recv(struct frame *frame) {
                 case ARP_OP_REQUEST:
                     printf(" Who has %s? Tell %s", sdaddr, ssaddr);
                     // If asking for us, send a reply with our LL address
-                    // TODO: ARP Reply with our eth addr to requests
-//                    arp_send_ipv4(intf, our_ipaddr, ETH_P_IP, req->sipv4,
-//                                  req->saddr);
+                    addr_t ip = {.proto = PROTO_IPV4, .ipv4 = req->dipv4};
+                    if (intf_has_addr(frame->intf, &ip))
+                        arp_send_reply(frame->intf, ARP_HW_ETHER, req->dipv4,
+                                       req->sipv4, req->saddr);
                     break;
                 case ARP_OP_REPLY:
                     printf(" Reply %s is at %s", ssaddr, ssethaddr);
@@ -89,20 +90,15 @@ uint8_t *arp_ipv4_get_hwaddr(struct intf *intf, uint8_t hwtype, uint32_t ipv4) {
     for_each_llist(&intf->arptbl) {
         struct arp_entry_ipv4 *entry = llist_elem_data();
 
+        if (entry == NULL) {
+            fprintf(stderr, "Error: arp_entry_ipv4 is null?\t");
+            return NULL;
+        }
         if (entry->ip == ipv4) {
             if (entry->state != ARP_RESOLVED)
                 continue;
-
-            char sip[16];
-            fmt_ipv4(ipv4, sip);
-            fprintf(stderr, "ARP cache hit for %s", sip);
-
-            if (entry->hwtype == hwtype) {
-                fprintf(stderr, ", hwtype match %d\n", hwtype);
+            if (entry->hwtype == hwtype)
                 return &entry->hwaddr;
-            } else
-                fprintf(stderr, ", incorrect hwtype %d != %d\n",
-                        hwtype, entry->hwtype);
         }
     }
 
@@ -155,4 +151,47 @@ bool arp_cache_ipv4(struct intf *intf, struct arp_hdr *hdr,
     llist_append(&intf->arptbl, entry);
 
     return true;
+}
+
+int arp_send_req(struct intf *intf, uint16_t hwtype,
+                 uint32_t saddr, uint32_t daddr) {
+
+    struct frame *frame = intf_frame_new(intf, intf_max_frame_size(intf));
+    struct arp_ipv4 *req = frame_alloc(frame, sizeof(struct arp_ipv4));
+    struct arp_hdr *hdr = frame_alloc(frame, sizeof(struct arp_hdr));
+
+    // TODO: Use hwtype to determine length and type of address
+    memcpy(&req->saddr, intf->ll_addr, ETH_ADDR_LEN);
+    memcpy(&req->daddr, ETH_BRD_ADDR, ETH_ADDR_LEN);
+    req->sipv4 = htonl(saddr);
+    req->dipv4 = htonl(daddr);
+    hdr->hwtype = htons(hwtype);
+    hdr->proto = htons(ETH_P_IP);
+    hdr->hlen = ETH_ADDR_LEN;
+    hdr->plen = (uint8_t) addrlen(PROTO_IPV4);
+    hdr->op = htons(ARP_OP_REQUEST);
+
+    return ether_send(frame, ETH_P_ARP, ETH_BRD_ADDR);
+}
+
+int arp_send_reply(struct intf *intf, uint8_t hwtype, uint32_t sip,
+                   uint32_t dip, uint8_t *daddr) {
+    // TODO: Add 'incomplete' entry to arp cache
+
+    struct frame *frame = intf_frame_new(intf, intf_max_frame_size(intf));
+    struct arp_ipv4 *req = frame_alloc(frame, sizeof(struct arp_ipv4));
+    struct arp_hdr *hdr = frame_alloc(frame, sizeof(struct arp_hdr));
+
+    // TODO: Use hwtype to determine length and type of address
+    memcpy(&req->saddr, intf->ll_addr, ETH_ADDR_LEN);
+    memcpy(&req->daddr, daddr, ETH_ADDR_LEN);
+    req->sipv4 = htonl(sip);
+    req->dipv4 = htonl(dip);
+    hdr->hwtype = htons(hwtype);
+    hdr->proto = htons(ETH_P_IP);
+    hdr->hlen = ETH_ADDR_LEN;
+    hdr->plen = (uint8_t) addrlen(PROTO_IPV4);
+    hdr->op = htons(ARP_OP_REPLY);
+
+    return ether_send(frame, ETH_P_ARP, ETH_BRD_ADDR);
 }

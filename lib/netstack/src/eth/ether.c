@@ -56,6 +56,17 @@ void ether_recv(struct frame *frame) {
     }
 }
 
+int ether_send(struct frame *child, uint16_t ethertype, eth_addr_t mac) {
+
+    struct frame *frame = frame_parent_copy(child);
+    struct intf *intf = frame->intf;
+    struct eth_hdr *hdr = frame_alloc(frame, sizeof(struct eth_hdr));
+    memcpy(hdr->saddr, intf->ll_addr, ETH_ADDR_LEN);
+    memcpy(hdr->daddr, mac, ETH_ADDR_LEN);
+    hdr->ethertype = htons(ethertype);
+
+    return intf_dispatch(frame);
+}
 
 bool ether_should_accept(struct eth_hdr *hdr, struct intf *intf) {
     /* Check for broadcast packets */

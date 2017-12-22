@@ -31,8 +31,7 @@ struct eth_hdr *ether_ntoh(void *data);
 /* Receives an ether frame for processing in the network stack */
 void ether_recv(struct frame *frame);
 
-int ether_send(struct frame *frame, uint16_t ethertype,
-               eth_addr_t mac);
+int ether_send(struct frame *child, uint16_t ethertype, eth_addr_t mac);
 
 bool ether_should_accept(struct eth_hdr *hdr, struct intf *intf);
 
@@ -42,5 +41,12 @@ bool ether_should_accept(struct eth_hdr *hdr, struct intf *intf);
 #define fmt_mac(a, buff) \
     sprintf((buff), "%02X:%02X:%02X:%02X:%02X:%02X", \
         (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5])
+
+static __thread char ether_hw_format[18];
+
+static inline char *fmtmac(eth_addr_t mac) {
+    fmt_mac(mac, ether_hw_format);
+    return ether_hw_format;
+}
 
 #endif //NETSTACK_ETHER_H

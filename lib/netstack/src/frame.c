@@ -49,3 +49,18 @@ struct frame *frame_child_copy(struct frame *parent) {
     return child;
 }
 
+struct frame *frame_parent_copy(struct frame *child) {
+    if (child == NULL) {
+        return NULL;
+    }
+
+    struct frame *parent = malloc(sizeof(struct frame));
+    memcpy(parent, child, sizeof(struct frame));
+
+    child->parent = parent;
+    parent->child = child;
+    parent->data = child->head;
+    parent->head = child->head;
+
+    return parent;
+}

@@ -22,6 +22,10 @@ struct frame {
                  *child;
 };
 
+/* Shifts the data pointer backwards by size in a frame */
+#define frame_alloc(frame, size) \
+        (void *) ((frame)->head = (frame)->data -= (size))
+
 /* Initialises a new frame on the heap,
    with a buffer if a size is provided,
    linked to an optional socket */
@@ -46,11 +50,22 @@ struct frame *frame_init(struct intf *intf, void *buffer, size_t buf_size);
  */
 void frame_init_buf(struct frame* frame, void *buffer, size_t buf_size);
 
-/* Frees a frame and it's enclosed buffer */
+/*!
+ * Frees a frame but NOT it's enclosed buffer
+ */
 void frame_free(struct frame *frame);
 
-/* Clones a frame, setting it's child to the clone and the parent of the
- * child to the original frame. Returns the new child frame */
+/*!
+ * Clones a frame, setting it's child to the clone and the parent of the
+ * child to the original frame.
+ * @return the new child frame
+ */
 struct frame *frame_child_copy(struct frame *parent);
+
+/*!
+ * Similar to frame_child_copy, a frame is cloned to be used as the parent
+ * @return the new parent frame
+ */
+struct frame *frame_parent_copy(struct frame *parent);
 
 #endif //NETSTACK_FRAME_H

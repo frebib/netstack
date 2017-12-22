@@ -74,6 +74,12 @@ void ipv4_recv(struct frame *frame);
         ((ip) >> 8) & 0xFF, \
         (ip) & 0xFF)
 
+static __thread char ipv4_format[16];
+static inline char *fmtip4(ip4_addr_t addr) {
+    fmt_ipv4(addr, ipv4_format);
+    return ipv4_format;
+}
+
 // Converts 4 bytes to a uint32_t IPv4 address
 // e.g. num_ipv4(192, 168, 10, 1) represents 192.168.10.1
 #define num_ipv4(a, b, c, d) (\

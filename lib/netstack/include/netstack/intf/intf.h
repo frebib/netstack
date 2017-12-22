@@ -110,6 +110,11 @@ void *intf_malloc_buffer(struct intf *intf, size_t size);
 void intf_free_buffer(struct intf *intf, void *buffer);
 
 /*!
+ * Calculates the maximum frame size for an interface
+ */
+size_t intf_max_frame_size(struct intf *intf);
+
+/*!
  * Checks whether an interface has the specified address
  * @param intf interface to check
  * @param addr address & protocol to check

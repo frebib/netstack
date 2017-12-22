@@ -162,6 +162,10 @@ int intf_init(struct intf *intf) {
     return 0;
 }
 
+size_t intf_max_frame_size(struct intf *intf) {
+    // TODO: Check intf hwtype to calculate max frame size
+    return intf == NULL ? 0 : intf->mtu + sizeof(struct eth_hdr);
+}
 
 bool intf_has_addr(struct intf *intf, addr_t *addr) {
     if (addr->proto == 0) {
