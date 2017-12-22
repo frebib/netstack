@@ -1,6 +1,8 @@
 #ifndef NETSTACK_INTERFACE_H
 #define NETSTACK_INTERFACE_H
 
+#include <stdbool.h>
+#include <semaphore.h>
 #include <net/if.h>
 #include <sys/types.h>
 
@@ -12,13 +14,13 @@
 struct frame;
 
 // Interface types
-#define INTF_RAWSOCK    1
-#define INTF_TUNTAP     2
+#define INTF_RAWSOCK    0x01
+#define INTF_TUNTAP     0x02
 
 // Interface thread ids
-#define INTF_THR_RECV   0
-#define INTF_THR_SEND   1
-#define INTF_THR_MAX    2
+#define INTF_THR_RECV   0x00
+#define INTF_THR_SEND   0x01
+#define INTF_THR_MAX    0x02
 
 // TODO: Implement 'virtual' network interfaces
 // `man netdevice` gives a good overview
@@ -29,13 +31,18 @@ struct intf {
     char name[IFNAMSIZ];
     void *ll;
     uint8_t *ll_addr;
-    int mtu;
+    size_t mtu;
 
     // Internet Addresses (IPv4/6)
     struct llist inet;
 
     // TODO: Move arptbl into an 'ethernet' hardware struct into `void *ll`
     struct llist arptbl;
+
+    // Concurrency locking for send queue
+    sem_t sendctr;
+    pthread_mutex_t sendqlck;
+    struct llist sendq;
 
     // Interface send/recv thread ids
     pthread_t threads[INTF_THR_MAX];
@@ -48,27 +55,59 @@ struct intf {
 
     int (*send_frame)(struct frame *);
 
-    /* Frees the frame structure as well as the enclosed
-     * interface-managed buffer */
-    void (*free_frame)(struct frame *);
+    void *(*new_buffer)(struct intf *intf, size_t size);
 
-    // Peeks at the amount of bytes available, or 0 if no frame available
-    // Returns -1 on error
-    int (*recv_peek)(struct intf *);
+    void (*free_buffer)(struct intf *intf, void *buffer);
 
     // Cleans up an allocated interface data, excluding the interface struct
     // itself (may not have been dynamically allocated)
     void (*free)(struct intf *);
-
-    // Stack input for recv'd data
-    // Called by the interface with the appropriate frame type
-    // e.g. ether frames for an ethernet device, IP frames for TUN
-    void (*input)(struct frame *);
 };
 
-int intf_type(struct intf *intf);
+/*!
+ *
+ * @param frame
+ * @return
+ */
+int intf_dispatch(struct frame *frame);
 
+/*!
+ *
+ * @param intf
+ * @return
+ */
 int intf_init(struct intf *intf);
+
+/*!
+ *
+ * @param frame
+ * @param buf_size
+ * @return
+ */
+struct frame *intf_frame_new(struct intf *frame, size_t buf_size);
+
+/*!
+ * Frees a frame and it's enclosed buffer
+ * Assumes frame->intf is populated with the interface..
+ * (if not, just use frame_free() as there should be no buffer assigned)
+ * @param frame frame and enclosing buffer to free(3)
+ */
+void intf_frame_free(struct frame * frame);
+
+/*!
+ *
+ * @param intf
+ * @param size
+ * @return
+ */
+void *intf_malloc_buffer(struct intf *intf, size_t size);
+
+/*!
+ *
+ * @param intf
+ * @param buffer
+ */
+void intf_free_buffer(struct intf *intf, void *buffer);
 
 /*!
  * Checks whether an interface has the specified address

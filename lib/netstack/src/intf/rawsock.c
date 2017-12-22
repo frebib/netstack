@@ -91,19 +91,17 @@ int rawsock_new(struct intf *interface) {
 
     interface->ll = ll;
     interface->ll_addr = hwaddr;
-    interface->mtu = mtu;
+    interface->mtu = (size_t) mtu;
     // Zero then copy interface name
     memset(interface->name, 0, IFNAMSIZ);
     memcpy(interface->name, if_ni->if_name, strlen(if_ni->if_name));
     interface->type = INTF_RAWSOCK;
     interface->proto = PROTO_ETHER;
+    interface->free = rawsock_free;
     interface->recv_frame = rawsock_recv_frame;
     interface->send_frame = rawsock_send_frame;
-    interface->free_frame = rawsock_free_frame;
-    interface->recv_peek = rawsock_peek;
-    interface->free = rawsock_free;
-    // Newly recv'd frames are of type 'ether'
-    interface->input = ether_recv;
+    interface->new_buffer = intf_malloc_buffer;
+    interface->free_buffer = intf_free_buffer;
 
     if_freenameindex(if_ni_head);
 
@@ -115,6 +113,9 @@ void rawsock_free(struct intf *intf) {
     close(sockptr->sock);
     free(sockptr);
     free(intf->ll_addr);
+    for_each_llist(&intf->arptbl)
+        free(llist_elem_data());
+    llist_clear(&intf->arptbl);
 }
 
 int rawsock_recv_frame(struct frame *frame) {
@@ -126,7 +127,7 @@ int rawsock_recv_frame(struct frame *frame) {
     int sock = *((int *) interface->ll);
 
     // Use peek method in struct, it may have been overridden
-    if ((lookahead = interface->recv_peek(interface)) == -1) {
+    if ((lookahead = rawsock_peek(interface)) == -1) {
         return (int) lookahead;
     }
 
@@ -135,6 +136,7 @@ int rawsock_recv_frame(struct frame *frame) {
     frame->data = frame->buffer;
 
     // Allocate msghdr to receive packet & ancillary data into
+    // TODO: Find an appropriate size for the control buffer
     uint8_t ctrl[1024];
     struct msghdr msgh = {0};
     struct iovec iov = {0};
@@ -150,7 +152,7 @@ int rawsock_recv_frame(struct frame *frame) {
 
     // There was an error. errno should be set
     if (count == -1) {
-        return count;
+        return (int) count;
     }
 
     struct cmsghdr *cmsg;
@@ -190,8 +192,10 @@ int rawsock_send_frame(struct frame *frame) {
     sa.sll_halen = ETH_ADDR_LEN;
     memcpy(sa.sll_addr, eth_hdr(frame)->daddr, ETH_ADDR_LEN);
 
-    return (int) sendto(ll->sock, frame->head, frame->tail - frame->head, 0,
+    ssize_t ret = sendto(ll->sock, frame->head, frame->tail - frame->head, 0,
                         (const struct sockaddr *) &sa, sizeof(sa));
+
+    return ret != 0 ? errno : 0;
 }
 
 void rawsock_free_frame(struct frame * frame) {
