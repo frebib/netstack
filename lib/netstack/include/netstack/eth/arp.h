@@ -48,9 +48,6 @@ struct arp_ipv4 {
     uint32_t dipv4;
 }__attribute((packed));
 
-#define arp_entry_ipv4_len(hwlen) \
-    (sizeof(struct arp_entry_ipv4) + (hwlen))
-
 /* Returns a struct arp_hdr from the frame->head */
 #define arp_hdr(frame) ((struct arp_hdr *) (frame)->head)
 
@@ -70,7 +67,7 @@ int arp_send_reply(struct intf *intf, uint8_t hwtype, uint32_t sip,
 
 /* Retrieve a hwaddress from ARP cache, or NULL of no cache hit */
 /* Does NOT send ARP requests for cache misses.. */
-uint8_t *arp_ipv4_get_hwaddr(struct intf *intf, uint8_t hwtype, uint32_t ipv4);
+addr_t *arp_get_hwaddr(struct intf *intf, uint16_t hwtype, addr_t *protoaddr);
 
 /* ARP table cache */
 
@@ -89,22 +86,35 @@ static inline char const *fmt_arp_state(uint8_t state) {
     }
 }
 
-struct arp_entry_ipv4 {
-    uint8_t  state;
-    uint32_t ip;
-    uint16_t hwtype;
-    uint8_t  hwlen;
-    // Not enough space allocated for hw address.
-    uint8_t  hwaddr;
-    // Use arp_entry_len() to allocate the correct size buffer
+struct arp_entry {
+    uint8_t state;
+    addr_t  protoaddr;
+    addr_t  hwaddr;
 };
 
-#define arp_entry_len(type, entry) \
-    (sizeof(type) + (entry)->hwlen - 1)
+/*!
+ * Prints the ARP table to a file (stdout, stderr etc)
+ * @param intf interface to read ARP table from
+ * @param file file to write ARP table to
+ */
+void arp_print_tbl(struct intf *intf, FILE *file);
 
-/* Add ethernet/IPv4 entries to the ARP table */
-/* Returns true if a new entry was inserted, false if an old updated */
-bool arp_cache_ipv4(struct intf *intf, struct arp_hdr *hdr,
-                    struct arp_ipv4 *req);
+/*!
+ * Attempt to update an existing protocol address entry
+ * @param intf interface to add mapping to
+ * @param hwaddr new hardware type & address
+ * @param protoaddr protocol address to update
+ * @return true if an existing entry was updated, false otherwise
+ */
+bool arp_update_entry(struct intf *intf, addr_t *hwaddr, addr_t *protoaddr);
+
+/*!
+ * Add new protocol/hardware pair to the ARP cache
+ * @param intf interface to add mapping to
+ * @param hwaddr hardware type and address
+ * @param protoaddr protocol type and address
+ * @return true if a new entry was inserted, false otherwise
+ */
+bool arp_cache_entry(struct intf *intf, addr_t *hwaddr, addr_t *protoaddr);
 
 #endif //NETSTACK_ARP_H

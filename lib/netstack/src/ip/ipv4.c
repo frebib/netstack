@@ -157,10 +157,12 @@ int send_ipv4(struct frame *child, uint8_t proto, uint16_t flags,
     }
 
     // TODO: Implement ARP cache locking
-    uint8_t *dmac = arp_ipv4_get_hwaddr(rt->intf, ARP_HW_ETHER, nexthop);
+    addr_t nexthop_ip4 = { .proto = PROTO_IPV4, .ipv4 = nexthop };
+    addr_t *dmac = arp_get_hwaddr(rt->intf, ARP_HW_ETHER, &nexthop_ip4);
 
     if (dmac == NULL) {
-        fprintf(stderr, "arp_request(rt->intf, saddr, nexthop);\n");
+        fprintf(stderr, "arp_request(%s, %s", rt->intf->name, fmtip4(saddr));
+        fprintf(stderr, ", %s);\n", fmtip4(nexthop));
         arp_send_req(rt->intf, ARP_HW_ETHER, saddr, nexthop);
         return -EHOSTUNREACH;
     }
@@ -189,8 +191,9 @@ int send_ipv4(struct frame *child, uint8_t proto, uint16_t flags,
             // Dispatch it to the interface and return
             return intf_dispatch(frame);
         case PROTO_ETHER:
-            return ether_send(frame, ETH_P_IP, dmac);
+            return ether_send(frame, ETH_P_IP, dmac->ether);
+        default:
+            return 0;
     }
-    return 0;
 }
 

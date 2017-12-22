@@ -82,18 +82,6 @@ void ipv4_recv(struct frame *frame);
 int send_ipv4(struct frame *child, uint8_t proto, uint16_t flags,
               ip4_addr_t daddr, ip4_addr_t saddr);
 
-#define fmt_ipv4(ip, buff) \
-    sprintf(buff, "%d.%d.%d.%d", \
-        ((ip) >> 24) & 0xFF, \
-        ((ip) >> 16) & 0xFF, \
-        ((ip) >> 8) & 0xFF, \
-        (ip) & 0xFF)
-
-static __thread char ipv4_format[16];
-static inline char *fmtip4(ip4_addr_t addr) {
-    fmt_ipv4(addr, ipv4_format);
-    return ipv4_format;
-}
 
 // Converts 4 bytes to a uint32_t IPv4 address
 // e.g. num_ipv4(192, 168, 10, 1) represents 192.168.10.1

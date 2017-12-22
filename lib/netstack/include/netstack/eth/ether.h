@@ -10,6 +10,7 @@
 #define ETH_HDR_LEN  sizeof(struct eth_hdr)
 
 static eth_addr_t ETH_BRD_ADDR = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+static eth_addr_t ETH_NUL_ADDR = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 
 /* Ethernet frame header */
@@ -33,19 +34,5 @@ void ether_recv(struct frame *frame);
 int ether_send(struct frame *child, uint16_t ethertype, eth_addr_t mac);
 
 bool ether_should_accept(struct eth_hdr *hdr, struct intf *intf);
-
-/* Formats a MAC address from an uint8_t[6] into a character buffer.
-   WARNING: `buff` must be at least 18 characters in size as this macro
-            does no bounds checking! */
-#define fmt_mac(a, buff) \
-    sprintf((buff), "%02X:%02X:%02X:%02X:%02X:%02X", \
-        (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5])
-
-static __thread char ether_hw_format[18];
-
-static inline char *fmtmac(eth_addr_t mac) {
-    fmt_mac(mac, ether_hw_format);
-    return ether_hw_format;
-}
 
 #endif //NETSTACK_ETHER_H
