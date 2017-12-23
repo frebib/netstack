@@ -16,8 +16,11 @@ START_TEST (single_append)
         llist_append(q, (void *) 1);
         ck_assert_ptr_nonnull(q->head);
         ck_assert_ptr_eq(q->head, q->tail);
+        ck_assert_ptr_null(q->head->prev);
+        ck_assert_ptr_null(q->head->next);
         ck_assert_ptr_eq(llist_pop(q), (void *)1);
         ck_assert_ptr_null(llist_pop(q));
+        ck_assert_ptr_null(q->head);
     }
 END_TEST
 
@@ -26,8 +29,19 @@ START_TEST (dual_append)
         struct llist qs = LLIST_INITIALISER, *q = &qs;
         llist_append(q, (void *) 1);
         llist_append(q, (void *) 2);
+        ck_assert_ptr_null(q->head->prev);
         ck_assert_ptr_nonnull(q->head->next);
         ck_assert_ptr_nonnull(q->head->next->prev);
+        ck_assert_ptr_null(q->head->next->next);
+        ck_assert_ptr_eq(q->head->next, q->tail);
+        ck_assert_ptr_eq(q->head, q->tail->prev);
+        ck_assert_ptr_eq(llist_pop(q), (void *)1);
+        ck_assert_ptr_nonnull(q->head);
+        ck_assert_ptr_eq(q->head, q->tail);
+        ck_assert_ptr_null(q->head->next);
+        ck_assert_ptr_null(q->head->prev);
+        ck_assert_ptr_eq(llist_pop(q), (void *)2);
+        ck_assert_ptr_null(q->head);
     }
 END_TEST
 
