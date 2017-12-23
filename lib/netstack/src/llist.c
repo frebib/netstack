@@ -7,8 +7,13 @@ void llist_clear(struct llist *list) {
     if (list == NULL)
         return;
 
-    while (list->head)
-        free(llist_pop(list));
+    struct llist_elem *tmp  = list->head,
+                      *next = NULL;
+    while (tmp) {
+        next = tmp->next;
+        free(tmp);
+        tmp = next;
+    }
     list->length = 0;
 }
 
