@@ -119,7 +119,7 @@ void rawsock_free(struct intf *intf) {
     llist_clear(&intf->arptbl);
 }
 
-int rawsock_recv_frame(struct frame *frame) {
+long rawsock_recv_frame(struct frame *frame) {
 
     struct intf* interface = frame->intf;
     // Count is raw eth packet size (inc eth + ip + transport)
@@ -190,10 +190,10 @@ int rawsock_recv_frame(struct frame *frame) {
         frame->buffer = newbuf;
     }
 
-    return 0;
+    return count;
 }
 
-int rawsock_send_frame(struct frame *frame) {
+long rawsock_send_frame(struct frame *frame) {
     struct intf_rawsock *ll = (struct intf_rawsock *) frame->intf->ll;
     struct sockaddr_ll sa = {0};
     sa.sll_family = AF_PACKET;

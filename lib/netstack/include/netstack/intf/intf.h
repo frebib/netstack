@@ -51,9 +51,9 @@ struct intf {
     /* Implementing method is responsible for populating frame->buffer using
      * frame_init_buf() and providing a suitable frame buffer (can be using
      * malloc) */
-    int (*recv_frame)(struct frame *);
+    long (*recv_frame)(struct frame *);
 
-    int (*send_frame)(struct frame *);
+    long (*send_frame)(struct frame *);
 
     void *(*new_buffer)(struct intf *intf, size_t size);
 

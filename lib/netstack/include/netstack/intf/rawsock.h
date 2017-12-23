@@ -15,9 +15,9 @@ int rawsock_new(struct intf *interface);
 
 void rawsock_free(struct intf *interface);
 
-int rawsock_recv_frame(struct frame *);
+long rawsock_recv_frame(struct frame *);
 
-int rawsock_send_frame(struct frame *);
+long rawsock_send_frame(struct frame *);
 
 void rawsock_free_frame(struct frame *);
 
