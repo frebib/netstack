@@ -36,8 +36,7 @@ void intf_frame_free(struct frame *frame) {
 }
 
 void intf_frame_llist_clear(struct llist *list) {
-    for_each_llist(list)
-        intf_frame_free(llist_elem_data());
+    llist_iter(list, intf_frame_free);
     llist_clear(list);
 }
 

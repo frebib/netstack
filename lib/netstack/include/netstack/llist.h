@@ -24,6 +24,10 @@ struct llist {
         elem != NULL; \
         elem = elem->next)
 
+#define llist_iter(list, fn) \
+    for_each_llist(list) \
+        fn(llist_elem_data())
+
 /*!
  * For use in a for_each_llist(list) block.
  * Retrieves and casts the list entry data to the specified \a type

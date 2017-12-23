@@ -95,6 +95,7 @@ int main(int argc, char **argv) {
                 }
 
                 // Cleanup route table
+                llist_iter(&route_tbl, free);
                 llist_clear(&route_tbl);
 
                 // Cleanup interface meta
