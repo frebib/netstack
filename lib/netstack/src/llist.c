@@ -4,6 +4,9 @@
 #include <netstack/llist.h>
 
 void llist_clear(struct llist *list) {
+    if (list == NULL)
+        return;
+
     while (list->head)
         free(llist_pop(list));
     list->length = 0;

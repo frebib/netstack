@@ -95,8 +95,6 @@ int main(int argc, char **argv) {
                 }
 
                 // Cleanup route table
-                for_each_llist(&route_tbl)
-                    free(llist_elem_data());
                 llist_clear(&route_tbl);
 
                 // Cleanup interface meta

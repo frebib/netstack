@@ -114,8 +114,6 @@ void rawsock_free(struct intf *intf) {
     close(sockptr->sock);
     free(sockptr);
     free(intf->ll_addr);
-    for_each_llist(&intf->arptbl)
-        free(llist_elem_data());
     llist_clear(&intf->arptbl);
 }
 
