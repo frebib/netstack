@@ -206,11 +206,6 @@ long rawsock_send_frame(struct frame *frame) {
     return ret != 0 ? errno : 0;
 }
 
-void rawsock_free_frame(struct frame * frame) {
-    free(frame->buffer);
-    frame_free(frame);
-}
-
 int rawsock_peek(struct intf *interface) {
     int sock = *((int *) interface->ll);
     return (int) recv(sock, NULL, 0, (MSG_PEEK | MSG_TRUNC));
