@@ -83,7 +83,6 @@ int main(int argc, char **argv) {
                 for (int i = 0; i < INTF_THR_MAX; i++) {
                     if (intf->threads[i]) {
                         // pthread_cancel(id) will invoke cleanup procedures
-                        // TODO: Use pthread_setcancelstate() appropriately
                         pthread_cancel(intf->threads[i]);
                     }
                 }
