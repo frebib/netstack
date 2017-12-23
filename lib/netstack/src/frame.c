@@ -21,11 +21,12 @@ void frame_init_buf(struct frame* frame, void *buffer, size_t buf_size) {
 }
 
 void frame_free(struct frame *frame) {
-    if (frame == NULL) {
+    if (frame == NULL)
         return;
-    }
+    if (frame->parent)
+        frame->parent->child = NULL;
     // Iterate through children only, we want to keep the parents
-    struct frame *child;
+    struct frame *child = NULL;
     do {
         child = frame->child;
         free(frame);
