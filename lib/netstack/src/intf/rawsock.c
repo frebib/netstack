@@ -39,10 +39,24 @@ int rawsock_new(struct intf *interface) {
 
     // TODO: This is hacky, assuiming lo is loopback
     // Request first non-loopback interface
+    struct ifreq ifr;
     struct if_nameindex *if_ni = NULL,
                         *if_ni_head = if_nameindex();
     if_ni = if_ni_head;
     while (if_ni != NULL && if_ni->if_index != 0) {
+
+        // Check if the interface is 'up'
+        int ifrsock = socket(PF_INET6, SOCK_DGRAM, IPPROTO_IP);
+        memset(&ifr, 0, sizeof(ifr));
+        strncpy(ifr.ifr_name, if_ni->if_name, IFNAMSIZ);
+        if (ioctl(ifrsock, SIOCGIFFLAGS, &ifr) < 0)
+            perror("SIOCGIFFLAGS");
+        close(ifrsock);
+        if (!(ifr.ifr_flags & IFF_UP)) {
+            if_ni++;
+            continue;
+        }
+
         if (strcmp(if_ni->if_name, "lo") != 0) {
             printf("Using interface (#%d) %s", if_ni->if_index,
                    if_ni->if_name);
