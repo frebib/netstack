@@ -95,6 +95,12 @@ struct frame *intf_frame_new(struct intf *frame, size_t buf_size);
 void intf_frame_free(struct frame * frame);
 
 /*!
+ * Frees all frames in a llist with intf_frame_free() then calls
+ * llist_clear() to empty the list. Useful for a one-shot cleanup
+ */
+void intf_frame_llist_clear(struct llist *list);
+
+/*!
  *
  * @param intf
  * @param size

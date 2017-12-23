@@ -115,6 +115,7 @@ void rawsock_free(struct intf *intf) {
     free(sockptr);
     free(intf->ll_addr);
     llist_clear(&intf->arptbl);
+    intf_frame_llist_clear(&intf->sendq);
 }
 
 long rawsock_recv_frame(struct frame *frame) {

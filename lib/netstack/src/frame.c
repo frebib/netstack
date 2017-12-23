@@ -34,6 +34,20 @@ void frame_free(struct frame *frame) {
     } while (child != NULL);
 }
 
+void frame_parent_free(struct frame *frame) {
+    if (frame == NULL)
+        return;
+    if (frame->child)
+        frame->child->parent = NULL;
+    // Iterate through children only, we want to keep the parents
+    struct frame *parent = NULL;
+    do {
+        parent = frame->parent;
+        free(frame);
+        frame = parent;
+    } while (parent != NULL);
+}
+
 struct frame *frame_child_copy(struct frame *parent) {
     if (parent == NULL) {
         return NULL;

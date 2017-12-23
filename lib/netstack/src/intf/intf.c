@@ -35,6 +35,12 @@ void intf_frame_free(struct frame *frame) {
     frame_free(frame);
 }
 
+void intf_frame_llist_clear(struct llist *list) {
+    for_each_llist(list)
+        intf_frame_free(llist_elem_data());
+    llist_clear(list);
+}
+
 void *intf_malloc_buffer(struct intf *intf, size_t size) {
     return malloc(size);
 }
@@ -48,21 +54,35 @@ void intf_free_buffer(struct intf *intf, void *buffer) {
  *  Send/Receive threads used internally in the interface
  */
 void _intf_send_thread(struct intf *intf) {
-    while (true) {
-        // Wait on the sendctr for something to send
-        sem_wait(&intf->sendctr);
+
+    // Manually determine when the thread can be cancelled
+    pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
+    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+
+
+    // Wait on the sendctr for something to send
+    while (sem_wait(&intf->sendctr) == 0) {
+
+        // Wait until send is complete before allowing cancellation
+        pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
 
         pthread_mutex_lock(&intf->sendqlck);
         struct frame *frame = queue_pop(&intf->sendq);
         pthread_mutex_unlock(&intf->sendqlck);
 
-        // Send the frame!
-        int ret = intf->send_frame(frame);
-        if (ret != 0)
-            fprintf(stderr, "send_frame() returned %d: %s", ret, strerror(ret));
+        // Only attempt to send a non-null frame
+        if (frame) {
+            // Send the frame!
+            long ret = intf->send_frame(frame);
+            if (ret != 0)
+                fprintf(stderr, "send_frame() returned %ld: %s",
+                        ret, strerror( (int) ret));
 
-        // TODO: Dispose of sent frame
-        intf_frame_free(frame);
+            // TODO: Dispose of sent frame
+            intf_frame_free(frame);
+        }
+
+        pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
     }
 }
 

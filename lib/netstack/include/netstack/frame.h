@@ -65,6 +65,11 @@ void frame_init_buf(struct frame* frame, void *buffer, size_t buf_size);
 void frame_free(struct frame *frame);
 
 /*!
+ * Frees a frame and all of its parents but NOT it's enclosed buffer
+ */
+void frame_parent_free(struct frame *frame);
+
+/*!
  * Clones a frame, setting it's child to the clone and the parent of the
  * child to the original frame.
  * @return the new child frame

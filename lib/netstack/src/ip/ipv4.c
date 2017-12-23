@@ -112,8 +112,6 @@ void ipv4_recv(struct frame *frame) {
 int send_ipv4(struct frame *child, uint8_t proto, uint16_t flags,
               ip4_addr_t daddr, ip4_addr_t saddr) {
 
-    struct frame *frame = frame_parent_copy(child);
-
     struct route_entry *rt = route_lookup(daddr);
     if (!rt) {
         // If no route found, return DESTUNREACHABLE error
@@ -127,6 +125,7 @@ int send_ipv4(struct frame *child, uint8_t proto, uint16_t flags,
     }
 
     // Set frame interface now it is known from route
+    struct frame *frame = frame_parent_copy(child);
     frame->intf = rt->intf;
 
     ip4_addr_t nexthop = (rt->flags & RT_GATEWAY) ? rt->gwaddr : daddr;
@@ -136,6 +135,8 @@ int send_ipv4(struct frame *child, uint8_t proto, uint16_t flags,
         if (!intf_has_addr(rt->intf, &req_saddr)) {
             fprintf(stderr, "Error: The requested address %s is invalid for "
                     "interface %s", fmtip4(saddr), rt->intf->name);
+
+            frame_parent_free(frame);
             return -EADDRNOTAVAIL;
         }
     } else {
@@ -143,12 +144,16 @@ int send_ipv4(struct frame *child, uint8_t proto, uint16_t flags,
         if (!intf_get_addr(rt->intf, &def_addr)) {
             fprintf(stderr, "Error: could not get interface address for %s\n",
                     rt->intf->name);
+
+            frame_parent_free(frame);
             return -EADDRNOTAVAIL;
         }
 
         if (def_addr.ipv4 == 0) {
             fprintf(stderr, "Error: interface %s has no address for IPv4\n",
                     rt->intf->name);
+
+            frame_parent_free(frame);
             return -EADDRNOTAVAIL;
         }
 
@@ -163,7 +168,10 @@ int send_ipv4(struct frame *child, uint8_t proto, uint16_t flags,
     if (dmac == NULL) {
         fprintf(stderr, "arp_request(%s, %s", rt->intf->name, fmtip4(saddr));
         fprintf(stderr, ", %s);\n", fmtip4(nexthop));
+        // TODO: Rate limit ARP requests to prevent flooding
         arp_send_req(rt->intf, ARP_HW_ETHER, saddr, nexthop);
+
+        frame_parent_free(frame);
         return -EHOSTUNREACH;
     }
 
