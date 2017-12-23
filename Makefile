@@ -51,11 +51,13 @@ test: $(TARGET_LIB)
 doc:
 	@echo 'No documentation to build yet'
 
-install: $(TARGET_LIB)
+install: $(TARGET_LIB) tools
 	install -Dm644 $(TARGET_LIB) $(DESTDIR)$(PREFIX)/lib/$(TARGET_LIB)
+	@make -C $(NETD_DIR) install
 
 uninstall:
 	$(RM) $(DESTDIR)/$(PREFIX)/lib/$(TARGET_LIB)
+	@make -C $(NETD_DIR) uninstall
 
 clean:
 	$(RM) -r $(OBJDIR) $(TARGET_LIB)
