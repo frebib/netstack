@@ -22,7 +22,7 @@ pipeline:
       - ldconfig /usr/lib
       - ldd /usr/bin/netd
       # ret 124 is a timeout therefore it did not crash
-      - timeout 10
+      - timeout -s SIGINT 10
           valgrind
             --leak-check=full
             --show-reachable=yes
