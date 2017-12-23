@@ -4,13 +4,14 @@
 #include <unistd.h>
 #include <sysexits.h>
 #include <errno.h>
+#include <pthread.h>
 
 #include <net/if.h>
 #include <sys/ioctl.h>
 #include <netinet/in.h>
 #include <netpacket/packet.h>
-
 #include <linux/if_ether.h>
+
 #include <netstack/eth/ether.h>
 #include <netstack/intf/rawsock.h>
 
@@ -126,10 +127,18 @@ int rawsock_recv_frame(struct frame *frame) {
             count = 0;
     int sock = *((int *) interface->ll);
 
+    // Allow cancellation around peek() as this is the main blocking call
+    pthread_cleanup_push((void (*)(void *))intf_frame_free, frame);
+    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+
     // Use peek method in struct, it may have been overridden
     if ((lookahead = rawsock_peek(interface)) == -1) {
         return (int) lookahead;
     }
+
+    // Don't allow cancellation from here onwards
+    pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
+    pthread_cleanup_pop(false);
 
     // TODO: Allocate a buffer from the interface for frame storage
     frame_init_buf(frame, malloc((size_t) lookahead), lookahead);

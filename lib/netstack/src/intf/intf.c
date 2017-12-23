@@ -70,9 +70,9 @@ void _intf_recv_thread(struct intf *intf) {
     struct frame *rawframe = NULL;
     ssize_t count;
 
-    // When run as a thread, pthread_cancel() should be used to cancel this
-    // execution so the cleanup routines are run, freeing allocated memory
-//    pthread_cleanup_push(intf_frame_free, rawframe);
+    // Manually determine when the thread can be cancelled
+    pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
+    pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
 
     rawframe = intf_frame_new(intf, 0);
 
@@ -115,11 +115,15 @@ void _intf_recv_thread(struct intf *intf) {
 
         // Allocate a new frame
         intf_frame_free(rawframe);
+        rawframe = NULL;
+
+        // Check if the thread should exit
+        pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+        pthread_testcancel();
+        pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
+
         rawframe = intf_frame_new(intf, 0);
     }
-
-    // Run cleanup if rawframe was allocated
-//    pthread_cleanup_pop(rawframe != NULL);
 
     if (count == -1) {
         perror("recv error");
