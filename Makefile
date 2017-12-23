@@ -1,62 +1,63 @@
-SRCDIR = src
+SRCDIR = lib
 OBJDIR = obj
-LIBDIR = lib/netstack
-INCDIR = $(LIBDIR)/include
+INCDIR = include
 
 override CFLAGS  += -fPIC -I$(INCDIR) -Wall -Werror -Wpedantic -Wno-unused-variable -g
-override LDFLAGS += -L$(LIBDIR) -Wl,--as-needed -Wl,-enable-new-dtags,-rpath,"$(LIBDIR)"
-override LDLIBS  += -lnetstack -lcap -ldl -lpthread
+override LDFLAGS += -shared -Wl,--as-needed
+override LDLIBS  += -lpthread
 
 # Source and header files
 SRC = $(shell find $(SRCDIR) -type f -name '*.c')
-LIB = $(shell find $(LIBDIR) -type f -name '*.c')
 INC = $(shell find $(INCDIR) -type f -name '*.h')
-OBJ = $(patsubst $(SRCDIR)%, $(OBJDIR)%, $(patsubst %.c, %.o, $(SRC)))
+OBJ = $(patsubst $(SRCDIR)%,$(OBJDIR)%,$(patsubst %.c, %.o, $(SRC)))
 
 # Target declarations
-TARGET_BIN = netd
 TARGET_LIB = libnetstack.so
-TARGET_LIB_PATH = $(LIBDIR)/libnetstack.so
+
+NETD_DIR = tools/netd
+NETD = $(NETD_DIR)/netd
 
 PREFIX  = /usr/local
 DESTDIR =
 
 export PREFIX DESTDIR
 
-
 .PHONY: default all build
 default: all
 all: build doc
-build: $(TARGET_BIN)
+build: $(TARGET_LIB) tools
+tools: netd
 
 # Compilation
-$(TARGET_BIN): $(TARGET_LIB_PATH) $(OBJ)
+$(TARGET_LIB): $(OBJ)
 	$(CC) $(LDFLAGS) $(OBJ) $(LDLIBS) -o $@
-
-$(TARGET_LIB_PATH):
-	make -C $(LIBDIR) $(TARGET_LIB)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c $(INC)
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -c $< -o $@
 
+# Tools
+netd: $(NETD)
+$(NETD):
+	@make -C $(NETD_DIR)
+	ln -sfv $(NETD) .
+
 # Misc
 .PHONY: test doc install uninstall clean
-
-test:
-	make -C $(LIBDIR) test
+test: $(TARGET_LIB)
+	@make -C tests all
+	@make -C $(NETD_DIR) tests
 
 doc:
 	@echo 'No documentation to build yet'
 
-install: $(TARGET_BIN) $(TARGET_LIB_PATH)
-	make -C $(LIBDIR) install
-	install -Dm755 $(TARGET_BIN) $(DESTDIR)$(PREFIX)/bin/$(TARGET_BIN)
+install: $(TARGET_LIB)
+	install -Dm644 $(TARGET_LIB) $(DESTDIR)$(PREFIX)/lib/$(TARGET_LIB)
 
 uninstall:
-	make -C $(LIBDIR) uninstall
-	$(RM) $(DESTDIR)/$(PREFIX)/bin/$(TARGET_BIN)
+	$(RM) $(DESTDIR)/$(PREFIX)/lib/$(TARGET_LIB)
 
 clean:
-	make -C $(LIBDIR) clean
-	$(RM) -r $(OBJDIR) $(TARGET_BIN)
+	$(RM) -r $(OBJDIR) $(TARGET_LIB)
+	$(RM) ./netd
+	@make -C $(NETD_DIR) clean
