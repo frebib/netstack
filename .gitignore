@@ -7,5 +7,7 @@ obj/
 *.so*
 *.a
 vgcore.*
+callgrind.*
 
-libnetstack.so*
+/libnetstack.so*
+/netd
