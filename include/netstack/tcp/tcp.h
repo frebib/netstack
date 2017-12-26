@@ -3,7 +3,11 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <netstack/llist.h>
 #include <netstack/intf/intf.h>
+
+// Global TCP states list
+extern struct llist tcp_sockets;
 
 /*
     Source: https://tools.ietf.org/html/rfc793#page-15
@@ -93,7 +97,27 @@ struct tcp_ipv4_phdr {
 }__attribute((packed));
 
 
+enum tcp_state {
+    TCP_LISTEN,
+    TCP_SYN_SENT,
+    TCP_SYN_RECEIVED,
+    TCP_ESTABLISHED,
+    TCP_FIN_WAIT_1,
+    TCP_FIN_WAIT_2,
+    TCP_CLOSE_WAIT,
+    TCP_CLOSING,
+    TCP_CLOSED,
+    TCP_LAST_ACK,
+    TCP_TIME_WAIT
+};
 
+struct tcp_sock {
+    addr_t saddr;
+    addr_t daddr;
+    uint16_t sport;
+    uint16_t dport;
+    enum tcp_state state;
+};
 
 
 /* Returns a string of characters/dots representing a set/unset TCP flag */
@@ -128,5 +152,14 @@ static inline const int fmt_tcp_flags(struct tcp_hdr *hdr, char *buffer) {
 struct tcp_hdr *tcp_ntoh(void *data);
 
 /* Receives a tcp frame for processing in the network stack */
-void tcp_recv(struct frame *frame, uint16_t net_csum);
+void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum);
+
+struct tcp_sock *tcp_sock_lookup(addr_t *saddr, addr_t *daddr,
+                                 uint16_t sport, uint16_t dport);
+
+/*
+ * TCP Input
+ */
+int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock);
+
 #endif //NETSTACK_TCP_H

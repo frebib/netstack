@@ -88,8 +88,13 @@ void ipv4_recv(struct frame *frame) {
             uint16_t dport = htons(tcp_hdr(child_frame)->dport);
             printf(" %s:%d > %s:%d", ssaddr, sport, sdaddr, dport);
 
+            addr_t saddr = {.proto=PROTO_IPV4, .ipv4 = hdr->saddr};
+            addr_t daddr = {.proto=PROTO_IPV4, .ipv4 = hdr->daddr};
+            struct tcp_sock *sock = tcp_sock_lookup(&saddr, &daddr,
+                                                    sport, dport);
+
             /* Pass initial network csum as TCP packet csum seed */
-            tcp_recv(child_frame, ipv4_csum);
+            tcp_recv(child_frame, sock, ipv4_csum);
             return;
         }
         case IP_P_UDP:
