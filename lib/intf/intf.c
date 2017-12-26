@@ -30,8 +30,13 @@ struct frame *intf_frame_new(struct intf *intf, size_t buf_size) {
 }
 
 void intf_frame_free(struct frame *frame) {
-    if (frame->buffer)
-        frame->intf->free_buffer(frame->intf, frame->buffer);
+    if (frame->buffer) {
+        if (frame->intf)
+            frame->intf->free_buffer(frame->intf, frame->buffer);
+        else
+            fprintf(stderr, "Error: Frame has buffer (%lu bytes) but no intf",
+                    frame->buf_size);
+    }
     frame_free(frame);
 }
 
