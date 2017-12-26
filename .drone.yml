@@ -7,7 +7,14 @@ pipeline:
     commands:
       # Run the default entrypoint
       - /usr/local/bin/entrypoint true
-      - CC=$CC make clean all
+      # Build with make
+      - make clean all
+      # Build with cmake
+      - SRC="$(pwd)"
+      - DIR="$(mktemp -dt cmake-build.XXXXXX)"
+      - cd "$DIR"
+      - cmake "$SRC"
+      - make
 
   test:
     image: alpine:3.6
