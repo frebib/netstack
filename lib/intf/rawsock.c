@@ -147,8 +147,8 @@ long rawsock_recv_frame(struct frame *frame) {
     pthread_cleanup_push((void (*)(void *))intf_frame_free, frame);
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 
-    // Use peek method in struct, it may have been overridden
-    if ((lookahead = rawsock_peek(interface)) == -1) {
+    // use MSG_PEEK to get lookahead amount available to recv
+    if ((lookahead = recv(sock, NULL, 0, (MSG_PEEK | MSG_TRUNC))) == -1) {
         return (int) lookahead;
     }
 
@@ -221,9 +221,4 @@ long rawsock_send_frame(struct frame *frame) {
                         (const struct sockaddr *) &sa, sizeof(sa));
 
     return ret != 0 ? errno : 0;
-}
-
-int rawsock_peek(struct intf *interface) {
-    int sock = *((int *) interface->ll);
-    return (int) recv(sock, NULL, 0, (MSG_PEEK | MSG_TRUNC));
 }

@@ -19,6 +19,4 @@ long rawsock_recv_frame(struct frame *);
 
 long rawsock_send_frame(struct frame *);
 
-int rawsock_peek(struct intf *);
-
 #endif //NETSTACK_RAWSOCK_H
