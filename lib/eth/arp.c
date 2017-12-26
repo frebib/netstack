@@ -51,7 +51,8 @@ void arp_recv(struct frame *frame) {
             if (!updated && intf_has_addr(frame->intf, &ipv4))
                 arp_cache_entry(frame->intf, &ether, &ipv4);
 
-            arp_print_tbl(frame->intf, stderr);
+            if (frame->intf->arptbl.length > 0)
+                arp_print_tbl(frame->intf, stderr);
 
             // TODO: Check for queued outgoing packets that can
             //       now be sent with the ARP information recv'd
