@@ -93,19 +93,7 @@ struct tcp_ipv4_phdr {
 }__attribute((packed));
 
 
-/* Returns a struct tcp_hdr from the frame->head */
-#define tcp_hdr(frame) ((struct tcp_hdr *) (frame)->head)
 
-/* Returns the size in bytes of a header
- * hdr->hlen is 1 byte, soo 4x is 1 word size */
-#define tcp_hdr_len(hdr) ((uint8_t) (hdr->hlen * 4))
-
-/* Given a network tcp packet buffer, this
- * mutates network values to host values */
-struct tcp_hdr *tcp_ntoh(void *data);
-
-/* Receives a tcp frame for processing in the network stack */
-void tcp_recv(struct frame *frame, uint16_t net_csum);
 
 
 /* Returns a string of characters/dots representing a set/unset TCP flag */
@@ -127,4 +115,18 @@ static inline const int fmt_tcp_flags(struct tcp_hdr *hdr, char *buffer) {
     return 0;
 }
 
+
+/* Returns a struct tcp_hdr from the frame->head */
+#define tcp_hdr(frame) ((struct tcp_hdr *) (frame)->head)
+
+/* Returns the size in bytes of a header
+ * hdr->hlen is 1 byte, soo 4x is 1 word size */
+#define tcp_hdr_len(hdr) ((uint8_t) (hdr->hlen * 4))
+
+/* Given a network tcp packet buffer, this
+ * mutates network values to host values */
+struct tcp_hdr *tcp_ntoh(void *data);
+
+/* Receives a tcp frame for processing in the network stack */
+void tcp_recv(struct frame *frame, uint16_t net_csum);
 #endif //NETSTACK_TCP_H
