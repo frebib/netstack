@@ -85,7 +85,7 @@ int send_ipv4(struct frame *child, uint8_t proto, uint16_t flags,
 
 // Converts 4 bytes to a uint32_t IPv4 address
 // e.g. num_ipv4(192, 168, 10, 1) represents 192.168.10.1
-#define num_ipv4(a, b, c, d) (\
+#define num_ipv4(a, b, c, d) (ip4_addr_t) (\
         ((a) << 24) + \
         ((b) << 16) + \
         ((c) << 8) + \
