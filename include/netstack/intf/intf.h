@@ -23,7 +23,7 @@ struct frame;
 #define INTF_THR_MAX    0x02
 
 // Frame logging
-#define LFRAME  0x20
+#define LFRAME  0x10
 
 // TODO: Implement 'virtual' network interfaces
 // `man netdevice` gives a good overview

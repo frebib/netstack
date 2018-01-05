@@ -51,14 +51,16 @@ struct pkt_log {
 #define LCRIT 0xF0
 #define LERR  0xC0
 #define LWARN 0xA0
-#define LINFO 0x80
-#define LDBUG 0x60
-#define LTRCE 0x40
+#define LNTCE 0x80
+#define LINFO 0x60
+#define LDBUG 0x40
+#define LTRCE 0x20
 #define LNULL 0x00
 
 #define logcrit(...) log(LCRIT, __VA_ARGS__)
 #define logerr(...)  log(LERR,  __VA_ARGS__)
 #define logwarn(...) log(LWARN, __VA_ARGS__)
+#define logntce(...) log(LNTCE, __VA_ARGS__)
 #define loginfo(...) log(LINFO, __VA_ARGS__)
 #define logdbug(...) log(LDBUG, __VA_ARGS__)
 #define logtrce(...) log(LTRCE, __VA_ARGS__)

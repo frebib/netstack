@@ -39,7 +39,6 @@
   - Line 132: Ensure frames are destroyed, even if they still have references
   - Line 157: Allocate a buffer from the interface for frame storage
   - Line 162: Find an appropriate size for the control buffer
-  - Line 194: Print debug messages for uncommon paths like these
 
 ## [lib/ip/icmp.c](lib/ip/icmp.c)
   - Line 81: Don't assume IPv4 parent

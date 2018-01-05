@@ -191,8 +191,6 @@ long rawsock_recv_frame(struct frame *frame) {
     if (count != lookahead) {
         LOG(LWARN, "MSG_PEEK != recv(): %zi != %zi", lookahead, count);
 
-        // TODO: Print debug messages for uncommon paths like these
-
         // realloc a (larger?) new buffer if the size differs, just in case
         void *newbuf;
         if ((newbuf = realloc(frame->buffer, (size_t) count)) == NULL) {
@@ -200,6 +198,7 @@ long rawsock_recv_frame(struct frame *frame) {
             exit(EX_OSERR);
         }
         frame->buffer = newbuf;
+        LOG(LNTCE, "realloc()'ed a new buffer of size %zi", count);
     }
 
     return count;
