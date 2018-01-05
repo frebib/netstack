@@ -6,7 +6,7 @@
 struct llist tcp_sockets = LLIST_INITIALISER;
 
 bool tcp_log(struct pkt_log *log, struct frame *frame) {
-    return true;
+    return false;
 }
 
 void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {
