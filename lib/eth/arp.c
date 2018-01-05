@@ -67,7 +67,7 @@ void arp_recv(struct frame *frame) {
             if (!updated && intf_has_addr(frame->intf, &ipv4))
                 arp_cache_entry(frame->intf, &ether, &ipv4);
 
-            if (frame->intf->arptbl.length > 0)
+            if (updated && frame->intf->arptbl.length > 0)
                 arp_log_tbl(frame->intf, LINFO);
 
             // TODO: Check for queued outgoing packets that can
