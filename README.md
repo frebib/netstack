@@ -1,6 +1,8 @@
 # A complete TCP & networking stack in userland
 [![Build Status](https://drone.adam-ant.co.uk/api/badges/frebib/netd/status.svg)](https://drone.adam-ant.co.uk/frebib/netd)
 
+The homepage for this project is hosted on GitHub: [https://github.com/frebib/netstack](https://github.com/frebib/netstack)
+
 This is made up of two integral parts:
 
 * **netd** - A network daemon to process and control network communications, using libnetstack
