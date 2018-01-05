@@ -24,7 +24,6 @@ int main(int argc, char **argv) {
     logconf.lvlstr[LFRAME] = "PACKET";
 
 #ifdef _GNU_SOURCE
-    #include <pthread.h>
     pthread_setname_np(pthread_self(), "netd/main");
 #endif
 
