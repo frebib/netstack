@@ -102,7 +102,7 @@ void VTLOGF(FILE *file, loglvl_t level, struct timespec *t, const char *fmt,
     size_t maxlen = 128;
     char pre[maxlen];
 
-    // TODO: Prepend timespec to pre
+    // Capture time now if one isn't specified
     struct timespec ts = {0};
     if (t == NULL) {
         timespec_get(&ts, TIME_UTC);

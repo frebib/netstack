@@ -59,9 +59,6 @@
   - Line 5: Lock route table for writing
   - Line 18: Define how routes with the same metric should behave?
 
-## [lib/log.c](lib/log.c)
-  - Line 105: Prepend timespec to pre
-
 ## [lib/tcp/tcp.c](lib/tcp/tcp.c)
   - Line 26: Investigate TCP checksums invalid with long packets
   - Line 33: Check for TSO and GRO and account for it, somehow..
@@ -74,8 +71,7 @@
   - Line 22: Optionally don't send TCP RST packets
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
-  - Line 19: Add many configurable interfaces
-  - Line 20: Add loopback interface
-  - Line 54: Take different socket types into account here
-  - Line 56: For now, assume everything is ethernet
-  - Line 178: Cleanup residual frames, if any
+  - Line 16: Add many configurable interfaces
+  - Line 17: Add loopback interface
+  - Line 51: Take different socket types into account here
+  - Line 53: For now, assume everything is ethernet
