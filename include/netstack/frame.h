@@ -64,6 +64,10 @@ void frame_init_buf(struct frame *frame, void *buffer, size_t buf_size);
 /*!
  * Indicates the frame is no longer required.
  * If refcount hits zero, the frame and buffer is free'd
+ *    Whoever creates a frame is responsible for dereferencing it.
+ *    When a frame is passed to any internal code, it can be assumed that any
+ *    required references will be added. Any dangling frames will cause
+ *    memory leaks!
  * @param frame frame to dereference
  */
 void frame_deref(struct frame *frame);

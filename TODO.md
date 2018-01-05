@@ -42,8 +42,8 @@
   - Line 194: Print debug messages for uncommon paths like these
 
 ## lib/ip/icmp.c
-  - Line 58: Don't assume IPv4 parent
-  - Line 64: Fix frame->data pointer head/tail difference
+  - Line 71: Don't assume IPv4 parent
+  - Line 77: Fix frame->data pointer head/tail difference
 
 ## lib/ip/ipv4.c
   - Line 36: Keep track of invalid packets
@@ -71,7 +71,8 @@
   - Line 22: Optionally don't send TCP RST packets
 
 ## tools/netd/src/main.c
-  - Line 16: Add many configurable interfaces
-  - Line 17: Add loopback interface
-  - Line 51: Take different socket types into account here
-  - Line 53: For now, assume everything is ethernet
+  - Line 19: Add many configurable interfaces
+  - Line 20: Add loopback interface
+  - Line 54: Take different socket types into account here
+  - Line 56: For now, assume everything is ethernet
+  - Line 178: Cleanup residual frames, if any
