@@ -2,6 +2,7 @@
 #define NETSTACK_IPV4_H
 
 #include <stdint.h>
+#include <netstack/log.h>
 #include <netstack/intf/intf.h>
 #include <netstack/ip/ipproto.h>
 
@@ -61,6 +62,8 @@ struct ipv4_hdr {
 /* Returns the size in bytes of a header
  * hdr->hlen is 1 byte, soo 4x is 1 word size */
 #define ipv4_hdr_len(hdr) ((hdr)->hlen * 4)
+
+bool ipv4_log(struct pkt_log *log, struct frame *frame);
 
 /* Receives an ipv4 frame for processing in the network stack */
 void ipv4_recv(struct frame *frame);

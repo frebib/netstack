@@ -5,6 +5,10 @@
 
 struct llist tcp_sockets = LLIST_INITIALISER;
 
+bool tcp_log(struct pkt_log *log, struct frame *frame) {
+    return true;
+}
+
 void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {
 
     /* Don't parse yet, we need to check the checksum first */

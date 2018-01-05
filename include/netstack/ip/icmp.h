@@ -2,6 +2,7 @@
 #define NETSTACK_ICMP_H
 
 #include <stdint.h>
+#include <netstack/log.h>
 #include <netstack/frame.h>
 #include <netstack/intf/intf.h>
 
@@ -49,6 +50,8 @@ struct icmp_echo {
 
 /* Returns a struct icmp_echo from the frame->head */
 #define icmp_echo_hdr(frame) ((struct icmp_echo *) (frame)->head)
+
+bool icmp_log(struct pkt_log *log, struct frame *frame);
 
 /* Receives an icmp frame for processing in the network stack */
 void icmp_recv(struct frame *frame);

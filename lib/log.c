@@ -48,6 +48,21 @@ inline void LOGF(FILE *file, loglvl_t level, const char *fmt, ...) {
     va_end(args);
 }
 
+inline void TLOG(loglvl_t level, struct timespec *t, const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    VTLOG(level, t, fmt, args);
+    va_end(args);
+}
+
+inline void TLOGF(FILE *file, loglvl_t level, struct timespec *t,
+                  const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    VTLOGF(file, level, t, fmt, args);
+    va_end(args);
+}
+
 inline void LOGT(struct log_trans *trans, const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
@@ -59,16 +74,26 @@ inline void LOGT(struct log_trans *trans, const char *fmt, ...) {
 /*
  * Varadic function implementations
  */
-void VLOG(loglvl_t level, const char *fmt, va_list args) {
+inline void VLOG(loglvl_t level, const char *fmt, va_list args) {
+    VTLOG(level, NULL, fmt, args);
+}
+
+inline void VLOGF(FILE *file, loglvl_t level, const char *fmt, va_list args) {
+    VTLOGF(file, level, NULL, fmt, args);
+}
+
+void VTLOG(loglvl_t level, struct timespec *t, const char *fmt,
+           va_list args) {
     for_each_llist(&logconf.streams) {
         struct log_stream *stream = llist_elem_data();
         if (level >= stream->min && level <= stream->max) {
-            VLOGF(stream->stream, level, fmt, args);
+            VTLOGF(stream->stream, level, t, fmt, args);
         }
     }
 }
 
-void VLOGF(FILE *file, loglvl_t level, const char *fmt, va_list args) {
+void VTLOGF(FILE *file, loglvl_t level, struct timespec *t, const char *fmt,
+           va_list args) {
     va_list args2;
     va_copy(args2, args);
 
@@ -76,6 +101,17 @@ void VLOGF(FILE *file, loglvl_t level, const char *fmt, va_list args) {
     int prelen = 0;
     size_t maxlen = 128;
     char pre[maxlen];
+
+    // TODO: Prepend timespec to pre
+    struct timespec ts = {0};
+    if (t == NULL) {
+        timespec_get(&ts, TIME_UTC);
+        t = &ts;
+    }
+
+    // Format and print time the same as tcpdump for comparison
+    prelen += strftime(pre, maxlen, "%T", gmtime(&t->tv_sec));
+    prelen += snprintf(pre + 8, 12, ".%09ld ", t->tv_nsec);
 
     // Append thread name to pre
 #ifdef _GNU_SOURCE
@@ -128,12 +164,19 @@ void VLOGT(struct log_trans *trans, const char *fmt, va_list args) {
     vsnprintf(trans->str + tstrlen, (size_t) len, fmt, args2);
 }
 
-void LOG_COMMIT(struct log_trans *trans) {
+void LOGT_COMMIT(struct log_trans *trans) {
     if (trans == NULL)
         return;
 
-    LOG(trans->level, trans->str);
+    // Pass NULL if the timespec is 0
+    struct timespec *t = (trans->time.tv_sec == 0 &&
+                            trans->time.tv_nsec == 0)
+                             ? NULL : &trans->time;
+    TLOG(trans->level, t, trans->str);
+    LOGT_DISPOSE(trans);
+}
 
-    if (trans->str)
+void LOGT_DISPOSE(struct log_trans *trans) {
+    if (trans != NULL && trans->str)
         free(trans->str);
 }

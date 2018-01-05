@@ -5,8 +5,35 @@
 
 #include <netinet/in.h>
 
-#include <netstack/log.h>
 #include <netstack/eth/arp.h>
+
+
+bool arp_log(struct pkt_log *log, struct frame *frame) {
+    struct arp_hdr *msg = (struct arp_hdr *) frame->data;
+    frame->data += ARP_HDR_LEN;
+    struct log_trans *trans = &log->t;
+
+    struct arp_ipv4 *req;
+    switch (ntohs(msg->proto)) {
+        case ETH_P_IP:
+            req = (struct arp_ipv4 *) frame->data;
+            switch (ntohs(msg->op)) {
+                case ARP_OP_REQUEST:
+                    LOGT(trans, "Who has %s? ", fmtip4(ntohl(req->dipv4)));
+                    LOGT(trans, "Tell %s ", fmtip4(ntohl(req->sipv4)));
+                    break;
+                case ARP_OP_REPLY:
+                    LOGT(trans, "Reply %s ", fmtip4(ntohl(req->sipv4)));
+                    LOGT(trans, "is at %s ", fmtmac(req->saddr));
+                    break;
+            }
+            break;
+        default:
+            break;
+    };
+    
+    return true;
+}
 
 void arp_recv(struct frame *frame) {
     struct arp_hdr *msg = (struct arp_hdr *) frame->data;
@@ -27,10 +54,6 @@ void arp_recv(struct frame *frame) {
         case ETH_P_IP:
             // also good
             req = (struct arp_ipv4 *) frame->data;
-            char ssaddr[16], sdaddr[16], ssethaddr[18];
-            fmt_ipv4(ntohl(req->sipv4), ssaddr);
-            fmt_ipv4(ntohl(req->dipv4), sdaddr);
-            fmt_mac(req->saddr, ssethaddr);
 
             addr_t ether = {.proto = PROTO_ETHER, .ether = eth_arr(req->saddr)};
             addr_t ipv4 = {.proto = PROTO_IPV4, .ipv4 = ntohl(req->sipv4)};
@@ -48,17 +71,17 @@ void arp_recv(struct frame *frame) {
             //       now be sent with the ARP information recv'd
 
             switch (ntohs(msg->op)) {
-                case ARP_OP_REQUEST:
-                    printf(" Who has %s? Tell %s", sdaddr, ssaddr);
+                case ARP_OP_REQUEST: {
                     // If asking for us, send a reply with our LL address
-                    addr_t ip = {.proto = PROTO_IPV4, .ipv4 = ntohl (req->dipv4)};
+                    addr_t ip = {.proto = PROTO_IPV4, .ipv4 = ntohl(req->dipv4)};
                     if (intf_has_addr(frame->intf, &ip))
                         arp_send_reply(frame->intf, ARP_HW_ETHER,
                                        ntohl(req->dipv4), ntohl(req->sipv4),
                                        req->saddr);
                     break;
+                }
                 case ARP_OP_REPLY:
-                    printf(" Reply %s is at %s", ssaddr, ssethaddr);
+                default:
                     break;
             }
             break;
@@ -69,17 +92,17 @@ void arp_recv(struct frame *frame) {
 }
 
 void arp_print_tbl(struct intf *intf, FILE *file) {
-    LOG(LINFO, "Intf\tProtocol\tHW Address\t\tState\n");
+    struct log_trans trans = LOG_TRANS(LINFO);
+    LOGT(&trans, "Intf\tProtocol\tHW Address\t\tState\n");
     for_each_llist(&intf->arptbl) {
         struct arp_entry *entry = llist_elem_data();
-        struct log_trans trans = LOG_TRANS(LINFO);
         LOGT(&trans, "%s\t", intf->name);
         LOGT(&trans, "%s\t", straddr(&entry->protoaddr));
         LOGT(&trans, "%s\t", (entry->state & ARP_PENDING) ?
                               "(pending)\t" : straddr(&entry->hwaddr));
         LOGT(&trans, "%s\n", fmt_arp_state(entry->state));
-        LOG_COMMIT(&trans);
     }
+    LOGT_COMMIT(&trans);
 }
 
 /* Retrieves IPv4 address from table, otherwise NULL */

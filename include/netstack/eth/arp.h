@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include <netstack/log.h>
 #include <netstack/eth/ether.h>
 
 #define ARP_HDR_LEN sizeof(struct arp_hdr)
@@ -50,6 +51,8 @@ struct arp_ipv4 {
 
 /* Returns a struct arp_hdr from the frame->head */
 #define arp_hdr(frame) ((struct arp_hdr *) (frame)->head)
+
+bool arp_log(struct pkt_log *log, struct frame *frame);
 
 /* Receives an arp frame for processing in the network stack */
 void arp_recv(struct frame *frame);

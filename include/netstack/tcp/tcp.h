@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <netstack/log.h>
 #include <netstack/llist.h>
 #include <netstack/intf/intf.h>
 
@@ -146,6 +147,8 @@ static inline const int fmt_tcp_flags(struct tcp_hdr *hdr, char *buffer) {
 /* Returns the size in bytes of a header
  * hdr->hlen is 1 byte, soo 4x is 1 word size */
 #define tcp_hdr_len(hdr) ((uint8_t) (hdr->hlen * 4))
+
+bool tcp_log(struct pkt_log *log, struct frame *frame);
 
 /* Receives a tcp frame for processing in the network stack */
 void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum);

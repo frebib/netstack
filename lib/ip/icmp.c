@@ -5,17 +5,51 @@
 #include <netstack/ip/icmp.h>
 #include <netstack/ip/ipv4.h>
 
+
+bool icmp_log(struct pkt_log *log, struct frame *frame) {
+    struct log_trans *trans = &log->t;
+    struct icmp_hdr *hdr = icmp_hdr(frame);
+    frame->data += sizeof(struct icmp_hdr);
+    
+    // Print and check checksum
+    uint16_t pkt_csum = hdr->csum;
+    uint16_t calc_csum = in_csum(frame->head, frame_pkt_len(frame), 0) + hdr->csum;
+    LOGT(trans, "csum 0x%04x", calc_csum);
+    if (pkt_csum != calc_csum) {
+        LOGT(trans, " (invalid 0x%04x)", pkt_csum);
+    }
+    LOGT(trans, ", ");
+
+    struct frame *ctrl = frame_child_copy(frame);
+    switch (hdr->type) {
+        case ICMP_T_ECHORPLY: {
+            struct icmp_echo *echo = (struct icmp_echo *) ctrl->head;
+            LOGT(trans, "echoreply id %d, seq %d ", ntohs(echo->id),
+                   ntohs(echo->seq));
+            break;
+        }
+        case ICMP_T_ECHOREQ: {
+            struct icmp_echo *echo = (struct icmp_echo *) ctrl->head;
+            LOGT(trans, "echoreq id %d, seq %d ", ntohs(echo->id),
+                 ntohs(echo->seq));
+            break;
+        }
+        case ICMP_T_DESTUNR:
+            LOGT(trans, "dest-unreachable ");
+            break;
+        default:
+            LOGT(trans, "type %d ", hdr->type);
+            break;
+    }
+    return true;
+}
+
 void icmp_recv(struct frame *frame) {
     struct icmp_hdr *hdr = icmp_hdr(frame);
     frame->data += sizeof(struct icmp_hdr);
 
-    /* Save and empty packet checksum */
-    uint16_t pkt_csum = hdr->csum;
-    uint16_t calc_csum = in_csum(frame->head, frame_pkt_len(frame), 0) + hdr->csum;
-    printf(", csum 0x%04x", calc_csum);
-
-    if (pkt_csum != calc_csum) {
-        printf(" (invalid 0x%04x)", pkt_csum);
+    if (in_csum(frame->head, frame_pkt_len(frame), 0) != 0) {
+        LOG(LWARN, "ICMP checksum is invalid!");
         return;
     }
 
@@ -24,20 +58,16 @@ void icmp_recv(struct frame *frame) {
         case ICMP_T_ECHORPLY: {
             struct icmp_echo *echo = (struct icmp_echo *) ctrl->head;
             ctrl->data += sizeof(struct icmp_echo);
-            printf(" echoreply id %d, seq %d", ntohs(echo->id),
-                   ntohs(echo->seq));
             break;
         }
-        case ICMP_T_DESTUNR:
-            printf(" dest-unreachable");
-            break;
         case ICMP_T_ECHOREQ: {
             struct icmp_echo *echo = (struct icmp_echo *) ctrl->head;
             ctrl->data += sizeof(struct icmp_echo);
-            printf(" echoreq id %d, seq %d", ntohs(echo->id), ntohs(echo->seq));
             send_icmp_reply(ctrl);
             break;
         }
+        case ICMP_T_DESTUNR:
+            break;
     }
 }
 

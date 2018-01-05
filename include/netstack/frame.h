@@ -82,6 +82,8 @@ void frame_free(struct frame *frame);
  */
 void frame_parent_free(struct frame *frame);
 
+struct frame *frame_clone(struct frame *original);
+
 /*!
  * Clones a frame, setting it's child to the clone and the parent of the
  * child to the original frame.

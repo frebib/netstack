@@ -21,6 +21,7 @@ int main(int argc, char **argv) {
 
     // Initialise default logging with stdout & stderr
     log_default();
+    logconf.lvlstr[LFRAME] = "PACKET";
 
 #ifdef _GNU_SOURCE
     #include <pthread.h>

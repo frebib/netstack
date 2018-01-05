@@ -68,6 +68,27 @@ void _intf_send_thread(struct intf *intf) {
             if (ret != 0)
                 LOG(LINFO, "send_frame() returned %ld: %s", ret, strerror(ret));
 
+            // Log outgoing packets
+            struct pkt_log log = PKT_TRANS(LFRAME);
+            bool should_print = false;
+
+            switch (intf->proto) {
+                case PROTO_ETHER:
+                    should_print = ether_log(&log, frame);
+                    break;
+                case PROTO_IP:
+                case PROTO_IPV4:
+                    should_print = ipv4_log(&log, frame);
+                    break;
+                default:
+                    break;
+            }
+            if (should_print)
+                LOGT_COMMIT(&log.t);
+            else
+                LOGT_DISPOSE(&log.t);
+
+            // Frame sent, disown it
             frame_deref(frame);
         }
 
@@ -86,31 +107,24 @@ void _intf_recv_thread(struct intf *intf) {
     rawframe = intf_frame_new(intf, 0);
 
     while ((count = intf->recv_frame(rawframe)) != -1) {
-        // Capture time as packet is read
-        struct timespec ts;
         // TODO: Implement rx 'software' timestamping
-        if (false) {
-            timespec_get(&ts, TIME_UTC);
-        } else {
-            ts = rawframe->time;
-        }
 
-        // TODO: Use logging
+        // Use transactional logging for packet logs
+        struct frame *logframe = frame_clone(rawframe);
+        struct pkt_log log = PKT_TRANS(LFRAME);
+        bool should_print = false;
+//        memcpy(&log.t.time, &rawframe->time, sizeof(struct timespec));
+
         // TODO: Conditionally print debugging information
-        // Format and print time the same as tcpdump for comparison
-        char buf[20];
-        strftime(buf, sizeof(buf), "%T", gmtime(&ts.tv_sec));
-        snprintf(buf + 8, 11, ".%09ld", ts.tv_nsec);
-        buf[15] = '\0'; // Manually truncate nanoseconds to 6 chars long
-        printf("%s ", buf);
-
         // Push received data into the stack
         switch (intf->proto) {
             case PROTO_ETHER:
+                should_print = ether_log(&log, logframe);
                 ether_recv(rawframe);
                 break;
             case PROTO_IP:
             case PROTO_IPV4:
+                should_print = ipv4_log(&log, logframe);
                 ipv4_recv(rawframe);
                 break;
             default:
@@ -118,8 +132,17 @@ void _intf_recv_thread(struct intf *intf) {
                 break;
         }
 
-        printf("\n");
-        fflush(stdout);
+        if (should_print)
+            LOGT_COMMIT(&log.t);
+        else
+            LOGT_DISPOSE(&log.t);
+
+        // TODO: Use same frame stack instead of cloning across threads
+        // Call frame_free() to ensure cloned frames are destroyed.
+        // frame_deref() won't free cloned frames here because the buffer is
+        // still referenced in rawframe.
+        frame_deref(logframe);
+        frame_free(logframe);
 
         // Allocate a new frame
         frame_deref(rawframe);

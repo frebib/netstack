@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <linux/types.h>
 
+#include <netstack/log.h>
 #include <netstack/intf/intf.h>
 #include <netstack/eth/ethertype.h>
 
@@ -23,6 +24,8 @@ struct eth_hdr {
 
 /* Returns a struct eth_hdr from the frame->head */
 #define eth_hdr(frame) ((struct eth_hdr *) (frame)->head)
+
+bool ether_log(struct pkt_log *log, struct frame *frame);
 
 /* Receives an ether frame for processing in the network stack */
 void ether_recv(struct frame *frame);

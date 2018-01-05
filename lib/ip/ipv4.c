@@ -3,13 +3,60 @@
 
 #include <netinet/in.h>
 
-#include <netstack/log.h>
 #include <netstack/eth/arp.h>
 #include <netstack/ip/ipv4.h>
 #include <netstack/ip/icmp.h>
 #include <netstack/ip/route.h>
 #include <netstack/tcp/tcp.h>
 #include <netstack/checksum.h>
+
+bool ipv4_log(struct pkt_log *log, struct frame *frame) {
+    struct ipv4_hdr *hdr = ipv4_hdr(frame);
+    uint16_t hdr_len = (uint16_t) ipv4_hdr_len(hdr);
+    frame->data += hdr_len;
+    frame->tail = frame->data + (ntohs(hdr->len) - hdr_len);
+    struct log_trans *trans = &log->t;
+
+    // Print and check checksum
+    uint16_t pkt_csum = hdr->csum;
+    uint16_t calc_csum = in_csum(frame->head, (size_t) ipv4_hdr_len(hdr), 0)
+                         + hdr->csum;
+    LOGT(trans, "csum 0x%04x", calc_csum);
+    if (pkt_csum != calc_csum) {
+        LOGT(trans, " (invalid 0x%04x)", pkt_csum);
+    }
+    LOGT(trans, ", ");
+
+    struct frame *child_frame = frame_child_copy(frame);
+    switch (hdr->proto) {
+        case IP_P_TCP: {
+            LOGT(trans, "TCP ");
+            uint16_t sport = htons(tcp_hdr(child_frame)->sport);
+            uint16_t dport = htons(tcp_hdr(child_frame)->dport);
+            LOGT(trans, "%s:%d > ", fmtip4(ntohl(hdr->saddr)), sport);
+            LOGT(trans, "%s:%d ", fmtip4(ntohl(hdr->daddr)), dport);
+            return tcp_log(log, child_frame);
+        }
+        case IP_P_ICMP:
+            LOGT(trans, "ICMP ");
+            LOGT(trans, "%s > ", fmtip4(ntohl(hdr->saddr)));
+            LOGT(trans, "%s ", fmtip4(ntohl(hdr->daddr)));
+            return icmp_log(log, child_frame);
+        case IP_P_UDP:
+            LOGT(trans, "UDP ");
+            LOGT(trans, "%s > ", fmtip4(ntohl(hdr->saddr)));
+            LOGT(trans, "%s ", fmtip4(ntohl(hdr->daddr)));
+            LOGT(trans, "unimpl %s ", fmt_ipproto(hdr->proto));
+            break;
+        default:
+            LOGT(trans, "%s > ", fmtip4(ntohl(hdr->saddr)));
+            LOGT(trans, "%s ", fmtip4(ntohl(hdr->daddr)));
+            LOGT(trans, "unsupported %s ", fmt_ipproto(hdr->proto));
+            break;
+    }
+
+    return true;
+}
 
 void ipv4_recv(struct frame *frame) {
 
@@ -42,23 +89,16 @@ void ipv4_recv(struct frame *frame) {
 
     // TODO: Other integrity checks
 
-    char ssaddr[16], sdaddr[16];
-    fmt_ipv4(ntohl(hdr->saddr), ssaddr);
-    fmt_ipv4(ntohl(hdr->daddr), sdaddr);
-
     // TODO: Change to `if (!ipv4_should_accept(frame))` to accept other packets
     // such as multicast, broadcast etc.
     addr_t ip = {.proto = PROTO_IPV4, .ipv4 = ntohl(hdr->daddr)};
     if (!intf_has_addr(frame->intf, &ip)) {
-        printf(" %s > %s", ssaddr, sdaddr);
         return;
     }
 
     struct frame *child_frame = frame_child_copy(frame);
     switch (hdr->proto) {
         case IP_P_TCP: {
-            printf(" TCP");
-
             /* Calculate TCP pseudo-header checksum */
             struct tcp_ipv4_phdr pseudo_hdr;
             pseudo_hdr.saddr = htonl(hdr->saddr);
@@ -69,10 +109,9 @@ void ipv4_recv(struct frame *frame) {
             uint16_t ipv4_csum = ~in_csum(&pseudo_hdr, sizeof(pseudo_hdr), 0);
 
             /* Print ip:port > ip:port */
-            uint16_t sport = htons(tcp_hdr(child_frame)->sport);
-            uint16_t dport = htons(tcp_hdr(child_frame)->dport);
-            printf(" %s:%d > %s:%d", ssaddr, sport, sdaddr, dport);
-
+            struct tcp_hdr *tcp_hdr = tcp_hdr(child_frame);
+            uint16_t sport = htons(tcp_hdr->sport);
+            uint16_t dport = htons(tcp_hdr->dport);
             addr_t saddr = {.proto=PROTO_IPV4, .ipv4 = ntohl(hdr->saddr)};
             addr_t daddr = {.proto=PROTO_IPV4, .ipv4 = ntohl(hdr->daddr)};
             struct tcp_sock *sock = tcp_sock_lookup(&saddr, &daddr,
@@ -82,19 +121,11 @@ void ipv4_recv(struct frame *frame) {
             tcp_recv(child_frame, sock, ipv4_csum);
             return;
         }
-        case IP_P_UDP:
-            printf(" %s > %s", ssaddr, sdaddr);
-            printf(" unimpl %s", fmt_ipproto(hdr->proto));
-            return;
-        case IP_P_ICMP: {
-            printf(" ICMP");
-            printf(" %s > %s", ssaddr, sdaddr);
+        case IP_P_ICMP:
             icmp_recv(child_frame);
             return;
-        }
+        case IP_P_UDP:
         default:
-            printf(" %s > %s", ssaddr, sdaddr);
-            printf(" unsupported %s", fmt_ipproto(hdr->proto));
             return;
     }
 }
@@ -159,7 +190,7 @@ int send_ipv4(struct frame *child, uint8_t proto, uint16_t flags,
         struct log_trans trans = LOG_TRANS(LTRCE);
         LOGT(&trans, "call arp_request(%s, %s", rt->intf->name, fmtip4(saddr));
         LOGT(&trans, ", %s);", fmtip4(nexthop));
-        LOG_COMMIT(&trans);
+        LOGT_COMMIT(&trans);
         // TODO: Rate limit ARP requests to prevent flooding
         arp_send_req(rt->intf, ARP_HW_ETHER, saddr, nexthop);
 

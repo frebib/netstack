@@ -82,6 +82,19 @@ void frame_parent_free(struct frame *frame) {
     } while (parent != NULL);
 }
 
+struct frame *frame_clone(struct frame *original) {
+    if (original == NULL) {
+        return NULL;
+    }
+
+    struct frame *clone = malloc(sizeof(struct frame));
+    memcpy(clone, original, sizeof(struct frame));
+
+    (*clone->buf_refcount)++;
+
+    return clone;
+}
+
 struct frame *frame_child_copy(struct frame *parent) {
     if (parent == NULL) {
         return NULL;

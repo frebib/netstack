@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdarg.h>
+#include <stdbool.h>
+#include <time.h>
 
 #include <netstack/llist.h>
 
@@ -32,8 +34,15 @@ struct log_stream {
 
 struct log_trans {
     loglvl_t level;
+    struct timespec time;   /* Time to print before log entry. Defaults to null
+                               in which case commit time will be used */
     char *str;          /* Transaction string buffer */
     size_t strsize;     /* Allocated size of str*/
+};
+
+struct pkt_log {
+    struct log_trans t; /* Log transaction to write to */
+    struct llist filter;/* List of options, similar to those in * tcpdump */
 };
 
 /*
@@ -67,12 +76,18 @@ void log_default(void);
  */
 void LOG(loglvl_t level, const char *fmt, ...);
 void VLOG(loglvl_t level, const char *fmt, va_list args);
+void TLOG (loglvl_t level, struct timespec *t, const char *fmt, ...);
+void VTLOG(loglvl_t level, struct timespec *t, const char *fmt, va_list args);
 
 /*!
  * Generate log entry and write it to file
  */
 void LOGF(FILE *file, loglvl_t level, const char *fmt, ...);
 void VLOGF(FILE *file, loglvl_t level, const char *fmt, va_list args);
+void TLOGF(FILE *file, loglvl_t level, struct timespec *t, const char *fmt,
+           ...);
+void VTLOGF(FILE *file, loglvl_t level, struct timespec *ts, const char *fmt,
+            va_list args);
 
 /*!
  * Append to a log transaction
@@ -90,20 +105,27 @@ void VLOGT(struct log_trans *trans, const char *fmt, va_list args);
  * @param level log level to use
  * @return a transaction structure
  */
-#define LOG_TRANS(lvl) { .level = (lvl), .str = NULL, .strsize = 0 }
+#define LOG_TRANS(lvl) { .level = (lvl), .time = {0}, .str = NULL, .strsize = 0 }
+#define PKT_TRANS(lvl) { .t = LOG_TRANS(lvl), .filter = LLIST_INITIALISER }
 
 /*!
  * Commit log transaction to the standard streams
  * @param trans transaction to commit
  */
-void LOG_COMMIT(struct log_trans *trans);
+void LOGT_COMMIT(struct log_trans *trans);
 
 /*!
  * Commit log transaction to a specific file
+ * Calls LOGT_DISPOSE on transaction after it is committed
  * @param trans transaction to commit
  * @param file  file to write log transaction to
  */
 void FLOG_COMMIT(struct log_trans *trans, FILE *file);
+
+/*!
+ * Disposes of dynamically allocated memory from calling LOGT()
+ */
+void LOGT_DISPOSE(struct log_trans *trans);
 
 /*
  * Configuration functions
