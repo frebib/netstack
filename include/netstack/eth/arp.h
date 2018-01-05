@@ -62,6 +62,7 @@ void arp_recv(struct frame *frame);
 // TODO: infer interface and hwtype based on routing rules
 int arp_send_req(struct intf *intf, uint16_t hwtype,
                  uint32_t saddr, uint32_t daddr);
+
 int arp_send_reply(struct intf *intf, uint8_t hwtype, uint32_t sip,
                    uint32_t dip, uint8_t *daddr);
 

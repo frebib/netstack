@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
+
 #include <netstack/proto.h>
 
 /* Ethernet */

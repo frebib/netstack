@@ -62,13 +62,13 @@ void llist_push(struct llist *list, void *data);
  * Fetch and remove the first element from the list
  * @return data from the first element of the list
  */
-void* llist_pop(struct llist *list);
+void *llist_pop(struct llist *list);
 
 /*!
  * Fetch and remove the last element from the list
  * @return data from the last element of the list
  */
-void* llist_pop_last(struct llist *list);
+void *llist_pop_last(struct llist *list);
 
 /*!
  * Checks if a list contains an data element

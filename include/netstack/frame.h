@@ -59,7 +59,7 @@ struct frame *frame_init(struct intf *intf, void *buffer, size_t buf_size);
  * @param buffer    allocated space for frame contents (required)
  * @param buf_size  size of allocated buffer in octets (required)
  */
-void frame_init_buf(struct frame* frame, void *buffer, size_t buf_size);
+void frame_init_buf(struct frame *frame, void *buffer, size_t buf_size);
 
 /*!
  * Indicates the frame is no longer required.

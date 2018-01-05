@@ -214,7 +214,7 @@ long rawsock_send_frame(struct frame *frame) {
     memcpy(sa.sll_addr, eth_hdr(frame)->daddr, ETH_ADDR_LEN);
 
     ssize_t ret = sendto(ll->sock, frame->head, frame->tail - frame->head, 0,
-                        (const struct sockaddr *) &sa, sizeof(sa));
+                         (const struct sockaddr *) &sa, sizeof(sa));
 
     return ret != 0 ? errno : 0;
 }
