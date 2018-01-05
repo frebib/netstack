@@ -49,7 +49,7 @@
   - Line 36: Keep track of invalid packets
   - Line 48: Take options into account here
   - Line 55: Other integrity checks
-  - Line 64: Change to if (!ipv4_should_accept(frame)) to accept other packets
+  - Line 64: Change to `if (!ipv4_should_accept(frame))` to accept other packets
   - Line 126: Perform correct route/hardware address lookups when appropriate
   - Line 169: Implement ARP cache locking
   - Line 178: Rate limit ARP requests to prevent flooding

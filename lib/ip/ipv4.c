@@ -61,7 +61,7 @@ void ipv4_recv(struct frame *frame) {
     fmt_ipv4(hdr->saddr, ssaddr);
     fmt_ipv4(hdr->daddr, sdaddr);
 
-    // TODO: Change to if (!ipv4_should_accept(frame)) to accept other packets
+    // TODO: Change to `if (!ipv4_should_accept(frame))` to accept other packets
     // such as multicast, broadcast etc.
     addr_t ip = {.proto = PROTO_IPV4, .ipv4 = hdr->daddr};
     if (!intf_has_addr(frame->intf, &ip)) {
