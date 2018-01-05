@@ -9,7 +9,7 @@
 
 
 bool arp_log(struct pkt_log *log, struct frame *frame) {
-    struct arp_hdr *msg = (struct arp_hdr *) frame->data;
+    struct arp_hdr *msg = (struct arp_hdr *) frame->head;
     frame->data += ARP_HDR_LEN;
     struct log_trans *trans = &log->t;
 
@@ -26,9 +26,12 @@ bool arp_log(struct pkt_log *log, struct frame *frame) {
                     LOGT(trans, "Reply %s ", fmtip4(ntohl(req->sipv4)));
                     LOGT(trans, "is at %s ", fmtmac(req->saddr));
                     break;
+                default:
+                    LOGT(trans, "invalid op %d", ntohs(msg->op));
             }
             break;
         default:
+            LOGT(trans, "unrecognised proto %d", ntohs(msg->proto));
             break;
     };
     
@@ -36,7 +39,7 @@ bool arp_log(struct pkt_log *log, struct frame *frame) {
 }
 
 void arp_recv(struct frame *frame) {
-    struct arp_hdr *msg = (struct arp_hdr *) frame->data;
+    struct arp_hdr *msg = (struct arp_hdr *) frame->head;
     frame->data += ARP_HDR_LEN;
 
     switch (ntohs(msg->hwtype)) {
@@ -65,7 +68,7 @@ void arp_recv(struct frame *frame) {
                 arp_cache_entry(frame->intf, &ether, &ipv4);
 
             if (frame->intf->arptbl.length > 0)
-                arp_print_tbl(frame->intf, stderr);
+                arp_log_tbl(frame->intf, LINFO);
 
             // TODO: Check for queued outgoing packets that can
             //       now be sent with the ARP information recv'd
@@ -91,8 +94,8 @@ void arp_recv(struct frame *frame) {
     };
 }
 
-void arp_print_tbl(struct intf *intf, FILE *file) {
-    struct log_trans trans = LOG_TRANS(LINFO);
+void arp_log_tbl(struct intf *intf, loglvl_t level) {
+    struct log_trans trans = LOG_TRANS(level);
     LOGT(&trans, "Intf\tProtocol\tHW Address\t\tState\n");
     for_each_llist(&intf->arptbl) {
         struct arp_entry *entry = llist_elem_data();
@@ -220,7 +223,7 @@ int arp_send_req(struct intf *intf, uint16_t hwtype,
         };
         llist_append(&intf->arptbl, entry);
 
-        arp_print_tbl(intf, stderr);
+        arp_log_tbl(intf, LINFO);
     }
 
     return ret;

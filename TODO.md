@@ -18,13 +18,13 @@
   - Line 38: Take endianness into account in tcp_hdr
 
 ## [lib/eth/arp.c](lib/eth/arp.c)
-  - Line 70: Check for queued outgoing packets that can
-  - Line 111: Implement ARP cache locking
-  - Line 134: Use hashtable for ARP lookups on IPv4
-  - Line 140: This doesn't account for protocol addresses that change hw
-  - Line 182: Use hwtype to determine length and type of address
-  - Line 231: Add 'incomplete' entry to arp cache
-  - Line 237: Use hwtype to determine length and type of address
+  - Line 73: Check for queued outgoing packets that can
+  - Line 114: Implement ARP cache locking
+  - Line 137: Use hashtable for ARP lookups on IPv4
+  - Line 143: This doesn't account for protocol addresses that change hw
+  - Line 185: Use hwtype to determine length and type of address
+  - Line 234: Add 'incomplete' entry to arp cache
+  - Line 240: Use hwtype to determine length and type of address
 
 ## [lib/intf/intf.c](lib/intf/intf.c)
   - Line 110: Implement rx 'software' timestamping
@@ -74,7 +74,8 @@
   - Line 22: Optionally don't send TCP RST packets
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
-  - Line 16: Add many configurable interfaces
-  - Line 17: Add loopback interface
-  - Line 52: Take different socket types into account here
-  - Line 54: For now, assume everything is ethernet
+  - Line 19: Add many configurable interfaces
+  - Line 20: Add loopback interface
+  - Line 54: Take different socket types into account here
+  - Line 56: For now, assume everything is ethernet
+  - Line 178: Cleanup residual frames, if any

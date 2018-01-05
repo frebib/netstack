@@ -16,9 +16,10 @@ bool ether_log(struct pkt_log *log, struct frame *frame) {
         LOGT(trans, "(out) ");
     else if (memcmp(hdr->daddr, intf->ll_addr, ETH_ADDR_LEN) == 0)
         LOGT(trans, "(in)  ");
-    else {
+    else if (!ether_should_accept(hdr, intf))
         return false;
-    }
+    else
+        LOGT(trans, "      ");
 
     // Print ether addresses
     LOGT(trans, "%s > ", fmtmac(hdr->saddr));

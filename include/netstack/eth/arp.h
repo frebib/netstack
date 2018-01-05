@@ -93,11 +93,11 @@ struct arp_entry {
 };
 
 /*!
- * Prints the ARP table to a file (stdout, stderr etc)
+ * Prints the ARP table to the log with the specified level
  * @param intf interface to read ARP table from
  * @param file file to write ARP table to
  */
-void arp_print_tbl(struct intf *intf, FILE *file);
+void arp_log_tbl(struct intf *intf, loglvl_t level);
 
 /*!
  * Attempt to update an existing protocol address entry
