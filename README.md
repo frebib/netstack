@@ -34,10 +34,26 @@ cmake ..
 make
 ```
 
+### Optional features
+
+Until such time that automated detection of extra features is added through autotools/autoconf, they have to be specified manually for now.
+
+GNU extensions such as named pthreads can be enabled with 
+```sh
+CFLAGS=-D_GNU_SOURCE make ..
+```
+
 ## Testing
 
 There are several bundled unit tests to test various parts of core code. They depend on [`libcheck`](https://github.com/libcheck/check).
 These can be run with
 ```
 make test
+```
+
+## Debugging
+
+Memory leaks can be discovered with valgind, using something similar to the following:
+```sh
+valgrind --vgdb=yes --leak-check=full --show-reachable=yes --track-origins=yes ./netd
 ```
