@@ -4,9 +4,9 @@
 #include <errno.h>
 #include <pthread.h>
 
+#include <netstack/log.h>
 #include <netstack/eth/ether.h>
 #include <netstack/ip/ipv4.h>
-#include <netstack/intf/intf.h>
 
 int intf_dispatch(struct frame *frame) {
     // Obtain the sendqlck
@@ -34,7 +34,7 @@ void intf_frame_free(struct frame *frame) {
         if (frame->intf)
             frame->intf->free_buffer(frame->intf, frame->buffer);
         else
-            fprintf(stderr, "Error: Frame has buffer (%lu bytes) but no intf",
+            LOG(LERR, "Frame has buffer (%lu bytes) but no intf",
                     frame->buf_size);
     }
     frame_free(frame);
@@ -77,10 +77,9 @@ void _intf_send_thread(struct intf *intf) {
         // Only attempt to send a non-null frame
         if (frame) {
             // Send the frame!
-            long ret = intf->send_frame(frame);
+            int ret = (int) intf->send_frame(frame);
             if (ret != 0)
-                fprintf(stderr, "send_frame() returned %ld: %s",
-                        ret, strerror( (int) ret));
+                LOG(LINFO, "send_frame() returned %ld: %s", ret, strerror(ret));
 
             // TODO: Dispose of sent frame
             intf_frame_free(frame);
@@ -129,8 +128,7 @@ void _intf_recv_thread(struct intf *intf) {
                 ipv4_recv(rawframe);
                 break;
             default:
-                fprintf(stderr, "Interface protocol %d unsupported\t",
-                        intf->proto);
+                LOG(LWARN, "Interface protocol %d unsupported\t", intf->proto);
                 break;
         }
 
@@ -179,7 +177,7 @@ int intf_init(struct intf *intf) {
     intf->arptbl = (struct llist) LLIST_INITIALISER;
     intf->sendq = (struct llist) LLIST_INITIALISER;
 
-    printf("Creating threads\n");
+    LOG(LDBUG, "Creating threads\n");
 
     // Concatenate interface name before thread name
     size_t len = 32;
@@ -204,7 +202,7 @@ size_t intf_max_frame_size(struct intf *intf) {
 
 bool intf_has_addr(struct intf *intf, addr_t *addr) {
     if (addr->proto == 0) {
-        fprintf(stderr, "Error: intf_has_addr() called with empty protocol\n");
+        LOG(LERR, "intf_has_addr() called with empty protocol");
         return false;
     }
 
@@ -218,7 +216,7 @@ bool intf_has_addr(struct intf *intf, addr_t *addr) {
 
 bool intf_get_addr(struct intf *intf, addr_t *addr) {
     if (addr->proto == 0) {
-        fprintf(stderr, "Error: intf_get_addr() called with empty protocol\n");
+        LOG(LERR, "intf_get_addr() called with empty protocol");
         return false;
     }
 

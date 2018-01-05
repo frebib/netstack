@@ -1,8 +1,9 @@
 #include <stdio.h>
-
 #include <errno.h>
+
 #include <netinet/in.h>
-#include <netstack/frame.h>
+
+#include <netstack/log.h>
 #include <netstack/eth/arp.h>
 #include <netstack/ip/ipv4.h>
 #include <netstack/ip/icmp.h>
@@ -35,20 +36,19 @@ void ipv4_recv(struct frame *frame) {
     // TODO: Keep track of invalid packets
 
     if (hdr_len < sizeof(struct ipv4_hdr)) {
-        fprintf(stderr, "Error: IPv4 packet header is too short!");
+        LOG(LWARN, "Error: IPv4 packet header is too short!");
         return;
     }
 
     if (hdr->version != 4) {
-        fprintf(stderr, "Error: IPv4 packet version is wrong: %d\n",
-                hdr->version);
+        LOG(LWARN, "Error: IPv4 packet version is wrong: %d", hdr->version);
         return;
     }
 
     // TODO: Take options into account here
 
     if (in_csum(frame->head, (size_t) hdr_len, 0) != 0) {
-        fprintf(stderr, "Error: IPv4 packet checksum is corrupt\n");
+        LOG(LWARN, "Error: IPv4 packet checksum is corrupt");
         return;
     }
 
@@ -125,7 +125,7 @@ int send_ipv4(struct frame *child, uint8_t proto, uint16_t flags,
 
     // TODO: Perform correct route/hardware address lookups when appropriate
     if (rt->intf == NULL) {
-        fprintf(stderr, "Error: Route interface is null for %p\n", (void *) rt);
+        LOG(LERR, "Route interface is null for %p", (void *) rt);
         return -EINVAL;
     }
 
@@ -138,7 +138,7 @@ int send_ipv4(struct frame *child, uint8_t proto, uint16_t flags,
     if (saddr) {
         addr_t req_saddr = { .proto = PROTO_IPV4, .ipv4 = saddr };
         if (!intf_has_addr(rt->intf, &req_saddr)) {
-            fprintf(stderr, "Error: The requested address %s is invalid for "
+            LOG(LERR, "The requested address %s is invalid for "
                     "interface %s", fmtip4(saddr), rt->intf->name);
 
             frame_parent_free(frame);
@@ -147,7 +147,7 @@ int send_ipv4(struct frame *child, uint8_t proto, uint16_t flags,
     } else {
         addr_t def_addr = { .proto = PROTO_IPV4, .ipv4 = 0 };
         if (!intf_get_addr(rt->intf, &def_addr)) {
-            fprintf(stderr, "Error: could not get interface address for %s\n",
+            LOG(LERR, "Could not get interface address for %s",
                     rt->intf->name);
 
             frame_parent_free(frame);
@@ -155,7 +155,7 @@ int send_ipv4(struct frame *child, uint8_t proto, uint16_t flags,
         }
 
         if (def_addr.ipv4 == 0) {
-            fprintf(stderr, "Error: interface %s has no address for IPv4\n",
+            LOG(LERR, "Interface %s has no address for IPv4",
                     rt->intf->name);
 
             frame_parent_free(frame);
@@ -171,8 +171,10 @@ int send_ipv4(struct frame *child, uint8_t proto, uint16_t flags,
     addr_t *dmac = arp_get_hwaddr(rt->intf, ARP_HW_ETHER, &nexthop_ip4);
 
     if (dmac == NULL) {
-        fprintf(stderr, "arp_request(%s, %s", rt->intf->name, fmtip4(saddr));
-        fprintf(stderr, ", %s);\n", fmtip4(nexthop));
+        struct log_trans trans = LOG_TRANS(LTRCE);
+        LOGT(&trans, "call arp_request(%s, %s", rt->intf->name, fmtip4(saddr));
+        LOGT(&trans, ", %s);", fmtip4(nexthop));
+        LOG_COMMIT(&trans);
         // TODO: Rate limit ARP requests to prevent flooding
         arp_send_req(rt->intf, ARP_HW_ETHER, saddr, nexthop);
 

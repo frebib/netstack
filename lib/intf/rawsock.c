@@ -12,6 +12,7 @@
 #include <netpacket/packet.h>
 #include <linux/if_ether.h>
 
+#include <netstack/log.h>
 #include <netstack/eth/ether.h>
 #include <netstack/intf/rawsock.h>
 
@@ -57,17 +58,13 @@ int rawsock_new(struct intf *interface) {
             continue;
         }
 
-        if (strcmp(if_ni->if_name, "lo") != 0) {
-            printf("Using interface (#%d) %s", if_ni->if_index,
-                   if_ni->if_name);
+        if (strcmp(if_ni->if_name, "lo") != 0)
             break;
-        }
         if_ni++;
     }
     if (if_ni == NULL) {
         errno = ENODEV;
 
-        printf("\n");
         if_freenameindex(if_ni_head);
         close(sock);
         return -1;
@@ -80,7 +77,6 @@ int rawsock_new(struct intf *interface) {
     if (ioctl(sock, SIOCGIFHWADDR, &req) == 0) {
         memcpy(hwaddr, req.ifr_addr.sa_data, IFHWADDRLEN);
     } else {
-        printf("\n");
         free(hwaddr);
         if_freenameindex(if_ni_head);
         close(sock);
@@ -90,16 +86,16 @@ int rawsock_new(struct intf *interface) {
     int mtu;
     if (ioctl(sock, SIOCGIFMTU, &req) == 0) {
         mtu = req.ifr_mtu;
-        printf(", mtu %d", mtu);
     } else {
-        printf("\n");
         free(hwaddr);
         if_freenameindex(if_ni_head);
         close(sock);
         return -1;
     }
 
-    printf("\n");
+    LOG(LINFO, "Using interface (#%d) %s, mtu %d",
+        if_ni->if_index, if_ni->if_name, mtu);
+
     struct intf_rawsock *ll = malloc(sizeof(struct intf_rawsock));
     ll->sock = sock;
     ll->if_index = if_ni->if_index;
@@ -191,16 +187,14 @@ long rawsock_recv_frame(struct frame *frame) {
 
     // Warn if the sizes don't match (should probably never happen)
     if (count != lookahead) {
-        fprintf(stderr, "Warning: MSG_PEEK != recv(): %zi != %zi\n",
-                lookahead, count);
+        LOG(LWARN, "MSG_PEEK != recv(): %zi != %zi", lookahead, count);
 
         // TODO: Print debug messages for uncommon paths like these
 
         // realloc a (larger?) new buffer if the size differs, just in case
         void *newbuf;
         if ((newbuf = realloc(frame->buffer, (size_t) count)) == NULL) {
-            fprintf(stderr, "Fatal: Failed to reallocate new buffer of "
-                    "size %zi bytes\n", count);
+            LOG(LCRIT, "Failed to reallocate new buffer of %zi bytes", count);
             exit(EX_OSERR);
         }
         frame->buffer = newbuf;

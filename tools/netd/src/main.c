@@ -9,9 +9,8 @@
 #include <sys/wait.h>
 #include <sys/capability.h>
 
-#include <netstack/frame.h>
+#include <netstack/log.h>
 #include <netstack/ip/route.h>
-#include <netstack/eth/ether.h>
 #include <netstack/intf/rawsock.h>
 
 // TODO: Add many configurable interfaces
@@ -19,6 +18,9 @@
 static struct intf *intf;
 
 int main(int argc, char **argv) {
+
+    // Initialise default logging with stdout & stderr
+    log_default();
 
 #ifdef _GNU_SOURCE
     #include <pthread.h>
@@ -31,18 +33,18 @@ int main(int argc, char **argv) {
     cap_t capabilities = cap_get_proc();
     if (cap_get_flag(capabilities, CAP_NET_RAW, CAP_EFFECTIVE, &hasRaw) ||
         cap_get_flag(capabilities, CAP_NET_ADMIN, CAP_EFFECTIVE, &hasAdmin)) {
-        perror("Error checking capabilities");
+        LOG(LERR, "Error checking capabilities");
     }
     cap_free(capabilities);
 
     // Check and error if capabilities aren't set
     if (hasRaw != CAP_SET) {
-        fprintf(stderr, "You don't have the CAP_NET_RAW capability.\n"
-                "Use 'setcap cap_net_raw+ep %s' or run as root\n", argv[0]);
+        LOG(LCRIT, "You don't have the CAP_NET_RAW capability.\n"
+                "Use 'setcap cap_net_raw+ep %s' or run as root", argv[0]);
         exit(1);
     } else if (hasAdmin != CAP_SET) {
-        fprintf(stderr, "You don't have the CAP_NET_ADMIN capability.\n"
-                "Use 'setcap cap_net_admin+ep %s' or run as root\n", argv[0]);
+        LOG(LCRIT, "You don't have the CAP_NET_ADMIN capability.\n"
+                "Use 'setcap cap_net_admin+ep %s' or run as root", argv[0]);
         exit(1);
     }
 
@@ -53,7 +55,7 @@ int main(int argc, char **argv) {
     // Create a INTF_RAWSOCK interface for sending/recv'ing data
     intf = calloc(sizeof(struct intf), 1);
     if (rawsock_new(intf) != 0) {
-        perror("Error creating INTF_RAWSOCK");
+        LOG(LCRIT, "Could not create INTF_RAWSOCK");
         return EX_IOERR;
     }
 
@@ -76,7 +78,7 @@ int main(int argc, char **argv) {
             perror("Signal error");
         }
 
-        fprintf(stderr, "Caught signal: %s\n", strsignal(signum));
+        LOG(LINFO, "Caught signal: %s\n", strsignal(signum));
 
         switch (signum) {
             // Cleanup and exit, responsibly
@@ -106,7 +108,11 @@ int main(int argc, char **argv) {
                 intf->free(intf);
                 free(intf);
 
-                fprintf(stderr, "Exiting!\n");
+                LOG(LWARN, "Exiting!");
+
+                llist_iter(&logconf.streams, free);
+                llist_clear(&logconf.streams);
+
                 return 0;
             default:
                 // Do nothing, it doesn't concern us

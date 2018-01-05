@@ -4,6 +4,8 @@
 #include <memory.h>
 
 #include <netinet/in.h>
+
+#include <netstack/log.h>
 #include <netstack/eth/arp.h>
 
 struct arp_hdr *parse_arp(void *data) {
@@ -25,7 +27,7 @@ void arp_recv(struct frame *frame) {
             // this is good
             break;
         default:
-            fprintf(stderr, "ARP hardware %d not supported\n", msg->hwtype);
+            LOG(LINFO, "ARP hardware %d not supported\n", msg->hwtype);
     }
 
     // https://tools.ietf.org/html/rfc826
@@ -72,21 +74,22 @@ void arp_recv(struct frame *frame) {
             }
             break;
         default:
-            fprintf(stderr, "ARP protocol %s not supported\n",
+            LOG(LINFO, "ARP protocol %s not supported",
                     fmt_ethertype(msg->proto));
     };
 }
 
 void arp_print_tbl(struct intf *intf, FILE *file) {
-    fprintf(file, "Intf\tProtocol\tHW Address\t\tState\n");
+    LOG(LINFO, "Intf\tProtocol\tHW Address\t\tState\n");
     for_each_llist(&intf->arptbl) {
         struct arp_entry *entry = llist_elem_data();
-        fprintf(file, "%s\t", intf->name);
-        fprintf(file, "%s\t", straddr(&entry->protoaddr));
-        fprintf(file, "%s\t", entry->state & ARP_PENDING ?
+        struct log_trans trans = LOG_TRANS(LINFO);
+        LOGT(&trans, "%s\t", intf->name);
+        LOGT(&trans, "%s\t", straddr(&entry->protoaddr));
+        LOGT(&trans, "%s\t", (entry->state & ARP_PENDING) ?
                               "(pending)\t" : straddr(&entry->hwaddr));
-        fprintf(file, "%s\n", fmt_arp_state(entry->state));
-        fflush(file);
+        LOGT(&trans, "%s\n", fmt_arp_state(entry->state));
+        LOG_COMMIT(&trans);
     }
 }
 
@@ -98,7 +101,7 @@ addr_t *arp_get_hwaddr(struct intf *intf, uint16_t hwtype, addr_t *protoaddr) {
         struct arp_entry *entry = llist_elem_data();
 
         if (entry == NULL) {
-            fprintf(stderr, "Error: arp_entry_ipv4 is null?\t");
+            LOG(LERR, "arp_entry_ipv4 is null?\t");
             return NULL;
         }
         // Check matching protocols
@@ -126,8 +129,7 @@ bool arp_update_entry(struct intf *intf, addr_t *hwaddr, addr_t *protoaddr) {
         if (addreq(&entry->protoaddr, protoaddr)) {
             // Only update hwaddr if it has actually changed
             if (!addreq(&entry->hwaddr, hwaddr)) {
-                fprintf(stderr, "INFO: ARP cache entry for %s changed\n",
-                        straddr(protoaddr));
+                LOG(LINFO, "ARP cache entry %s changed", straddr(protoaddr));
 
                 // Update hwaddr for IP
                 memcpy(&entry->hwaddr, hwaddr, sizeof(addr_t));
@@ -146,7 +148,7 @@ bool arp_update_entry(struct intf *intf, addr_t *hwaddr, addr_t *protoaddr) {
 
 bool arp_cache_entry(struct intf *intf, addr_t *hwaddr, addr_t *protoaddr) {
 
-    fprintf(stderr, "DEBUG: Storing new ARP entry for %s\n", straddr(protoaddr));
+    LOG(LDBUG, "Storing new ARP entry for %s\n", straddr(protoaddr));
 
     struct arp_entry *entry = malloc(sizeof(struct arp_entry));
     entry->state = ARP_RESOLVED;
