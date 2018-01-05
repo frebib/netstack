@@ -1,6 +1,6 @@
 pipeline:
   build:
-    image: frebib/alpine-cmake:3.6
+    image: frebib/alpine-cmake:3.7
     environment:
       - NO_SETCAP=true
       - PACKAGES=libcap-dev
@@ -17,7 +17,7 @@ pipeline:
       - make
 
   test:
-    image: alpine:3.6
+    image: alpine:3.7
     privileged: true
     environment:
       - RAWSOCK_NOBIND=true
