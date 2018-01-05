@@ -5,21 +5,13 @@
 #include <netstack/ip/icmp.h>
 #include <netstack/ip/ipv4.h>
 
-struct icmp_echo *icmp_echo(void *data) {
-    struct icmp_echo *echo = (struct icmp_echo *) data;
-    echo->id  = ntohs(echo->id);
-    echo->seq = ntohs(echo->seq);
-    return echo;
-}
-
 void icmp_recv(struct frame *frame) {
     struct icmp_hdr *hdr = icmp_hdr(frame);
     frame->data += sizeof(struct icmp_hdr);
 
     /* Save and empty packet checksum */
     uint16_t pkt_csum = hdr->csum;
-    hdr->csum = 0;
-    uint16_t calc_csum = in_csum(frame->head, frame_pkt_len(frame), 0);
+    uint16_t calc_csum = in_csum(frame->head, frame_pkt_len(frame), 0) + hdr->csum;
     printf(", csum 0x%04x", calc_csum);
 
     if (pkt_csum != calc_csum) {
@@ -30,18 +22,19 @@ void icmp_recv(struct frame *frame) {
     struct frame *ctrl = frame_child_copy(frame);
     switch (hdr->type) {
         case ICMP_T_ECHORPLY: {
-            struct icmp_echo *echo = icmp_echo(ctrl->head);
+            struct icmp_echo *echo = (struct icmp_echo *) ctrl->head;
             ctrl->data += sizeof(struct icmp_echo);
-            printf(" echoreply id %d, seq %d", echo->id, echo->seq);
+            printf(" echoreply id %d, seq %d", ntohs(echo->id),
+                   ntohs(echo->seq));
             break;
         }
         case ICMP_T_DESTUNR:
             printf(" dest-unreachable");
             break;
         case ICMP_T_ECHOREQ: {
-            struct icmp_echo *echo = icmp_echo(ctrl->head);
+            struct icmp_echo *echo = (struct icmp_echo *) ctrl->head;
             ctrl->data += sizeof(struct icmp_echo);
-            printf(" echoreq id %d, seq %d", echo->id, echo->seq);
+            printf(" echoreq id %d, seq %d", ntohs(echo->id), ntohs(echo->seq));
             send_icmp_reply(ctrl);
             break;
         }
@@ -56,8 +49,8 @@ void icmp_recv(struct frame *frame) {
  */
 int send_icmp_reply(struct frame *ctrl) {
     // TODO: Don't assume IPv4 parent
-    struct ipv4_hdr  *ip    = ipv4_hdr(ctrl->parent->parent);
-    struct icmp_echo *ping  = icmp_echo_hdr(ctrl);
+    struct ipv4_hdr *ip = ipv4_hdr(ctrl->parent->parent);
+    struct icmp_echo *ping = icmp_echo_hdr(ctrl);
 
     size_t size = intf_max_frame_size(ctrl->intf);
     struct frame *reply = intf_frame_new(ctrl->intf, size);
@@ -70,15 +63,16 @@ int send_icmp_reply(struct frame *ctrl) {
 
     struct icmp_echo *echo = frame_alloc(reply, sizeof(struct icmp_echo));
     struct icmp_hdr *hdr = frame_alloc(reply, sizeof(struct icmp_hdr));
-    echo->id = htons(ping->id);
-    echo->seq = htons(ping->seq);
+    echo->id = ping->id;
+    echo->seq = ping->seq;
     hdr->type = ICMP_T_ECHORPLY;
     hdr->code = 0;
     hdr->csum = 0;
     hdr->csum = in_csum(hdr, frame_data_len(reply), 0);
 
     // Swap source/dest IP addresses
-    int ret = send_ipv4(reply, IP_P_ICMP, IP_DF, ip->saddr, ip->daddr);
+    int ret = send_ipv4(reply, IP_P_ICMP, IP_DF,
+                        ntohl(ip->saddr), ntohl(ip->daddr));
     // Reply frame is no longer our responsibility. Ensure it is cleaned up
     // in the case that it wasn't actually sent
     frame_deref(reply);

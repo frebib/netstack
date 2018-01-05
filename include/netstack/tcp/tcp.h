@@ -147,10 +147,6 @@ static inline const int fmt_tcp_flags(struct tcp_hdr *hdr, char *buffer) {
  * hdr->hlen is 1 byte, soo 4x is 1 word size */
 #define tcp_hdr_len(hdr) ((uint8_t) (hdr->hlen * 4))
 
-/* Given a network tcp packet buffer, this
- * mutates network values to host values */
-struct tcp_hdr *tcp_ntoh(void *data);
-
 /* Receives a tcp frame for processing in the network stack */
 void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum);
 

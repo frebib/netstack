@@ -24,10 +24,6 @@ struct eth_hdr {
 /* Returns a struct eth_hdr from the frame->head */
 #define eth_hdr(frame) ((struct eth_hdr *) (frame)->head)
 
-/* Given a network ether frame buffer, this
- * mutates network values to host values */
-struct eth_hdr *ether_ntoh(void *data);
-
 /* Receives an ether frame for processing in the network stack */
 void ether_recv(struct frame *frame);
 

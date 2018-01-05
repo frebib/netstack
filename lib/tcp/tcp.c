@@ -5,20 +5,6 @@
 
 struct llist tcp_sockets = LLIST_INITIALISER;
 
-struct tcp_hdr *tcp_ntoh(void *data) {
-    struct tcp_hdr *tcp_hdr = (struct tcp_hdr *) data;
-
-    tcp_hdr->sport = ntohs(tcp_hdr->sport);
-    tcp_hdr->dport = ntohs(tcp_hdr->dport);
-    tcp_hdr->seqn = ntohl(tcp_hdr->seqn);
-    tcp_hdr->ackn = ntohl(tcp_hdr->ackn);
-    tcp_hdr->wind = ntohs(tcp_hdr->wind);
-    tcp_hdr->csum = ntohs(tcp_hdr->csum);
-    tcp_hdr->urg_ptr = ntohs(tcp_hdr->urg_ptr);
-
-    return tcp_hdr;
-}
-
 void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {
 
     /* Don't parse yet, we need to check the checksum first */
@@ -30,9 +16,7 @@ void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {
 
     /* Save and empty packet checksum */
     uint16_t pkt_csum = hdr->csum;
-    hdr->csum = 0;
-
-    uint16_t calc_csum = in_csum(frame->head, pkt_len, net_csum);
+    uint16_t calc_csum = in_csum(frame->head, pkt_len, net_csum) + hdr->csum;
     printf(", csum 0x%04x", calc_csum);
 
     // TODO: Investigate TCP checksums invalid with long packets
@@ -49,8 +33,6 @@ void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {
     }
 
     // TODO: Other integrity checks
-
-    tcp_ntoh(frame->head);
 
     tcp_seg_arr(frame, sock);
 

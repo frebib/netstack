@@ -11,18 +11,6 @@
 #include <netstack/tcp/tcp.h>
 #include <netstack/checksum.h>
 
-struct ipv4_hdr *ipv4_ntoh(void *data) {
-    struct ipv4_hdr *hdr = (struct ipv4_hdr *) data;
-
-    hdr->frag_ofs = ntohs(hdr->frag_ofs);
-    hdr->saddr = ntohl(hdr->saddr);
-    hdr->daddr = ntohl(hdr->daddr);
-    hdr->len = ntohs(hdr->len);
-    hdr->id = ntohs(hdr->id);
-
-    return hdr;
-}
-
 void ipv4_recv(struct frame *frame) {
 
     /* Don't parse yet, we need to check the checksum first */
@@ -54,16 +42,13 @@ void ipv4_recv(struct frame *frame) {
 
     // TODO: Other integrity checks
 
-    /* Fix network endianness in header */
-    hdr = ipv4_ntoh(frame->head);
-
     char ssaddr[16], sdaddr[16];
-    fmt_ipv4(hdr->saddr, ssaddr);
-    fmt_ipv4(hdr->daddr, sdaddr);
+    fmt_ipv4(ntohl(hdr->saddr), ssaddr);
+    fmt_ipv4(ntohl(hdr->daddr), sdaddr);
 
     // TODO: Change to `if (!ipv4_should_accept(frame))` to accept other packets
     // such as multicast, broadcast etc.
-    addr_t ip = {.proto = PROTO_IPV4, .ipv4 = hdr->daddr};
+    addr_t ip = {.proto = PROTO_IPV4, .ipv4 = ntohl(hdr->daddr)};
     if (!intf_has_addr(frame->intf, &ip)) {
         printf(" %s > %s", ssaddr, sdaddr);
         return;
@@ -88,8 +73,8 @@ void ipv4_recv(struct frame *frame) {
             uint16_t dport = htons(tcp_hdr(child_frame)->dport);
             printf(" %s:%d > %s:%d", ssaddr, sport, sdaddr, dport);
 
-            addr_t saddr = {.proto=PROTO_IPV4, .ipv4 = hdr->saddr};
-            addr_t daddr = {.proto=PROTO_IPV4, .ipv4 = hdr->daddr};
+            addr_t saddr = {.proto=PROTO_IPV4, .ipv4 = ntohl(hdr->saddr)};
+            addr_t daddr = {.proto=PROTO_IPV4, .ipv4 = ntohl(hdr->daddr)};
             struct tcp_sock *sock = tcp_sock_lookup(&saddr, &daddr,
                                                     sport, dport);
 

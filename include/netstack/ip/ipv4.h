@@ -62,10 +62,6 @@ struct ipv4_hdr {
  * hdr->hlen is 1 byte, soo 4x is 1 word size */
 #define ipv4_hdr_len(hdr) ((hdr)->hlen * 4)
 
-/* Given a network ipv4 packet buffer, this
- * mutates network values to host values */
-struct ipv4_hdr *ipv4_ntoh(void *data);
-
 /* Receives an ipv4 frame for processing in the network stack */
 void ipv4_recv(struct frame *frame);
 

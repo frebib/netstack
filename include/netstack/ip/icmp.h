@@ -53,9 +53,6 @@ struct icmp_echo {
 /* Receives an icmp frame for processing in the network stack */
 void icmp_recv(struct frame *frame);
 
-/* Converts network to host values in header */
-struct icmp_echo *icmp_echo(void *data);
-
 /* Generates and dispatches an ICMP echo packet */
 int send_icmp_reply(struct frame *frame);
 

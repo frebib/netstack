@@ -5,15 +5,10 @@
 #include <netstack/ip/ipv4.h>
 #include <netstack/eth/arp.h>
 
-struct eth_hdr *ether_ntoh(void *data) {
-    struct eth_hdr *hdr = (struct eth_hdr *) data;
-    hdr->ethertype = ntohs(hdr->ethertype);
-    return hdr;
-}
 
 void ether_recv(struct frame *frame) {
 
-    struct eth_hdr *hdr = ether_ntoh(frame->head);
+    struct eth_hdr *hdr = (struct eth_hdr *) frame->head;
     struct intf *intf = frame->intf;
 
     /* Frame data is after fixed header size */
@@ -38,7 +33,7 @@ void ether_recv(struct frame *frame) {
     }
 
     struct frame *child_frame = frame_child_copy(frame);
-    switch (hdr->ethertype) {
+    switch (ntohs(hdr->ethertype)) {
         case ETH_P_ARP:
             printf("ARP");
             arp_recv(child_frame);
@@ -50,8 +45,13 @@ void ether_recv(struct frame *frame) {
         case ETH_P_IPV6:
             printf("IPv6 unimpl");
             return;
-        default:
-            printf("unrecognised %s", fmt_ethertype(hdr->ethertype));
+        default: {
+            const char *ethertype = fmt_ethertype(hdr->ethertype);
+            if (ethertype != NULL)
+                printf("unrecognised %s", ethertype);
+            else
+                printf("unrecognised %04x", ntohs(hdr->ethertype));
+        }
             return;
     }
 }

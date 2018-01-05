@@ -8,44 +8,32 @@
 #include <netstack/log.h>
 #include <netstack/eth/arp.h>
 
-struct arp_hdr *parse_arp(void *data) {
-    struct arp_hdr *hdr = (struct arp_hdr *) data;
-
-    hdr->hwtype = ntohs(hdr->hwtype);
-    hdr->proto = ntohs(hdr->proto);
-    hdr->op = ntohs(hdr->op);
-
-    return hdr;
-}
-
 void arp_recv(struct frame *frame) {
-    struct arp_hdr *msg = parse_arp(frame->data);
+    struct arp_hdr *msg = (struct arp_hdr *) frame->data;
     frame->data += ARP_HDR_LEN;
 
-    switch (msg->hwtype) {
+    switch (ntohs(msg->hwtype)) {
         case ARP_HW_ETHER:
             // this is good
             break;
         default:
-            LOG(LINFO, "ARP hardware %d not supported\n", msg->hwtype);
+            LOG(LINFO, "ARP hardware %d not supported\n", ntohs(msg->hwtype));
     }
 
     // https://tools.ietf.org/html/rfc826
 
     struct arp_ipv4 *req;
-    switch (msg->proto) {
+    switch (ntohs(msg->proto)) {
         case ETH_P_IP:
             // also good
             req = (struct arp_ipv4 *) frame->data;
-            req->sipv4 = ntohl(req->sipv4);
-            req->dipv4 = ntohl(req->dipv4);
             char ssaddr[16], sdaddr[16], ssethaddr[18];
-            fmt_ipv4(req->sipv4, ssaddr);
-            fmt_ipv4(req->dipv4, sdaddr);
+            fmt_ipv4(ntohl(req->sipv4), ssaddr);
+            fmt_ipv4(ntohl(req->dipv4), sdaddr);
             fmt_mac(req->saddr, ssethaddr);
 
             addr_t ether = {.proto = PROTO_ETHER, .ether = eth_arr(req->saddr)};
-            addr_t ipv4 = {.proto = PROTO_IPV4, .ipv4 = req->sipv4};
+            addr_t ipv4 = {.proto = PROTO_IPV4, .ipv4 = ntohl(req->sipv4)};
 
             bool updated = arp_update_entry(frame->intf, &ether, &ipv4);
 
@@ -59,14 +47,15 @@ void arp_recv(struct frame *frame) {
             // TODO: Check for queued outgoing packets that can
             //       now be sent with the ARP information recv'd
 
-            switch (msg->op) {
+            switch (ntohs(msg->op)) {
                 case ARP_OP_REQUEST:
                     printf(" Who has %s? Tell %s", sdaddr, ssaddr);
                     // If asking for us, send a reply with our LL address
-                    addr_t ip = {.proto = PROTO_IPV4, .ipv4 = req->dipv4};
+                    addr_t ip = {.proto = PROTO_IPV4, .ipv4 = ntohl (req->dipv4)};
                     if (intf_has_addr(frame->intf, &ip))
-                        arp_send_reply(frame->intf, ARP_HW_ETHER, req->dipv4,
-                                       req->sipv4, req->saddr);
+                        arp_send_reply(frame->intf, ARP_HW_ETHER,
+                                       ntohl(req->dipv4), ntohl(req->sipv4),
+                                       req->saddr);
                     break;
                 case ARP_OP_REPLY:
                     printf(" Reply %s is at %s", ssaddr, ssethaddr);
@@ -75,7 +64,7 @@ void arp_recv(struct frame *frame) {
             break;
         default:
             LOG(LINFO, "ARP protocol %s not supported",
-                    fmt_ethertype(msg->proto));
+                    fmt_ethertype(ntohs(msg->proto)));
     };
 }
 

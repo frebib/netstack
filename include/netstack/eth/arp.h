@@ -51,10 +51,6 @@ struct arp_ipv4 {
 /* Returns a struct arp_hdr from the frame->head */
 #define arp_hdr(frame) ((struct arp_hdr *) (frame)->head)
 
-/* Given a network arp message buffer, this
- * mutates network values to host values */
-struct arp_hdr *parse_arp(void *data);
-
 /* Receives an arp frame for processing in the network stack */
 void arp_recv(struct frame *frame);
 
