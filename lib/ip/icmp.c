@@ -78,9 +78,9 @@ int send_icmp_reply(struct frame *ctrl) {
     hdr->csum = in_csum(hdr, frame_data_len(reply), 0);
 
     // Swap source/dest IP addresses
-    int ret;
-    if ((ret = send_ipv4(reply, IP_P_ICMP, IP_DF, ip->saddr, ip->daddr)) != 0) {
-        intf_frame_free(reply);
-    }
+    int ret = send_ipv4(reply, IP_P_ICMP, IP_DF, ip->saddr, ip->daddr);
+    // Reply frame is no longer our responsibility. Ensure it is cleaned up
+    // in the case that it wasn't actually sent
+    frame_deref(reply);
     return ret;
 }

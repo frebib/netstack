@@ -87,20 +87,6 @@ int intf_init(struct intf *intf);
 struct frame *intf_frame_new(struct intf *frame, size_t buf_size);
 
 /*!
- * Frees a frame and it's enclosed buffer
- * Assumes frame->intf is populated with the interface..
- * (if not, just use frame_free() as there should be no buffer assigned)
- * @param frame frame and enclosing buffer to free(3)
- */
-void intf_frame_free(struct frame * frame);
-
-/*!
- * Frees all frames in a llist with intf_frame_free() then calls
- * llist_clear() to empty the list. Useful for a one-shot cleanup
- */
-void intf_frame_llist_clear(struct llist *list);
-
-/*!
  *
  * @param intf
  * @param size

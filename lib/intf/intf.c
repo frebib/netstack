@@ -9,6 +9,9 @@
 #include <netstack/ip/ipv4.h>
 
 int intf_dispatch(struct frame *frame) {
+    // Ensure send() has a reference, keeping the frame alive
+    (*frame->buf_refcount)++;
+
     // Obtain the sendqlck
     pthread_mutex_lock(&frame->intf->sendqlck);
     // Push the frame into the queue
@@ -27,22 +30,6 @@ struct frame *intf_frame_new(struct intf *intf, size_t buf_size) {
         buffer = intf->new_buffer(intf, buf_size);
 
     return frame_init(intf, buffer, buf_size);
-}
-
-void intf_frame_free(struct frame *frame) {
-    if (frame->buffer) {
-        if (frame->intf)
-            frame->intf->free_buffer(frame->intf, frame->buffer);
-        else
-            LOG(LERR, "Frame has buffer (%lu bytes) but no intf",
-                    frame->buf_size);
-    }
-    frame_free(frame);
-}
-
-void intf_frame_llist_clear(struct llist *list) {
-    llist_iter(list, intf_frame_free);
-    llist_clear(list);
 }
 
 void *intf_malloc_buffer(struct intf *intf, size_t size) {
@@ -81,8 +68,7 @@ void _intf_send_thread(struct intf *intf) {
             if (ret != 0)
                 LOG(LINFO, "send_frame() returned %ld: %s", ret, strerror(ret));
 
-            // TODO: Dispose of sent frame
-            intf_frame_free(frame);
+            frame_deref(frame);
         }
 
         pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
@@ -136,7 +122,7 @@ void _intf_recv_thread(struct intf *intf) {
         fflush(stdout);
 
         // Allocate a new frame
-        intf_frame_free(rawframe);
+        frame_deref(rawframe);
         rawframe = NULL;
 
         // Check if the thread should exit

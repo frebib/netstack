@@ -12,6 +12,8 @@ struct intf;
 struct frame {
     struct intf *intf;      /* Always present for incoming packets*/
     size_t buf_size;
+    int   *buf_refcount;    /* Dynamically allocated reference count for
+                               buffer. Persists across copied child/parents */
     struct timespec time;   /* Send/recv time for frame */
     uint8_t *buffer,
             *head,          /* It cannot be assumed that head and data */
@@ -58,6 +60,13 @@ struct frame *frame_init(struct intf *intf, void *buffer, size_t buf_size);
  * @param buf_size  size of allocated buffer in octets (required)
  */
 void frame_init_buf(struct frame* frame, void *buffer, size_t buf_size);
+
+/*!
+ * Indicates the frame is no longer required.
+ * If refcount hits zero, the frame and buffer is free'd
+ * @param frame frame to dereference
+ */
+void frame_deref(struct frame *frame);
 
 /*!
  * Frees a frame but NOT it's enclosed buffer

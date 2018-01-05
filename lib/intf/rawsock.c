@@ -120,6 +120,7 @@ int rawsock_new(struct intf *interface) {
 }
 
 void rawsock_free(struct intf *intf) {
+    // TODO: Move some of this cleanup logic into a generic intf_free() function
     struct intf_rawsock *sockptr = (struct intf_rawsock *) intf->ll;
     close(sockptr->sock);
     free(sockptr);
@@ -128,19 +129,20 @@ void rawsock_free(struct intf *intf) {
     llist_clear(&intf->arptbl);
     llist_iter(&intf->inet, free);
     llist_clear(&intf->inet);
-    intf_frame_llist_clear(&intf->sendq);
+    // TODO: Ensure frames are destroyed, even if they still have references
+    llist_iter(&intf->sendq, frame_deref);
 }
 
 long rawsock_recv_frame(struct frame *frame) {
 
-    struct intf* interface = frame->intf;
+    struct intf *interface = frame->intf;
     // Count is raw eth packet size (inc eth + ip + transport)
     ssize_t lookahead = 0,
             count = 0;
     int sock = *((int *) interface->ll);
 
     // Allow cancellation around peek() as this is the main blocking call
-    pthread_cleanup_push((void (*)(void *))intf_frame_free, frame);
+    pthread_cleanup_push((void (*)(void *)) frame_deref, frame) ;
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 
     // use MSG_PEEK to get lookahead amount available to recv
