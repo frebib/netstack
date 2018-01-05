@@ -41,7 +41,7 @@ flags = [
     '-Wall',
     '-Werror',
     '-Wpedantic',
-    '-Wno-unused-variable'
+    '-Wno-unused-variable',
     '-std=gnu11',
 ]
 
