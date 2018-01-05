@@ -20,6 +20,11 @@ static struct intf *intf;
 
 int main(int argc, char **argv) {
 
+#ifdef _GNU_SOURCE
+    #include <pthread.h>
+    pthread_setname_np(pthread_self(), "netd/main");
+#endif
+
     // Check for effective CAP_NET_RAW,CAP_NET_ADMIN capabilities
     cap_flag_value_t hasRaw = CAP_CLEAR,
             hasAdmin = CAP_CLEAR;

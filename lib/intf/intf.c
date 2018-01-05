@@ -181,12 +181,18 @@ int intf_init(struct intf *intf) {
 
     printf("Creating threads\n");
 
+    // Concatenate interface name before thread name
+    size_t len = 32;
+    char temp[strlen(intf->name) + len];
+    int end = snprintf(temp, len, "%s/", intf->name);
     // Create threads
     pthread_t *th_ids = intf->threads;
-    pthread_create_named(&th_ids[INTF_THR_SEND], "send",
+    pthread_create_named(&th_ids[INTF_THR_SEND], strncat(temp, "send", len),
                          &_intf_send_thread, intf);
-    pthread_create_named(&th_ids[INTF_THR_RECV], "recv",
+    temp[end] = '\0';   // Reset string end
+    pthread_create_named(&th_ids[INTF_THR_RECV], strncat(temp, "recv", len),
                          &_intf_recv_thread, intf);
+    temp[end] = '\0';
 
     return 0;
 }
