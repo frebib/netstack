@@ -1,4 +1,4 @@
-# A complete TCP & networking stack in userland
+# netstack: TCP/IP network stack implementation in userland
 [![Build Status](https://drone.adam-ant.co.uk/api/badges/frebib/netd/status.svg)](https://drone.adam-ant.co.uk/frebib/netd)
 
 The homepage for this project is hosted on GitHub: [https://github.com/frebib/netstack](https://github.com/frebib/netstack)
