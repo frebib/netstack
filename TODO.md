@@ -41,18 +41,18 @@
   - Line 162: Find an appropriate size for the control buffer
 
 ## [lib/ip/icmp.c](lib/ip/icmp.c)
-  - Line 81: Don't assume IPv4 parent
-  - Line 87: Fix frame->data pointer head/tail difference
+  - Line 80: Don't assume IPv4 parent
+  - Line 86: Fix frame->data pointer head/tail difference
 
 ## [lib/ip/ipv4.c](lib/ip/ipv4.c)
-  - Line 71: Keep track of invalid packets
-  - Line 83: Take options into account here
-  - Line 90: Other integrity checks
-  - Line 92: Change to `if (!ipv4_should_accept(frame))` to accept other packets
-  - Line 142: Perform correct route/hardware address lookups when appropriate
-  - Line 185: Implement ARP cache locking
-  - Line 194: Rate limit ARP requests to prevent flooding
-  - Line 210: Make this user-configurable
+  - Line 70: Keep track of invalid packets
+  - Line 82: Take options into account here
+  - Line 89: Other integrity checks
+  - Line 91: Change to `if (!ipv4_should_accept(frame))` to accept other packets
+  - Line 141: Perform correct route/hardware address lookups when appropriate
+  - Line 184: Implement ARP cache locking
+  - Line 193: Rate limit ARP requests to prevent flooding
+  - Line 209: Make this user-configurable
 
 ## [lib/ip/route.c](lib/ip/route.c)
   - Line 5: Lock route table for writing
