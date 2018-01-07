@@ -113,7 +113,7 @@ void _intf_recv_thread(struct intf *intf) {
         struct frame *logframe = frame_clone(rawframe);
         struct pkt_log log = PKT_TRANS(LFRAME);
         bool should_print = false;
-//        memcpy(&log.t.time, &rawframe->time, sizeof(struct timespec));
+        memcpy(&log.t.time, &rawframe->time, sizeof(struct timespec));
 
         // TODO: Conditionally print debugging information
         // Push received data into the stack
