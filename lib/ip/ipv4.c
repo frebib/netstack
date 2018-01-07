@@ -21,9 +21,9 @@ bool ipv4_log(struct pkt_log *log, struct frame *frame) {
     uint16_t pkt_csum = hdr->csum;
     uint16_t calc_csum = in_csum(frame->head, (size_t) ipv4_hdr_len(hdr), 0)
                          + hdr->csum;
-    LOGT(trans, "csum 0x%04x", calc_csum);
+    LOGT(trans, "csum 0x%04x", ntohs(calc_csum));
     if (pkt_csum != calc_csum) {
-        LOGT(trans, " (invalid 0x%04x)", pkt_csum);
+        LOGT(trans, " (invalid 0x%04x)", ntohs(pkt_csum));
     }
     LOGT(trans, ", ");
 
