@@ -78,7 +78,7 @@ void ipv4_recv(struct frame *frame);
  *              if not specified, the default interface address will be used
  * @return 0 on success or negative for errors (see errno(3))
  */
-int send_ipv4(struct frame *child, uint8_t proto, uint16_t flags,
+int ipv4_send(struct frame *child, uint8_t proto, uint16_t flags,
               ip4_addr_t daddr, ip4_addr_t saddr);
 
 

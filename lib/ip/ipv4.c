@@ -131,7 +131,7 @@ void ipv4_recv(struct frame *frame) {
     }
 }
 
-int send_ipv4(struct frame *child, uint8_t proto, uint16_t flags,
+int ipv4_send(struct frame *child, uint8_t proto, uint16_t flags,
               ip4_addr_t daddr, ip4_addr_t saddr) {
 
     struct route_entry *rt = route_lookup(daddr);
