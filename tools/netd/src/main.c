@@ -85,6 +85,8 @@ int main(int argc, char **argv) {
             case SIGINT:
             case SIGHUP:
             case SIGQUIT:
+                LOG(LNTCE, "Cleaning up interface %s", intf->name);
+                LOG(LNTCE, "Stopping threads");
                 // Cleanup threads
                 // Send all terminations first, before waiting
                 for (int i = 0; i < INTF_THR_MAX; i++) {
@@ -113,7 +115,7 @@ int main(int argc, char **argv) {
                 llist_iter(&logconf.streams, free);
                 llist_clear(&logconf.streams);
 
-                return 0;
+                return EXIT_SUCCESS;
             default:
                 // Do nothing, it doesn't concern us
                 continue;

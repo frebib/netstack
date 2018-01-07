@@ -11,6 +11,7 @@ struct log_config logconf = {
                 [LCRIT] = "CRITICAL",
                 [LERR]  = "ERROR",
                 [LWARN] = "WARN",
+                [LNTCE] = "NOTICE",
                 [LINFO] = "INFO",
                 [LDBUG] = "DEBUG",
                 [LTRCE] = "TRACE"
