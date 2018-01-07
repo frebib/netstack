@@ -46,14 +46,14 @@
 
 ## [lib/ip/ipv4.c](lib/ip/ipv4.c)
   - Line 32: Change to `if (!ipv4_should_accept(frame))` to accept other packets
-  - Line 82: Keep track of invalid packets
-  - Line 94: Take options into account here
-  - Line 101: Other integrity checks
-  - Line 103: Change to `if (!ipv4_should_accept(frame))` to accept other packets
-  - Line 143: Perform correct route/hardware address lookups when appropriate
-  - Line 186: Implement ARP cache locking
-  - Line 195: Rate limit ARP requests to prevent flooding
-  - Line 210: Make this user-configurable
+  - Line 83: Keep track of invalid packets
+  - Line 95: Take options into account here
+  - Line 102: Other integrity checks
+  - Line 104: Change to `if (!ipv4_should_accept(frame))` to accept other packets
+  - Line 144: Perform correct route/hardware address lookups when appropriate
+  - Line 187: Implement ARP cache locking
+  - Line 196: Rate limit ARP requests to prevent flooding
+  - Line 211: Make this user-configurable
 
 ## [lib/ip/route.c](lib/ip/route.c)
   - Line 5: Lock route table for writing

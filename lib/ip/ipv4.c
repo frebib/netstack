@@ -62,7 +62,8 @@ bool ipv4_log(struct pkt_log *log, struct frame *frame) {
         default:
             LOGT(trans, "%s > ", fmtip4(ntohl(hdr->saddr)));
             LOGT(trans, "%s ", fmtip4(ntohl(hdr->daddr)));
-            LOGT(trans, "unsupported %s ", fmt_ipproto(hdr->proto));
+            LOGT(trans, "unsupported %s (%d) ", fmt_ipproto(hdr->proto),
+                 hdr->proto);
             break;
     }
 
