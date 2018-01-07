@@ -24,7 +24,7 @@ typedef uint8_t ip6_addr_t[16];
 typedef struct addr {
     uint16_t proto;
     union {
-        uint8_t     address;
+        uint8_t    *address;
         eth_addr_t  ether;
         ip4_addr_t  ipv4;
         ip6_addr_t  ipv6;
@@ -67,6 +67,15 @@ static inline bool addreq(addr_t *a, addr_t *b) {
     return len != 0 &&
            a->proto == b->proto &&
            memcmp(&a->address, &b->address, len) == 0;
+}
+
+static inline bool addrzero(addr_t *a) {
+    uint32_t sum = 0;
+    size_t len = addrlen(a->proto);
+    for (int i = 0; i < len; ++i)
+        sum |= a->address[i];
+
+    return (sum == 0);
 }
 
 /*

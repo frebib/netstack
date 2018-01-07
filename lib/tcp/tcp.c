@@ -56,6 +56,21 @@ void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {
     drop_pkt:
     return;
 }
+
+/*!
+ * Finds a matching TCP socket, including listening and closed sockets.
+ * Will return wildcard address sockets for any match (0.0.0.0 or equiv
+ * addrs) if any are found (e.g. TCP_LISTEN should be source: 0.0.0.0:0)
+ *
+ * Note: Some socket objects should be treated as immutable, such as those
+ * with TCP_LISTEN and a new one inserted specific to the connection.
+ *
+ * @param saddr source address
+ * @param daddr destination address
+ * @param sport source port
+ * @param dport destination port
+ * @return a matching tcp_sock object, or NULL if no matches found
+ */
 struct tcp_sock *tcp_sock_lookup(addr_t *saddr, addr_t *daddr,
                                  uint16_t sport, uint16_t dport) {
     // TODO: Use hashtbl instead of list to lookup sockets
@@ -67,10 +82,21 @@ struct tcp_sock *tcp_sock_lookup(addr_t *saddr, addr_t *daddr,
             LOG(LWARN, "tcp_sockets contains a NULL element!");
             continue;
         }
-        if (addreq(saddr, &sock->saddr) && sport == sock->sport &&
-                addreq (daddr, &sock->daddr) && dport == sock->dport) {
-            return sock;
-        }
+        // Check matching saddr assuming it's non-zero
+        if (!addrzero(&sock->saddr) && !addreq(saddr, &sock->saddr))
+            continue;
+        // Check matching sport assuming it's non-zero
+        if (sock->sport != 0 && sock->sport != sport)
+            continue;
+
+        // Check matching daddr assuming it's non-zero
+        if (!addrzero(&sock->daddr) && !addreq(daddr, &sock->daddr))
+            continue;
+        if (dport != sock->dport)
+            continue;
+
+        // Passed all matching checks
+        return sock;
     }
 
     return NULL;
