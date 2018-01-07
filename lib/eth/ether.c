@@ -39,7 +39,7 @@ bool ether_log(struct pkt_log *log, struct frame *frame) {
             return ipv4_log(log, child_frame);
         case ETH_P_IPV6:
             LOGT(trans, "IPv6 unimpl ");
-            break;
+            return false;
         default: {
             const char *ethertype = fmt_ethertype(hdr->ethertype);
             if (ethertype != NULL)

@@ -47,7 +47,7 @@ bool ipv4_log(struct pkt_log *log, struct frame *frame) {
             LOGT(trans, "%s > ", fmtip4(ntohl(hdr->saddr)));
             LOGT(trans, "%s ", fmtip4(ntohl(hdr->daddr)));
             LOGT(trans, "unimpl %s ", fmt_ipproto(hdr->proto));
-            break;
+            return false;
         default:
             LOGT(trans, "%s > ", fmtip4(ntohl(hdr->saddr)));
             LOGT(trans, "%s ", fmtip4(ntohl(hdr->daddr)));
