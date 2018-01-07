@@ -50,8 +50,10 @@ struct tcp_sock *tcp_sock_lookup(addr_t *saddr, addr_t *daddr,
 
     for_each_llist(&tcp_sockets) {
         struct tcp_sock *sock = llist_elem_data();
-        if (!sock)
+        if (!sock) {
+            LOG(LWARN, "tcp_sockets contains a NULL element!");
             continue;
+        }
         if (addreq(saddr, &sock->saddr) && sport == sock->sport &&
                 addreq (daddr, &sock->daddr) && dport == sock->dport) {
             return sock;
