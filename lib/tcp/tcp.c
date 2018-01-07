@@ -25,7 +25,9 @@ bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum) {
     char sflags[9];
     LOGT(trans, "flags [%s] ", fmt_tcp_flags(hdr, sflags));
 
-    LOGT(trans, "seq %zu ", hdr->seqn);
+    LOGT(trans, "seq %zu ", ntohl(hdr->seqn));
+    if (hdr->ackn)
+        LOGT(trans, "ack %zu ", ntohl(hdr->ackn));
 
     return true;
 }
