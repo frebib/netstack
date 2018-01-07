@@ -17,8 +17,8 @@ bool ipv4_log(struct pkt_log *log, struct frame *frame) {
     frame->tail = frame->data + (ntohs(hdr->len) - hdr_len);
     struct log_trans *trans = &log->t;
 
-    // Print IPv4 payload size
-    LOGT(trans, "length %hu ", frame_data_len(frame));
+    // Print IPv4 total size
+    LOGT(trans, "length %hu ", ntohs(hdr->len));
 
     // Print and check checksum
     uint16_t pkt_csum = hdr->csum;
