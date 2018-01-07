@@ -112,30 +112,24 @@ void _intf_recv_thread(struct intf *intf) {
         // Use transactional logging for packet logs
         struct frame *logframe = frame_clone(rawframe);
         struct pkt_log log = PKT_TRANS(LFRAME);
-        bool should_print = false;
         memcpy(&log.t.time, &rawframe->time, sizeof(struct timespec));
 
         // TODO: Conditionally print debugging information
         // Push received data into the stack
         switch (intf->proto) {
             case PROTO_ETHER:
-                should_print = ether_log(&log, logframe);
+                LOGT_OPT_COMMIT(ether_log(&log, logframe), &log.t);
                 ether_recv(rawframe);
                 break;
             case PROTO_IP:
             case PROTO_IPV4:
-                should_print = ipv4_log(&log, logframe);
+                LOGT_OPT_COMMIT(ipv4_log(&log, logframe), &log.t);
                 ipv4_recv(rawframe);
                 break;
             default:
                 LOG(LWARN, "Interface protocol %d unsupported\t", intf->proto);
                 break;
         }
-
-        if (should_print)
-            LOGT_COMMIT(&log.t);
-        else
-            LOGT_DISPOSE(&log.t);
 
         // TODO: Use same frame stack instead of cloning across threads
         // Call frame_free() to ensure cloned frames are destroyed.

@@ -129,6 +129,15 @@ void FLOG_COMMIT(struct log_trans *trans, FILE *file);
  */
 void LOGT_DISPOSE(struct log_trans *trans);
 
+/*!
+ * Optionally commit a log transaction, always disposing of it
+ */
+#define LOGT_OPT_COMMIT(opt, trans) \
+    do { \
+    if (opt) LOGT_COMMIT(trans); \
+    else LOGT_DISPOSE(trans); \
+    } while (0)
+
 /*
  * Configuration functions
  */
