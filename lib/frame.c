@@ -90,7 +90,7 @@ struct frame *frame_clone(struct frame *original) {
     struct frame *clone = malloc(sizeof(struct frame));
     memcpy(clone, original, sizeof(struct frame));
 
-    (*clone->buf_refcount)++;
+    frame_incref(clone);
 
     return clone;
 }

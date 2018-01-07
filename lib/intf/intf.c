@@ -10,7 +10,7 @@
 
 int intf_dispatch(struct frame *frame) {
     // Ensure send() has a reference, keeping the frame alive
-    (*frame->buf_refcount)++;
+    frame_incref(frame);
 
     // Obtain the sendqlck
     pthread_mutex_lock(&frame->intf->sendqlck);

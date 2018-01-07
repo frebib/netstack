@@ -37,6 +37,8 @@ struct frame {
 /* Calculates the total length of the frame payload */
 #define frame_data_len(frame) (uint16_t) ((frame)->tail - (frame)->data)
 
+#define frame_incref(frame) (*(frame)->buf_refcount)++
+
 /* Initialises a new frame on the heap,
    with a buffer if a size is provided,
    linked to an optional socket */
