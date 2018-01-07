@@ -65,6 +65,8 @@ void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {
  * Note: Some socket objects should be treated as immutable, such as those
  * with TCP_LISTEN and a new one inserted specific to the connection.
  *
+ * Courtesy of @Steamlined: https://i.giphy.com/media/czwo5mMtaknhC/200.gif
+ *
  * @param saddr source address
  * @param daddr destination address
  * @param sport source port

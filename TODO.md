@@ -63,8 +63,8 @@
   - Line 39: Investigate TCP checksums invalid with long packets
   - Line 46: Check for TSO and GRO and account for it, somehow..
   - Line 52: Other integrity checks
-  - Line 76: Use hashtbl instead of list to lookup sockets
-  - Line 77: Lock llist tcp_sockets for concurrent access
+  - Line 78: Use hashtbl instead of list to lookup sockets
+  - Line 79: Lock llist tcp_sockets for concurrent access
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
   - Line 21: Send TCP RST for invalid connections
