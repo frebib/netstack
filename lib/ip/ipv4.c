@@ -200,12 +200,11 @@ int ipv4_send(struct frame *child, uint8_t proto, uint16_t flags,
     }
 
     // Construct IPv4 header
-    struct ipv4_hdr *hdr = frame_alloc(frame, sizeof(struct ipv4_hdr));
+    struct ipv4_hdr *hdr = frame_head_alloc(frame, sizeof(struct ipv4_hdr));
     hdr->hlen = 5;
     hdr->version = 4;
     hdr->tos = 0;
-    hdr->len = htons((uint16_t) (ipv4_hdr_len(hdr) + frame_data_len(frame) -
-            20));
+    hdr->len = htons((uint16_t) (ipv4_hdr_len(hdr) + frame_data_len(frame)));
     hdr->id  = htons(0);
     hdr->frag_ofs = htons(flags);
     // TODO: Make this user-configurable

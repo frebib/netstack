@@ -24,9 +24,13 @@ struct frame {
                  *child;
 };
 
-/* Shifts the data pointer backwards by size in a frame */
+/* Shifts the head and data pointers backwards by size */
 #define frame_alloc(frame, size) \
         (void *) ((frame)->head = (frame)->data -= (size))
+
+/* Shifts the data pointer backwards by size from data */
+#define frame_head_alloc(frame, size) \
+        (void *) ((frame)->head = (frame)->data - (size))
 
 /* Calculates the total length of the frame header and payload */
 #define frame_pkt_len(frame) (uint16_t) ((frame)->tail - (frame)->head)

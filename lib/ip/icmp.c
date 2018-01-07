@@ -9,8 +9,10 @@
 bool icmp_log(struct pkt_log *log, struct frame *frame) {
     struct log_trans *trans = &log->t;
     struct icmp_hdr *hdr = icmp_hdr(frame);
+
+    LOGT(trans, "length %hu ", frame_data_len(frame));
     frame->data += sizeof(struct icmp_hdr);
-    
+
     // Print and check checksum
     uint16_t pkt_csum = hdr->csum;
     uint16_t calc_csum = in_csum(frame->head, frame_pkt_len(frame), 0) + hdr->csum;
@@ -82,22 +84,22 @@ int send_icmp_reply(struct frame *ctrl) {
     struct icmp_echo *ping = icmp_echo_hdr(ctrl);
 
     size_t size = intf_max_frame_size(ctrl->intf);
-    struct frame *reply = intf_frame_new(ctrl->intf, size);
+    struct frame *reply_payld = intf_frame_new(ctrl->intf, size);
     // TODO: Fix frame->data pointer head/tail difference
-    reply->data = reply->tail;
 
     // Mark and copy payload from request packet
-    uint8_t *payld = frame_alloc(reply, frame_data_len(ctrl));
+    uint8_t *payld = (reply_payld->data -= frame_data_len(ctrl));
     memcpy(payld, ctrl->data, frame_data_len(ctrl));
 
-    struct icmp_echo *echo = frame_alloc(reply, sizeof(struct icmp_echo));
-    struct icmp_hdr *hdr = frame_alloc(reply, sizeof(struct icmp_hdr));
+    struct icmp_echo *echo = frame_head_alloc(reply_payld, sizeof(struct icmp_echo));
+    struct frame *reply = frame_parent_copy(reply_payld);
+    struct icmp_hdr *hdr = frame_head_alloc(reply, sizeof(struct icmp_hdr));
     echo->id = ping->id;
     echo->seq = ping->seq;
     hdr->type = ICMP_T_ECHORPLY;
     hdr->code = 0;
     hdr->csum = 0;
-    hdr->csum = in_csum(hdr, frame_data_len(reply), 0);
+    hdr->csum = in_csum(hdr, frame_pkt_len(reply), 0);
 
     // Swap source/dest IP addresses
     int ret = ipv4_send(reply, IP_P_ICMP, IP_DF,
