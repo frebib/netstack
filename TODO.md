@@ -15,7 +15,7 @@
   - Line 25: Change addr type from uint32_t to generic inet_addr_t for ipv4/6
 
 ## [include/netstack/tcp/tcp.h](include/netstack/tcp/tcp.h)
-  - Line 38: Take endianness into account in tcp_hdr
+  - Line 39: Take endianness into account in tcp_hdr
 
 ## [lib/eth/arp.c](lib/eth/arp.c)
   - Line 73: Check for queued outgoing packets that can
@@ -45,25 +45,26 @@
   - Line 86: Fix frame->data pointer head/tail difference
 
 ## [lib/ip/ipv4.c](lib/ip/ipv4.c)
-  - Line 70: Keep track of invalid packets
-  - Line 82: Take options into account here
-  - Line 89: Other integrity checks
-  - Line 91: Change to `if (!ipv4_should_accept(frame))` to accept other packets
-  - Line 141: Perform correct route/hardware address lookups when appropriate
-  - Line 184: Implement ARP cache locking
-  - Line 193: Rate limit ARP requests to prevent flooding
-  - Line 209: Make this user-configurable
+  - Line 32: Change to `if (!ipv4_should_accept(frame))` to accept other packets
+  - Line 82: Keep track of invalid packets
+  - Line 94: Take options into account here
+  - Line 101: Other integrity checks
+  - Line 103: Change to `if (!ipv4_should_accept(frame))` to accept other packets
+  - Line 143: Perform correct route/hardware address lookups when appropriate
+  - Line 186: Implement ARP cache locking
+  - Line 195: Rate limit ARP requests to prevent flooding
+  - Line 211: Make this user-configurable
 
 ## [lib/ip/route.c](lib/ip/route.c)
   - Line 5: Lock route table for writing
   - Line 18: Define how routes with the same metric should behave?
 
 ## [lib/tcp/tcp.c](lib/tcp/tcp.c)
-  - Line 26: Investigate TCP checksums invalid with long packets
-  - Line 33: Check for TSO and GRO and account for it, somehow..
-  - Line 39: Other integrity checks
-  - Line 48: Use hashtbl instead of list to lookup sockets
-  - Line 49: Lock llist tcp_sockets for concurrent access
+  - Line 39: Investigate TCP checksums invalid with long packets
+  - Line 46: Check for TSO and GRO and account for it, somehow..
+  - Line 52: Other integrity checks
+  - Line 61: Use hashtbl instead of list to lookup sockets
+  - Line 62: Lock llist tcp_sockets for concurrent access
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
   - Line 21: Send TCP RST for invalid connections

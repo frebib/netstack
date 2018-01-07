@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <netstack/log.h>
 #include <netstack/llist.h>
+#include <netstack/ip/ipv4.h>
 #include <netstack/intf/intf.h>
 
 // Global TCP states list
@@ -122,22 +123,27 @@ struct tcp_sock {
 
 
 /* Returns a string of characters/dots representing a set/unset TCP flag */
-static inline const int fmt_tcp_flags(struct tcp_hdr *hdr, char *buffer) {
+static inline char *fmt_tcp_flags(struct tcp_hdr *hdr, char *buffer) {
+    if (buffer == NULL) {
+        return NULL;
+    }
     if (hdr == NULL) {
-        return -1;
+        buffer[0] = '\0';
+        return buffer;
     }
 
-    buffer[0] = (char) (hdr->flags.fin ? 'F' : '.');
-    buffer[1] = (char) (hdr->flags.syn ? 'S' : '.');
-    buffer[2] = (char) (hdr->flags.rst ? 'R' : '.');
-    buffer[3] = (char) (hdr->flags.psh ? 'P' : '.');
-    buffer[4] = (char) (hdr->flags.ack ? 'A' : '.');
-    buffer[5] = (char) (hdr->flags.urg ? 'U' : '.');
-    buffer[6] = (char) (hdr->flags.ece ? 'E' : '.');
-    buffer[7] = (char) (hdr->flags.cwr ? 'C' : '.');
-    buffer[8] = 0;
+    uint8_t count = 0;
+    if (hdr->flags.fin) buffer[count++] = 'F';
+    if (hdr->flags.syn) buffer[count++] = 'S';
+    if (hdr->flags.rst) buffer[count++] = 'R';
+    if (hdr->flags.psh) buffer[count++] = 'P';
+    if (hdr->flags.ack) buffer[count++] = 'A';
+    if (hdr->flags.urg) buffer[count++] = 'U';
+    if (hdr->flags.ece) buffer[count++] = 'E';
+    if (hdr->flags.cwr) buffer[count++] = 'C';
+    buffer[count] = '\0';
 
-    return 0;
+    return buffer;
 }
 
 
@@ -148,13 +154,25 @@ static inline const int fmt_tcp_flags(struct tcp_hdr *hdr, char *buffer) {
  * hdr->hlen is 1 byte, soo 4x is 1 word size */
 #define tcp_hdr_len(hdr) ((uint8_t) (hdr->hlen * 4))
 
-bool tcp_log(struct pkt_log *log, struct frame *frame);
+bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum);
 
 /* Receives a tcp frame for processing in the network stack */
 void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum);
 
 struct tcp_sock *tcp_sock_lookup(addr_t *saddr, addr_t *daddr,
                                  uint16_t sport, uint16_t dport);
+
+/*
+ * TCP Internet functions
+ */
+
+/*!
+ * Calculates the IPv4 network checksum for the TCP checksum initial value
+ * @param hdr IPv4 header of TCP parent packet
+ * @return IPv4 network checksum using TCP/IPv4 pseudo-header
+ */
+uint16_t tcp_ipv4_csum(struct ipv4_hdr *hdr);
+
 
 /*
  * TCP Input

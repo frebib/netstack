@@ -17,6 +17,9 @@ bool ipv4_log(struct pkt_log *log, struct frame *frame) {
     frame->tail = frame->data + (ntohs(hdr->len) - hdr_len);
     struct log_trans *trans = &log->t;
 
+    // Print IPv4 payload size
+    LOGT(trans, "length %hu ", frame_data_len(frame));
+
     // Print and check checksum
     uint16_t pkt_csum = hdr->csum;
     uint16_t calc_csum = in_csum(frame->head, (size_t) ipv4_hdr_len(hdr), 0)
@@ -26,25 +29,34 @@ bool ipv4_log(struct pkt_log *log, struct frame *frame) {
         LOGT(trans, " (invalid 0x%04x)", ntohs(calc_csum));
     LOGT(trans, ", ");
 
+    // TODO: Change to `if (!ipv4_should_accept(frame))` to accept other packets
+    // Only log IPv4 packets sent by/destined for us
+    addr_t sip = {.proto = PROTO_IPV4, .ipv4 = ntohl(hdr->saddr)};
+    addr_t dip = {.proto = PROTO_IPV4, .ipv4 = ntohl(hdr->daddr)};
+    if (!intf_has_addr(frame->intf, &sip)
+        && !intf_has_addr(frame->intf, &dip)) {
+        return false;
+    }
+
     struct frame *child_frame = frame_child_copy(frame);
     switch (hdr->proto) {
         case IP_P_TCP: {
-            LOGT(trans, "TCP ");
             uint16_t sport = htons(tcp_hdr(child_frame)->sport);
             uint16_t dport = htons(tcp_hdr(child_frame)->dport);
             LOGT(trans, "%s:%d > ", fmtip4(ntohl(hdr->saddr)), sport);
             LOGT(trans, "%s:%d ", fmtip4(ntohl(hdr->daddr)), dport);
-            return tcp_log(log, child_frame);
+            LOGT(trans, "TCP ");
+            return tcp_log(log, child_frame, tcp_ipv4_csum(hdr));
         }
         case IP_P_ICMP:
-            LOGT(trans, "ICMP ");
             LOGT(trans, "%s > ", fmtip4(ntohl(hdr->saddr)));
             LOGT(trans, "%s ", fmtip4(ntohl(hdr->daddr)));
+            LOGT(trans, "ICMP ");
             return icmp_log(log, child_frame);
         case IP_P_UDP:
-            LOGT(trans, "UDP ");
             LOGT(trans, "%s > ", fmtip4(ntohl(hdr->saddr)));
             LOGT(trans, "%s ", fmtip4(ntohl(hdr->daddr)));
+            LOGT(trans, "UDP ");
             LOGT(trans, "unimpl %s ", fmt_ipproto(hdr->proto));
             return false;
         default:
@@ -98,16 +110,6 @@ void ipv4_recv(struct frame *frame) {
     struct frame *child_frame = frame_child_copy(frame);
     switch (hdr->proto) {
         case IP_P_TCP: {
-            /* Calculate TCP pseudo-header checksum */
-            struct tcp_ipv4_phdr pseudo_hdr;
-            pseudo_hdr.saddr = htonl(hdr->saddr);
-            pseudo_hdr.daddr = htonl(hdr->daddr);
-            pseudo_hdr.hlen  = htons(payload_len);
-            pseudo_hdr.proto = hdr->proto;
-            pseudo_hdr.rsvd  = 0;
-            uint16_t ipv4_csum = ~in_csum(&pseudo_hdr, sizeof(pseudo_hdr), 0);
-
-            /* Print ip:port > ip:port */
             struct tcp_hdr *tcp_hdr = tcp_hdr(child_frame);
             uint16_t sport = htons(tcp_hdr->sport);
             uint16_t dport = htons(tcp_hdr->dport);
@@ -117,7 +119,7 @@ void ipv4_recv(struct frame *frame) {
                                                     sport, dport);
 
             /* Pass initial network csum as TCP packet csum seed */
-            tcp_recv(child_frame, sock, ipv4_csum);
+            tcp_recv(child_frame, sock, tcp_ipv4_csum(hdr));
             return;
         }
         case IP_P_ICMP:

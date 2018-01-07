@@ -5,8 +5,29 @@
 
 struct llist tcp_sockets = LLIST_INITIALISER;
 
-bool tcp_log(struct pkt_log *log, struct frame *frame) {
-    return false;
+bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum) {
+    struct tcp_hdr *hdr = tcp_hdr(frame);
+    frame->data += tcp_hdr_len(hdr);
+    struct log_trans *trans = &log->t;
+
+    // Print IPv4 payload size
+    LOGT(trans, "length %hu ", frame_data_len(frame));
+
+    // Print and check checksum
+    uint16_t pkt_csum = hdr->csum;
+    uint16_t calc_csum = in_csum(frame->head, (size_t) tcp_hdr_len(hdr), net_csum)
+                         + hdr->csum;
+    LOGT(trans, "csum 0x%04x", ntohs(pkt_csum));
+    if (pkt_csum != calc_csum)
+        LOGT(trans, " (invalid 0x%04x)", ntohs(calc_csum));
+    LOGT(trans, ", ");
+
+    char sflags[9];
+    LOGT(trans, "flags [%s] ", fmt_tcp_flags(hdr, sflags));
+
+    LOGT(trans, "seq %zu ", hdr->seqn);
+
+    return true;
 }
 
 void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {
@@ -14,14 +35,6 @@ void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {
     /* Don't parse yet, we need to check the checksum first */
     struct tcp_hdr *hdr = tcp_hdr(frame);
     frame->data += tcp_hdr_len(hdr);
-    uint16_t pkt_len = frame_pkt_len(frame);
-
-    printf(" %hu bytes", frame_data_len(frame));
-
-    /* Save and empty packet checksum */
-    uint16_t pkt_csum = hdr->csum;
-    uint16_t calc_csum = in_csum(frame->head, pkt_len, net_csum) + hdr->csum;
-    printf(", csum 0x%04x", calc_csum);
 
     // TODO: Investigate TCP checksums invalid with long packets
     // Research suggests this is caused by 'segmentation offload', or
@@ -31,8 +44,8 @@ void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {
     //   - https://www.kernel.org/doc/Documentation/networking/segmentation-offloads.txt
 
     // TODO: Check for TSO and GRO and account for it, somehow..
-    if (pkt_csum != calc_csum) {
-        printf(" (invalid 0x%04x)", pkt_csum);
+    if (in_csum(frame->head, frame_pkt_len(frame), net_csum) != 0) {
+        LOG(LTRCE, "Dropping TCP packet with invalid checksum!");
         goto drop_pkt;
     }
 
