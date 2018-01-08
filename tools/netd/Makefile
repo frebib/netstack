@@ -43,7 +43,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c $(INC)
 .PHONY: test doc install uninstall clean
 
 test:
-	@make -C $(LIBDIR) test
+	@echo "No tests for $(TARGET_BIN) yet"
 
 doc:
 	@echo 'No documentation to build yet'

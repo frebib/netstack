@@ -3,6 +3,8 @@ BINDIR = bin
 LIBDIR = ..
 INCDIR = $(LIBDIR)/include
 
+LIB_TARGET = libnetstack.so
+
 override CFLAGS  += -I$(INCDIR) -Wall -Werror -Wpedantic -Wno-variadic-macros
 override LDFLAGS += -L$(LIBDIR) -Wl,-enable-new-dtags,-rpath,"$(LIBDIR)"
 override LDLIBS  += -lnetstack -lcheck
@@ -17,7 +19,7 @@ default: all
 all: build run
 
 lib:
-	@make -C $(LIBDIR) build >/dev/null
+	@make -C $(LIBDIR) $(LIB_TARGET) >/dev/null
 
 build: lib $(BIN)
 $(BINDIR)/%: $(SRCDIR)/%.c $(INC)

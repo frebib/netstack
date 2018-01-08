@@ -14,6 +14,8 @@ OBJ = $(patsubst $(SRCDIR)%,$(OBJDIR)%,$(patsubst %.c, %.o, $(SRC)))
 # Target declarations
 TARGET_LIB = libnetstack.so
 
+TEST_DIR = tests
+
 NETD_DIR = tools/netd
 NETD = $(NETD_DIR)/netd
 
@@ -45,8 +47,8 @@ $(NETD):
 # Misc
 .PHONY: test doc install uninstall clean
 test: $(TARGET_LIB)
-	@make -C tests all
-	@make -C $(NETD_DIR) tests
+	@make -C $(TEST_DIR) all
+	@make -C $(NETD_DIR) test
 
 doc:
 	@echo 'No documentation to build yet'
@@ -62,4 +64,5 @@ uninstall:
 clean:
 	$(RM) -r $(OBJDIR) $(TARGET_LIB)
 	$(RM) ./netd
+	@make -C $(TEST_DIR) clean
 	@make -C $(NETD_DIR) clean
