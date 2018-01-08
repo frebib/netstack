@@ -91,10 +91,9 @@
   - Line 59:    hdr->hlen = 5; Allow for tcp_hdr->hlen options
   - Line 61: Vary hdr->wind
   - Line 69: Work out route interface before allocating buffer
-  - Line 77: Allow for attaching data to SYN/ACK packet
-  - Line 80: Allocate space for TCP options
-  - Line 84:    hdr->hlen = 5; Allow for tcp_hdr->hlen options
-  - Line 86: Vary hdr->wind
+  - Line 75: Allocate space for TCP options
+  - Line 79:    hdr->hlen = 5; Allow for tcp_hdr->hlen options
+  - Line 81: Vary hdr->wind
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
   - Line 17: Add many configurable interfaces

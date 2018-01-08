@@ -72,11 +72,6 @@ int tcp_send_synack(struct tcp_sock *sock) {
     size_t size = intf_max_frame_size(rt->intf);
     struct frame *synack = intf_frame_new(rt->intf, size);
 
-    size_t payld_sz = 0;
-    uint8_t *payld = frame_alloc(synack, payld_sz);
-    // TODO: Allow for attaching data to SYN/ACK packet
-    synack->data = payld;
-
     // TODO: Allocate space for TCP options
     struct tcp_hdr *hdr = frame_head_alloc(synack, sizeof(struct tcp_hdr));
     hdr->seqn = htonl(sock->tcb.iss);
