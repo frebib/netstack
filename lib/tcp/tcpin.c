@@ -15,7 +15,8 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     // Ensure we always hold the frame as long as we need it
     frame_incref(frame);
 
-    struct tcp_hdr *hdr = tcp_hdr(frame);
+    struct tcp_hdr *seg = tcp_hdr(frame);
+    struct tcp_tcb *tcb = &sock->tcb;
 
     // If the state is CLOSED (i.e., TCB does not exist) then
     if (!sock || sock->state == TCP_CLOSED) {
@@ -51,7 +52,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
 
             An incoming RST should be ignored.  Return.
         */
-            if (hdr->flags.rst == 1)
+            if (seg->flags.rst == 1)
                 goto drop_pkt;
         /*
           second check for an ACK
@@ -65,7 +66,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
 
             Return.
         */
-            if (hdr->flags.ack == 1)
+            if (seg->flags.ack == 1)
                 // TODO: Send RST for incoming ACK on LISTEN
                 goto drop_pkt;
         /*
@@ -78,7 +79,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
 
               <SEQ=SEG.ACK><CTL=RST>
         */
-            if (hdr->flags.syn != 1)
+            if (seg->flags.syn != 1)
                 goto drop_pkt;
 
             // Incoming 'frame' is SYN frame
@@ -116,17 +117,17 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             *syn_reply = (struct tcp_sock) {
                 .remaddr = {.proto = PROTO_IPV4, .ipv4 = ntohl(ip_hdr->saddr)},
                 .locaddr = {.proto = PROTO_IPV4, .ipv4 = ntohl(ip_hdr->daddr)},
-                .locport = ntohs(hdr->dport),
-                .remport = ntohs(hdr->sport),
+                .locport = ntohs(seg->dport),
+                .remport = ntohs(seg->sport),
                 .state = TCP_SYN_RECEIVED,
                 .tcb = {
-                    .irs = ntohl(hdr->seqn),
+                    .irs = ntohl(seg->seqn),
                     .iss = ntohl(iss),
                     .snd = {
                         .nxt = ntohl(iss) + 1
                     },
                     .rcv = {
-                        .nxt = ntohl(hdr->seqn) + 1
+                        .nxt = ntohl(seg->seqn) + 1
                     }
                 }
             };

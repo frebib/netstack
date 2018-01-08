@@ -68,11 +68,11 @@
   - Line 80: Lock llist tcp_sockets for concurrent access
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
-  - Line 30: Send TCP RST for invalid connections
-  - Line 31: Optionally don't send TCP RST packets
-  - Line 69: Send RST for incoming ACK on LISTEN
-  - Line 86: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
-  - Line 113: Don't assume IPv4 parent for tcp_seg_arr()
+  - Line 31: Send TCP RST for invalid connections
+  - Line 32: Optionally don't send TCP RST packets
+  - Line 70: Send RST for incoming ACK on LISTEN
+  - Line 87: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
+  - Line 114: Don't assume IPv4 parent for tcp_seg_arr()
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
   - Line 19: Don't assume IPv4 L3, choose based on sock->saddr
