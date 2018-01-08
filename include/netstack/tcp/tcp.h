@@ -138,31 +138,32 @@ enum tcp_state {
 #define TCP_FLAG_CWR    0x80
 #endif
 
+struct tcb {
+    uint32_t irs;       // initial receive sequence number
+    uint32_t iss;       // initial send sequence number
+    // Send Sequence Variables
+    struct tcb_snd {
+        uint32_t una;   // send unacknowledged
+        uint32_t nxt;   // send next
+        uint16_t wnd;   // send window
+        uint16_t up;    // send urgent pointer
+        uint32_t wl1;   // segment sequence number used for last window update
+        uint32_t wl2;   // segment acknowledgment number used for last window update
+    } snd;
+    // Receive Sequence Variables
+    struct tcb_rcv {
+        uint32_t nxt;   // receive next
+        uint16_t wnd;   // receive window
+        uint16_t up;    // receive urgent pointer
+    } rcv;
+};
 struct tcp_sock {
     addr_t locaddr;
     addr_t remaddr;
     uint16_t locport;
     uint16_t remport;
     enum tcp_state state;
-    struct tcp_tcb {
-        uint32_t irs;       // initial receive sequence number
-        uint32_t iss;       // initial send sequence number
-        // Send Sequence Variables
-        struct tcb_snd {
-            uint32_t una;   // send unacknowledged
-            uint32_t nxt;   // send next
-            uint16_t wnd;   // send window
-            uint16_t up;    // send urgent pointer
-            uint32_t wl1;   // segment sequence number used for last window update
-            uint32_t wl2;   // segment acknowledgment number used for last window update
-        } snd;
-        // Receive Sequence Variables
-        struct tcb_rcv {
-            uint32_t nxt;   // receive next
-            uint16_t wnd;   // receive window
-            uint16_t up;    // receive urgent pointer
-        } rcv;
-    } tcb;
+    struct tcb tcb;
 };
 
 

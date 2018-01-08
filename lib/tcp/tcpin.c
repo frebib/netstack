@@ -19,7 +19,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     frame_incref(frame);
 
     struct tcp_hdr *seg = tcp_hdr(frame);
-    struct tcp_tcb *tcb = &sock->tcb;
+    struct tcb *tcb = &sock->tcb;
 
     // If the state is CLOSED (i.e., TCB does not exist) then
     if (!sock || sock->state == TCP_CLOSED) {
