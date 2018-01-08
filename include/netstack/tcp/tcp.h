@@ -44,31 +44,35 @@ struct tcp_hdr {
 #if THE_HOST_IS_BIG_ENDIAN
     uint8_t     hlen:4,         /* Size of TCP header in 32-bit words */
                 rsvd:4;         /* Empty reserved space for ctrl flags */
-    struct tcp_flags {
-                /* Ignoring the experimental NS bit here: RFC 3540 */
-    uint8_t     cwr:1,
-                ece:1,
-                urg:1,
-                ack:1,           /* Various control bits */
-                psh:1,
-                rst:1,
-                syn:1,
-                fin:1;
+    union {
+        struct tcp_flags {
+                    /* Ignoring the experimental NS bit here: RFC 3540 */
+        uint8_t     cwr:1,
+                    ece:1,
+                    urg:1,
+                    ack:1,           /* Various control bits */
+                    psh:1,
+                    rst:1,
+                    syn:1,
+                    fin:1;
 #else
     /* Ignoring the experimental NS bit here: RFC 3540 */
     uint8_t     rsvd:4,         /* Empty reserved space for ctrl flags */
                 hlen:4;         /* Size of TCP header in 32-bit words */
-    struct tcp_flags {
-        uint8_t fin:1,
-                syn:1,
-                rst:1,
-                psh:1,
-                ack:1,           /* Various control bits */
-                urg:1,
-                ece:1,
-                cwr:1;
+    union {
+        struct tcp_flags {
+            uint8_t fin:1,
+                    syn:1,
+                    rst:1,
+                    psh:1,
+                    ack:1,           /* Various control bits */
+                    urg:1,
+                    ece:1,
+                    cwr:1;
 #endif
-    } flags;
+        } flags;
+        uint8_t flagval;
+    };
     uint16_t    wind,           /* Size of the receive window */
                 csum,           /* Internet checksum */
                 urg_ptr;        /* Urgent data pointer */
@@ -113,13 +117,34 @@ enum tcp_state {
     TCP_TIME_WAIT
 };
 
+// TODO: Fix endianness in tcp.h
+#if THE_HOST_IS_BIG_ENDIAN
+#define TCP_FLAG_CWR    0x01
+#define TCP_FLAG_ECE    0x02
+#define TCP_FLAG_URG    0x04
+#define TCP_FLAG_ACK    0x08
+#define TCP_FLAG_PSH    0x10
+#define TCP_FLAG_RST    0x20
+#define TCP_FLAG_SYN    0x40
+#define TCP_FLAG_FIN    0x80
+#else
+#define TCP_FLAG_FIN    0x01
+#define TCP_FLAG_SYN    0x02
+#define TCP_FLAG_RST    0x04
+#define TCP_FLAG_PSH    0x08
+#define TCP_FLAG_ACK    0x10
+#define TCP_FLAG_URG    0x20
+#define TCP_FLAG_ECE    0x40
+#define TCP_FLAG_CWR    0x80
+#endif
+
 struct tcp_sock {
     addr_t locaddr;
     addr_t remaddr;
     uint16_t locport;
     uint16_t remport;
     enum tcp_state state;
-    struct tcb {
+    struct tcp_tcb {
         uint32_t irs;       // initial receive sequence number
         uint32_t iss;       // initial send sequence number
         // Send Sequence Variables
@@ -208,6 +233,8 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock);
  * See: tcpout.c
  */
 int tcp_send(struct tcp_sock *sock, struct frame *frame);
+
+int tcp_send_ack(struct tcp_sock *sock);
 
 int tcp_send_synack(struct tcp_sock *sock);
 

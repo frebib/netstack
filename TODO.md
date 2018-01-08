@@ -16,6 +16,7 @@
 
 ## [include/netstack/tcp/tcp.h](include/netstack/tcp/tcp.h)
   - Line 39: Take endianness into account in tcp_hdr
+  - Line 120: Fix endianness in tcp.h
 
 ## [lib/eth/arp.c](lib/eth/arp.c)
   - Line 73: Check for queued outgoing packets that can
@@ -68,21 +69,32 @@
   - Line 80: Lock llist tcp_sockets for concurrent access
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
-  - Line 31: Send TCP RST for invalid connections
-  - Line 32: Optionally don't send TCP RST packets
-  - Line 70: Send RST for incoming ACK on LISTEN
-  - Line 87: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
-  - Line 114: Don't assume IPv4 parent for tcp_seg_arr()
+  - Line 34: Send TCP RST for invalid connections
+  - Line 35: Optionally don't send TCP RST packets
+  - Line 75: Send RST for incoming ACK on LISTEN
+  - Line 92: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
+  - Line 119: Don't assume IPv4 parent for tcp_seg_arr()
+  - Line 177: Send RST <SEQ=SEG.ACK><CTL=RST>
+  - Line 199: Send ECONNERESET to user process
+  - Line 202: Remove unneeded tcp_sock
+  - Line 207: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
+  - Line 262: Remove acknowledged segments from the retransmission queue
+  - Line 295: If there are other controls or text in the segment,
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
   - Line 19: Don't assume IPv4 L3, choose based on sock->saddr
   - Line 29: Don't assume IPv4 pseudo-header for checksumming
   - Line 35: Implement functionality to specify IP flags (different for IP4/6?)
-  - Line 43: Work out route interface before allocating buffer
-  - Line 51: Allow for attaching data to SYN/ACK packet
-  - Line 54: Allocate space for TCP options
-  - Line 58:    hdr->hlen = 5; Allow for tcp_hdr->hlen options
-  - Line 60: Vary hdr->wind
+  - Line 42: Work out route interface before allocating buffer
+  - Line 50: Allow for attaching data to SYN/ACK packet
+  - Line 55: Allocate space for TCP options
+  - Line 59:    hdr->hlen = 5; Allow for tcp_hdr->hlen options
+  - Line 61: Vary hdr->wind
+  - Line 69: Work out route interface before allocating buffer
+  - Line 77: Allow for attaching data to SYN/ACK packet
+  - Line 80: Allocate space for TCP options
+  - Line 84:    hdr->hlen = 5; Allow for tcp_hdr->hlen options
+  - Line 86: Vary hdr->wind
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
   - Line 17: Add many configurable interfaces
