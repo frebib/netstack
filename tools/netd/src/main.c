@@ -108,6 +108,7 @@ int main(int argc, char **argv) {
                 llist_clear(&route_tbl);
 
                 // Cleanup TCP states
+                LOG(LNTCE, "Cleaning up %hu TCP sockets", tcp_sockets.length);
                 llist_iter(&tcp_sockets, free);
                 llist_clear(&tcp_sockets);
 
