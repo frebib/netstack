@@ -60,11 +60,10 @@
   - Line 18: Define how routes with the same metric should behave?
 
 ## [lib/tcp/tcp.c](lib/tcp/tcp.c)
-  - Line 41: Investigate TCP checksums invalid with long packets
-  - Line 48: Check for TSO and GRO and account for it, somehow..
-  - Line 54: Other integrity checks
-  - Line 80: Use hashtbl instead of list to lookup sockets
-  - Line 81: Lock llist tcp_sockets for concurrent access
+  - Line 47: Check for TSO and GRO and account for it, somehow..
+  - Line 53: Other integrity checks
+  - Line 79: Use hashtbl instead of list to lookup sockets
+  - Line 80: Lock llist tcp_sockets for concurrent access
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
   - Line 21: Send TCP RST for invalid connections

@@ -38,8 +38,7 @@ void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {
     struct tcp_hdr *hdr = tcp_hdr(frame);
     frame->data += tcp_hdr_len(hdr);
 
-    // TODO: Investigate TCP checksums invalid with long packets
-    // Research suggests this is caused by 'segmentation offload', or
+    // Invalid TCP checksums are caused by 'segmentation offload', or
     // more specifically 'generic-receive-offload' in Linux.
     // See also:
     //   - https://lwn.net/Articles/358910/
