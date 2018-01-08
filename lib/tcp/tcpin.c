@@ -24,6 +24,9 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     // If the state is CLOSED (i.e., TCB does not exist) then
     if (!sock || sock->state == TCP_CLOSED) {
 
+        LOG(LDBUG, "[TCP] Reached TCP_CLOSED on %s:%hu",
+            fmtip4(sock->locaddr.ipv4), sock->remport);
+
         // all data in the incoming segment is discarded.  An incoming
         // segment containing a RST is discarded.  An incoming segment not
         // containing a RST causes a RST to be sent in response.  The
@@ -158,6 +161,8 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
 
             // If the state is SYN-SENT then
         case TCP_SYN_SENT:
+            LOG(LDBUG, "[TCP] Reached TCP_SYN_SENT on %s:%hu",
+                fmtip4(sock->locaddr.ipv4), sock->remport);
         /*
           first check the ACK bit
 
@@ -302,8 +307,10 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
 
         // Handle all remaining cases to suppress (-Werror=switch)
         default:
-            goto drop_pkt;
+            break;
     }
+
+    LOG(LDBUG, "Reached 'TCP Segment Arrives: Otherwise' section");
 
     /*
     Otherwise,

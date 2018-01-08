@@ -86,39 +86,40 @@ struct tcp_sock *tcp_sock_lookup(addr_t *remaddr, addr_t *locaddr,
             continue;
         }
 
-        struct log_trans t = LOG_TRANS(LDBUG);
-        LOGT(&t, "remote: %s:%hu ", straddr(remaddr), remport);
-        LOGT(&t, "local: %s:%hu ", straddr(locaddr), locport);
-        LOGT_COMMIT(&t);
+
+        // struct log_trans t = LOG_TRANS(LDBUG);
+        // LOGT(&t, "remote: %s:%hu ", straddr(remaddr), remport);
+        // LOGT(&t, "local: %s:%hu ", straddr(locaddr), locport);
+        // LOGT_COMMIT(&t);
 
         // Check matching saddr assuming it's non-zero
         if (!addrzero(&sock->remaddr) && !addreq(remaddr, &sock->remaddr)) {
-            LOG(LDBUG, "Remote address %s doesn't match", straddr(remaddr));
-            LOG(LDBUG, "   compared to %s", straddr(&sock->remaddr));
+            // LOG(LDBUG, "Remote address %s doesn't match", straddr(remaddr));
+            // LOG(LDBUG, "   compared to %s", straddr(&sock->remaddr));
             continue;
         }
         // Check matching remport assuming it's non-zero
         if (sock->remport != 0 && sock->remport != remport) {
-            LOG(LDBUG, "Remote port %hu doesn't match %hu", sock->remport, remport);
+            // LOG(LDBUG, "Remote port %hu doesn't match %hu", sock->remport, remport);
             continue;
         }
 
         // Check matching daddr assuming it's non-zero
         if (!addrzero(&sock->locaddr) && !addreq(locaddr, &sock->locaddr)) {
-            LOG(LDBUG, "Local address %s doesn't match", straddr(remaddr));
-            LOG(LDBUG, "  compared to %s", straddr(&sock->remaddr));
+            // LOG(LDBUG, "Local address %s doesn't match", straddr(remaddr));
+            // LOG(LDBUG, "  compared to %s", straddr(&sock->remaddr));
             continue;
         }
         if (locport != sock->locport) {
-            LOG(LDBUG, "Local port %hu doesn't match %hu", sock->locport, remport);
+            // LOG(LDBUG, "Local port %hu doesn't match %hu", sock->locport, remport);
             continue;
         }
 
-        t = (struct log_trans) LOG_TRANS(LDBUG);
-        LOGT(&t, "Found matching tcp_sock\n");
-        LOGT(&t, "\tsource: %s:%hu ", straddr(&sock->remaddr), sock->remport);
-        LOGT(&t, "\tdest: %s:%hu ", straddr(&sock->locaddr), sock->locport);
-        LOGT_COMMIT(&t);
+        // t = (struct log_trans) LOG_TRANS(LDBUG);
+        // LOGT(&t, "Found matching tcp_sock\t");
+        // LOGT(&t, "\tsource: %s:%hu ", straddr(&sock->remaddr), sock->remport);
+        // LOGT(&t, "\tdest: %s:%hu ", straddr(&sock->locaddr), sock->locport);
+        // LOGT_COMMIT(&t);
 
         // Passed all matching checks
         return sock;

@@ -69,17 +69,17 @@
   - Line 80: Lock llist tcp_sockets for concurrent access
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
-  - Line 34: Send TCP RST for invalid connections
-  - Line 35: Optionally don't send TCP RST packets
-  - Line 75: Send RST for incoming ACK on LISTEN
-  - Line 92: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
-  - Line 119: Don't assume IPv4 parent for tcp_seg_arr()
-  - Line 177: Send RST <SEQ=SEG.ACK><CTL=RST>
-  - Line 199: Send ECONNERESET to user process
-  - Line 202: Remove unneeded tcp_sock
-  - Line 207: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
-  - Line 262: Remove acknowledged segments from the retransmission queue
-  - Line 295: If there are other controls or text in the segment,
+  - Line 37: Send TCP RST for invalid connections
+  - Line 38: Optionally don't send TCP RST packets
+  - Line 78: Send RST for incoming ACK on LISTEN
+  - Line 95: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
+  - Line 122: Don't assume IPv4 parent for tcp_seg_arr()
+  - Line 182: Send RST <SEQ=SEG.ACK><CTL=RST>
+  - Line 204: Send ECONNERESET to user process
+  - Line 207: Remove unneeded tcp_sock
+  - Line 212: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
+  - Line 267: Remove acknowledged segments from the retransmission queue
+  - Line 300: If there are other controls or text in the segment,
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
   - Line 19: Don't assume IPv4 L3, choose based on sock->saddr
