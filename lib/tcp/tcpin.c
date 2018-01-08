@@ -281,6 +281,13 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                     LOG(LNTCE, "TCP connection established!");
                     sock->state = TCP_ESTABLISHED;
 
+                    // RFC 1122: Section 4.2.2.20 (c)
+                    // TCP event processing corrections
+                    // https://tools.ietf.org/html/rfc1122#page-94
+                    tcb->snd.wnd = seg->wind;
+                    tcb->snd.wl1 = seg->seqn;
+                    tcb->snd.wl2 = seg->ackn;
+
                     ret = tcp_send_ack(sock);
                     goto drop_pkt;
                 }

@@ -79,7 +79,7 @@
   - Line 207: Remove unneeded tcp_sock
   - Line 212: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
   - Line 267: Remove acknowledged segments from the retransmission queue
-  - Line 300: If there are other controls or text in the segment,
+  - Line 307: If there are other controls or text in the segment,
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
   - Line 19: Don't assume IPv4 L3, choose based on sock->saddr
