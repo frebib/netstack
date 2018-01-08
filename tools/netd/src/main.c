@@ -11,6 +11,7 @@
 
 #include <netstack/log.h>
 #include <netstack/ip/route.h>
+#include <netstack/tcp/tcp.h>
 #include <netstack/intf/rawsock.h>
 
 // TODO: Add many configurable interfaces
@@ -105,6 +106,10 @@ int main(int argc, char **argv) {
                 // Cleanup route table
                 llist_iter(&route_tbl, free);
                 llist_clear(&route_tbl);
+
+                // Cleanup TCP states
+                llist_iter(&tcp_sockets, free);
+                llist_clear(&tcp_sockets);
 
                 // Cleanup interface meta
                 intf->free(intf);

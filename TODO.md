@@ -50,27 +50,42 @@
   - Line 95: Take options into account here
   - Line 102: Other integrity checks
   - Line 104: Change to `if (!ipv4_should_accept(frame))` to accept other packets
-  - Line 144: Perform correct route/hardware address lookups when appropriate
-  - Line 187: Implement ARP cache locking
-  - Line 196: Rate limit ARP requests to prevent flooding
-  - Line 211: Make this user-configurable
+  - Line 137: Take source address into route calculation
+  - Line 146: Perform correct route/hardware address lookups when appropriate
+  - Line 189: Implement ARP cache locking
+  - Line 198: Rate limit ARP requests to prevent flooding
+  - Line 213: Make this user-configurable
 
 ## [lib/ip/route.c](lib/ip/route.c)
   - Line 5: Lock route table for writing
   - Line 18: Define how routes with the same metric should behave?
 
 ## [lib/tcp/tcp.c](lib/tcp/tcp.c)
+  - Line 16: Work out why sometimes this is 0x0200 too small (in netwk byte-ord)
   - Line 47: Check for TSO and GRO and account for it, somehow..
   - Line 53: Other integrity checks
   - Line 79: Use hashtbl instead of list to lookup sockets
   - Line 80: Lock llist tcp_sockets for concurrent access
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
-  - Line 21: Send TCP RST for invalid connections
-  - Line 22: Optionally don't send TCP RST packets
+  - Line 30: Send TCP RST for invalid connections
+  - Line 31: Optionally don't send TCP RST packets
+  - Line 69: Send RST for incoming ACK on LISTEN
+  - Line 86: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
+  - Line 113: Don't assume IPv4 parent for tcp_seg_arr()
+
+## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
+  - Line 19: Don't assume IPv4 L3, choose based on sock->saddr
+  - Line 29: Don't assume IPv4 pseudo-header for checksumming
+  - Line 35: Implement functionality to specify IP flags (different for IP4/6?)
+  - Line 43: Work out route interface before allocating buffer
+  - Line 51: Allow for attaching data to SYN/ACK packet
+  - Line 54: Allocate space for TCP options
+  - Line 58:    hdr->hlen = 5; Allow for tcp_hdr->hlen options
+  - Line 60: Vary hdr->wind
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
-  - Line 16: Add many configurable interfaces
-  - Line 17: Add loopback interface
-  - Line 51: Take different socket types into account here
-  - Line 53: For now, assume everything is ethernet
+  - Line 17: Add many configurable interfaces
+  - Line 18: Add loopback interface
+  - Line 52: Take different socket types into account here
+  - Line 54: For now, assume everything is ethernet

@@ -13,12 +13,12 @@
 bool ipv4_log(struct pkt_log *log, struct frame *frame) {
     struct ipv4_hdr *hdr = ipv4_hdr(frame);
     uint16_t hdr_len = (uint16_t) ipv4_hdr_len(hdr);
-    frame->data += hdr_len;
-    frame->tail = frame->data + (ntohs(hdr->len) - hdr_len);
+    frame->data = frame->head + hdr_len;
+    frame->tail = frame->head + ntohs(hdr->len);
     struct log_trans *trans = &log->t;
 
     // Print IPv4 total size
-    LOGT(trans, "length %hu ", ntohs(hdr->len));
+    LOGT(trans, "length %hu ", frame_pkt_len(frame));
 
     // Print and check checksum
     uint16_t pkt_csum = hdr->csum;
@@ -116,8 +116,7 @@ void ipv4_recv(struct frame *frame) {
             uint16_t dport = htons(tcp_hdr->dport);
             addr_t saddr = {.proto=PROTO_IPV4, .ipv4 = ntohl(hdr->saddr)};
             addr_t daddr = {.proto=PROTO_IPV4, .ipv4 = ntohl(hdr->daddr)};
-            struct tcp_sock *sock = tcp_sock_lookup(&saddr, &daddr,
-                                                    sport, dport);
+            struct tcp_sock *sock = tcp_sock_lookup(&saddr, &daddr, sport, dport);
 
             /* Pass initial network csum as TCP packet csum seed */
             tcp_recv(child_frame, sock, tcp_ipv4_csum(hdr));
@@ -135,9 +134,12 @@ void ipv4_recv(struct frame *frame) {
 int ipv4_send(struct frame *child, uint8_t proto, uint16_t flags,
               ip4_addr_t daddr, ip4_addr_t saddr) {
 
+    // TODO: Take source address into route calculation
+
     struct route_entry *rt = route_lookup(daddr);
     if (!rt) {
         // If no route found, return DESTUNREACHABLE error
+        LOG(LNTCE, "No route to %s found", fmtip4(daddr));
         return -EHOSTUNREACH;
     }
 

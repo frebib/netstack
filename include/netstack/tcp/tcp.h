@@ -42,9 +42,9 @@ struct tcp_hdr {
     uint32_t    seqn,           /* Sequence number */
                 ackn;           /* Acknowledgement number */
 #if THE_HOST_IS_BIG_ENDIAN
-    uint8_t     hlen:4,      /* Size of TCP header in 32-bit words */
+    uint8_t     hlen:4,         /* Size of TCP header in 32-bit words */
                 rsvd:4;         /* Empty reserved space for ctrl flags */
-    struct {
+    struct tcp_flags {
                 /* Ignoring the experimental NS bit here: RFC 3540 */
     uint8_t     cwr:1,
                 ece:1,
@@ -58,7 +58,7 @@ struct tcp_hdr {
     /* Ignoring the experimental NS bit here: RFC 3540 */
     uint8_t     rsvd:4,         /* Empty reserved space for ctrl flags */
                 hlen:4;         /* Size of TCP header in 32-bit words */
-    struct {
+    struct tcp_flags {
         uint8_t fin:1,
                 syn:1,
                 rst:1,
@@ -91,10 +91,10 @@ struct tcp_hdr {
     +--------+--------+--------+--------+
 */
 struct tcp_ipv4_phdr {
-    uint32_t saddr,
-             daddr;
-    uint8_t  rsvd,
-             proto;
+    uint32_t saddr;
+    uint32_t daddr;
+    uint8_t  rsvd;
+    uint8_t  proto;
     uint16_t hlen;              /* Total length of TCP header */
 }__attribute((packed));
 
@@ -114,12 +114,34 @@ enum tcp_state {
 };
 
 struct tcp_sock {
-    addr_t saddr;
-    addr_t daddr;
-    uint16_t sport;
-    uint16_t dport;
+    addr_t locaddr;
+    addr_t remaddr;
+    uint16_t locport;
+    uint16_t remport;
     enum tcp_state state;
+    struct tcb {
+        uint32_t irs;       // initial receive sequence number
+        uint32_t iss;       // initial send sequence number
+        // Send Sequence Variables
+        struct tcb_snd {
+            uint32_t una;   // send unacknowledged
+            uint32_t nxt;   // send next
+            uint16_t wnd;   // send window
+            uint16_t up;    // send urgent pointer
+            uint32_t wl1;   // segment sequence number used for last window update
+            uint32_t wl2;   // segment acknowledgment number used for last window update
+        } snd;
+        // Receive Sequence Variables
+        struct tcb_rcv {
+            uint32_t nxt;   // receive next
+            uint16_t wnd;   // receive window
+            uint16_t up;    // receive urgent pointer
+        } rcv;
+    } tcb;
 };
+
+
+#define TCP_DEF_MSS 536
 
 
 /* Returns a string of characters/dots representing a set/unset TCP flag */
@@ -152,15 +174,15 @@ static inline char *fmt_tcp_flags(struct tcp_hdr *hdr, char *buffer) {
 
 /* Returns the size in bytes of a header
  * hdr->hlen is 1 byte, soo 4x is 1 word size */
-#define tcp_hdr_len(hdr) ((uint8_t) (hdr->hlen * 4))
+#define tcp_hdr_len(hdr) ((uint16_t) ((hdr)->hlen * 4))
 
 bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum);
 
 /* Receives a tcp frame for processing in the network stack */
 void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum);
 
-struct tcp_sock *tcp_sock_lookup(addr_t *saddr, addr_t *daddr,
-                                 uint16_t sport, uint16_t dport);
+struct tcp_sock *tcp_sock_lookup(addr_t *remaddr, addr_t *daddr,
+                                 uint16_t remport, uint16_t locport);
 
 /*
  * TCP Internet functions
@@ -176,7 +198,17 @@ uint16_t tcp_ipv4_csum(struct ipv4_hdr *hdr);
 
 /*
  * TCP Input
+ * See: tcpin.c
  */
 int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock);
+
+
+/*
+ * TCP Output
+ * See: tcpout.c
+ */
+int tcp_send(struct tcp_sock *sock, struct frame *frame);
+
+int tcp_send_synack(struct tcp_sock *sock);
 
 #endif //NETSTACK_TCP_H

@@ -7,16 +7,16 @@ struct llist tcp_sockets = LLIST_INITIALISER;
 
 bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum) {
     struct tcp_hdr *hdr = tcp_hdr(frame);
-    frame->data += tcp_hdr_len(hdr);
+    frame->data = frame->head + tcp_hdr_len(hdr);
     struct log_trans *trans = &log->t;
 
     // Print IPv4 payload size
     LOGT(trans, "length %hu ", frame_data_len(frame));
 
+    // TODO: Work out why sometimes this is 0x0200 too small (in netwk byte-ord)
     // Print and check checksum
     uint16_t pkt_csum = hdr->csum;
-    uint16_t calc_csum = in_csum(frame->head, (size_t) tcp_hdr_len(hdr), net_csum)
-                         + hdr->csum;
+    uint16_t calc_csum = in_csum(hdr, frame_pkt_len(frame), net_csum) + hdr->csum;
     LOGT(trans, "csum 0x%04x", ntohs(pkt_csum));
     if (pkt_csum != calc_csum)
         LOGT(trans, " (invalid 0x%04x)", ntohs(calc_csum));
@@ -68,14 +68,14 @@ void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {
  *
  * Courtesy of @Steamlined: https://i.giphy.com/media/czwo5mMtaknhC/200.gif
  *
- * @param saddr source address
- * @param daddr destination address
- * @param sport source port
- * @param dport destination port
+ * @param remaddr remote address
+ * @param locaddr local address
+ * @param remport remote port
+ * @param locport local port
  * @return a matching tcp_sock object, or NULL if no matches found
  */
-struct tcp_sock *tcp_sock_lookup(addr_t *saddr, addr_t *daddr,
-                                 uint16_t sport, uint16_t dport) {
+struct tcp_sock *tcp_sock_lookup(addr_t *remaddr, addr_t *locaddr,
+                                 uint16_t remport, uint16_t locport) {
     // TODO: Use hashtbl instead of list to lookup sockets
     // TODO: Lock llist tcp_sockets for concurrent access
 
@@ -85,18 +85,40 @@ struct tcp_sock *tcp_sock_lookup(addr_t *saddr, addr_t *daddr,
             LOG(LWARN, "tcp_sockets contains a NULL element!");
             continue;
         }
+
+        struct log_trans t = LOG_TRANS(LDBUG);
+        LOGT(&t, "remote: %s:%hu ", straddr(remaddr), remport);
+        LOGT(&t, "local: %s:%hu ", straddr(locaddr), locport);
+        LOGT_COMMIT(&t);
+
         // Check matching saddr assuming it's non-zero
-        if (!addrzero(&sock->saddr) && !addreq(saddr, &sock->saddr))
+        if (!addrzero(&sock->remaddr) && !addreq(remaddr, &sock->remaddr)) {
+            LOG(LDBUG, "Remote address %s doesn't match", straddr(remaddr));
+            LOG(LDBUG, "   compared to %s", straddr(&sock->remaddr));
             continue;
-        // Check matching sport assuming it's non-zero
-        if (sock->sport != 0 && sock->sport != sport)
+        }
+        // Check matching remport assuming it's non-zero
+        if (sock->remport != 0 && sock->remport != remport) {
+            LOG(LDBUG, "Remote port %hu doesn't match %hu", sock->remport, remport);
             continue;
+        }
 
         // Check matching daddr assuming it's non-zero
-        if (!addrzero(&sock->daddr) && !addreq(daddr, &sock->daddr))
+        if (!addrzero(&sock->locaddr) && !addreq(locaddr, &sock->locaddr)) {
+            LOG(LDBUG, "Local address %s doesn't match", straddr(remaddr));
+            LOG(LDBUG, "  compared to %s", straddr(&sock->remaddr));
             continue;
-        if (dport != sock->dport)
+        }
+        if (locport != sock->locport) {
+            LOG(LDBUG, "Local port %hu doesn't match %hu", sock->locport, remport);
             continue;
+        }
+
+        t = (struct log_trans) LOG_TRANS(LDBUG);
+        LOGT(&t, "Found matching tcp_sock\n");
+        LOGT(&t, "\tsource: %s:%hu ", straddr(&sock->remaddr), sock->remport);
+        LOGT(&t, "\tdest: %s:%hu ", straddr(&sock->locaddr), sock->locport);
+        LOGT_COMMIT(&t);
 
         // Passed all matching checks
         return sock;

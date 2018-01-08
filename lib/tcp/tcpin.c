@@ -1,10 +1,19 @@
+#include <stdlib.h>
+#include <netinet/in.h>
+
 #include <netstack/tcp/tcp.h>
 
 /*
+ * Initial TCP input routine, after packet sanity checks in tcp_recv()
+ *
  * Follows 'SEGMENT ARRIVES'
  * https://tools.ietf.org/html/rfc793#page-65
  */
 int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
+    int ret = 0;
+
+    // Ensure we always hold the frame as long as we need it
+    frame_incref(frame);
 
     struct tcp_hdr *hdr = tcp_hdr(frame);
 
@@ -28,17 +37,23 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         // <SEQ=SEG.ACK><CTL=RST>
 
         // Return.
-        return 0;
+        goto drop_pkt;
     }
 
     switch (sock->state) {
         // If the state is LISTEN then
         case TCP_LISTEN:
+            LOG(LDBUG, "[TCP] Reached TCP_LISTEN on %s:%hu",
+                fmtip4(sock->locaddr.ipv4), sock->remport);
+
         /*
           first check for an RST
 
             An incoming RST should be ignored.  Return.
-
+        */
+            if (hdr->flags.rst == 1)
+                goto drop_pkt;
+        /*
           second check for an ACK
 
             Any acknowledgment is bad if it arrives on a connection still in
@@ -49,7 +64,11 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
               <SEQ=SEG.ACK><CTL=RST>
 
             Return.
-
+        */
+            if (hdr->flags.ack == 1)
+                // TODO: Send RST for incoming ACK on LISTEN
+                goto drop_pkt;
+        /*
           third check for a SYN
 
             If the SYN bit is set, check the security.  If the
@@ -58,7 +77,15 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             return.
 
               <SEQ=SEG.ACK><CTL=RST>
+        */
+            if (hdr->flags.syn != 1)
+                goto drop_pkt;
 
+            // Incoming 'frame' is SYN frame
+
+            // TODO: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
+
+        /*
                  If the SEG.PRC is greater than the TCB.PRC then if allowed by
             the user and the system set TCB.PRC<-SEG.PRC, if not allowed
             send a reset and return.
@@ -80,7 +107,38 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             not be repeated.  If the listen was not fully specified (i.e.,
             the foreign socket was not fully specified), then the
             unspecified fields should be filled in now.
+        */
 
+            uint32_t iss = (uint32_t) rand();
+            // TODO: Don't assume IPv4 parent for tcp_seg_arr()
+            struct ipv4_hdr *ip_hdr = ipv4_hdr(frame->parent);
+            struct tcp_sock *syn_reply = malloc(sizeof(struct tcp_sock));
+            *syn_reply = (struct tcp_sock) {
+                .remaddr = {.proto = PROTO_IPV4, .ipv4 = ntohl(ip_hdr->saddr)},
+                .locaddr = {.proto = PROTO_IPV4, .ipv4 = ntohl(ip_hdr->daddr)},
+                .locport = ntohs(hdr->dport),
+                .remport = ntohs(hdr->sport),
+                .state = TCP_SYN_RECEIVED,
+                .tcb = {
+                    .irs = ntohl(hdr->seqn),
+                    .iss = ntohl(iss),
+                    .snd = {
+                        .nxt = ntohl(iss) + 1
+                    },
+                    .rcv = {
+                        .nxt = ntohl(hdr->seqn) + 1
+                    }
+                }
+            };
+
+            // Store new connection state
+            llist_push(&tcp_sockets, syn_reply);
+
+            // Send SYN/ACK and drop incoming segment
+            ret = tcp_send_synack(syn_reply);
+            goto drop_pkt;
+
+        /*
           fourth other text or control
 
             Any other control or text-bearing segment (not containing SYN)
@@ -90,7 +148,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             incarnation of the connection.  So you are unlikely to get here,
             but if you do, drop the segment, and return.
          */
-            return 0;
+            goto drop_pkt;
 
             // If the state is SYN-SENT then
         case TCP_SYN_SENT:
@@ -182,11 +240,11 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
           fifth, if neither of the SYN or RST bits is set then drop the
           segment and return.
          */
-            return 0;
+            goto drop_pkt;
 
         // Handle all remaining cases to suppress (-Werror=switch)
         default:
-            return 0;
+            goto drop_pkt;
     }
 
     /*
@@ -506,5 +564,8 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     and return.
 
      */
-    return 0;
+
+drop_pkt:
+    frame_deref(frame);
+    return ret;
 }
