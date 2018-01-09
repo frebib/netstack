@@ -145,7 +145,7 @@ struct tcb {
     struct tcb_snd {
         uint32_t una;   // send unacknowledged
         uint32_t nxt;   // send next
-        uint16_t wnd;   // send window
+        uint32_t wnd;   // send window (what it is: https://tools.ietf.org/html/rfc793#page-20)
         uint16_t up;    // send urgent pointer
         uint32_t wl1;   // segment sequence number used for last window update
         uint32_t wl2;   // segment acknowledgment number used for last window update
@@ -226,6 +226,9 @@ uint16_t tcp_ipv4_csum(struct ipv4_hdr *hdr);
  * TCP Input
  * See: tcpin.c
  */
+#define tcp_ack_acceptable(tcb, seg) (tcb)->snd.una <= ntohl((seg)->ackn) && \
+                                        ntohl((seg)->ackn) <= (tcb)->snd.nxt
+
 int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock);
 
 
@@ -233,10 +236,30 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock);
  * TCP Output
  * See: tcpout.c
  */
+
+/*!
+ *
+ * @param sock
+ * @param frame
+ * @return
+ */
 int tcp_send(struct tcp_sock *sock, struct frame *frame);
 
+/*!
+ * Send a TCP ACK segment in the form
+ *    <SEQ=SND.NXT><ACK=RCV.NXT><CTL=ACK>
+ */
 int tcp_send_ack(struct tcp_sock *sock);
 
+/*!
+ *
+ */
 int tcp_send_synack(struct tcp_sock *sock);
+
+/*!
+ * Sends a TCP RST segment given a socket, in the form
+ *    <SEQ=SEG.ACK><CTL=RST>
+ */
+int tcp_send_rst(struct tcp_sock *sock, uint32_t seqn);
 
 #endif //NETSTACK_TCP_H

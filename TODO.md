@@ -51,11 +51,13 @@
   - Line 95: Take options into account here
   - Line 102: Other integrity checks
   - Line 104: Change to `if (!ipv4_should_accept(frame))` to accept other packets
-  - Line 137: Take source address into route calculation
-  - Line 146: Perform correct route/hardware address lookups when appropriate
-  - Line 189: Implement ARP cache locking
-  - Line 198: Rate limit ARP requests to prevent flooding
-  - Line 213: Make this user-configurable
+  - Line 121: Lookup TCP_LISTEN after existing sockets
+  - Line 122: Allocate a new tcp_sock for new listening connections
+  - Line 141: Take source address into route calculation
+  - Line 150: Perform correct route/hardware address lookups when appropriate
+  - Line 193: Implement ARP cache locking
+  - Line 202: Rate limit ARP requests to prevent flooding
+  - Line 217: Make this user-configurable
 
 ## [lib/ip/route.c](lib/ip/route.c)
   - Line 5: Lock route table for writing
@@ -71,29 +73,41 @@
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
   - Line 37: Send TCP RST for invalid connections
   - Line 38: Optionally don't send TCP RST packets
-  - Line 78: Send RST for incoming ACK on LISTEN
-  - Line 95: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
-  - Line 122: Don't assume IPv4 parent for tcp_seg_arr()
-  - Line 182: Send RST <SEQ=SEG.ACK><CTL=RST>
+  - Line 98: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
+  - Line 125: Don't assume IPv4 parent for tcp_seg_arr()
   - Line 204: Send ECONNERESET to user process
   - Line 207: Remove unneeded tcp_sock
   - Line 212: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
   - Line 267: Remove acknowledged segments from the retransmission queue
   - Line 307: If there are other controls or text in the segment,
+  - Line 400: Store out-of-order segments that are >RCV.NXT for later processing
+  - Line 423: Differentiate between PASSIVE and ACTIVE open here
+  - Line 424: Inform user of ECONNREFUSED if ACTIVE open
+  - Line 425: Clear retransmission queue and remove tcb
+  - Line 448: Interrupt user send() and recv() calls with ECONNRESET
+  - Line 449: Clear retransmission queue and remove tcb
+  - Line 466: Clear retransmission queue and remove tcb
+  - Line 531: Interrupt user send() and recv() calls with ECONNRESET
+  - Line 533: Clear retransmission queue and remove tcb
+  - Line 534: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
+  - Line 610: Remove any segments from the rtq that are ack'd
+  - Line 611: Inform any waiting send() calls when acknowledgements
+  - Line 620: Is sending an ACK here necessary?
+  - Line 636: Change FIN-WAIT-1 to FIN-WAIT-2 when FIN is ack'ed (?)
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
-  - Line 19: Don't assume IPv4 L3, choose based on sock->saddr
-  - Line 29: Don't assume IPv4 pseudo-header for checksumming
-  - Line 35: Implement functionality to specify IP flags (different for IP4/6?)
-  - Line 42: Work out route interface before allocating buffer
-  - Line 50: Allow for attaching data to SYN/ACK packet
-  - Line 55: Allocate space for TCP options
-  - Line 59:    hdr->hlen = 5; Allow for tcp_hdr->hlen options
-  - Line 61: Vary hdr->wind
+  - Line 14: Allow for tcp_hdr->hlen options
+  - Line 16: Vary hdr->wind in tcp_send()
+  - Line 23: Don't assume IPv4 L3, choose based on sock->saddr
+  - Line 33: Don't assume IPv4 pseudo-header for checksumming
+  - Line 39: Implement functionality to specify IP flags (different for IP4/6?)
+  - Line 46: Work out route interface before allocating buffer
+  - Line 54: Allow for attaching data to SYN/ACK packet
+  - Line 58: Allocate space for TCP options
   - Line 69: Work out route interface before allocating buffer
   - Line 75: Allocate space for TCP options
-  - Line 79:    hdr->hlen = 5; Allow for tcp_hdr->hlen options
-  - Line 81: Vary hdr->wind
+  - Line 86: Work out route interface before allocating buffer
+  - Line 92: Allocate space for TCP options
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
   - Line 17: Add many configurable interfaces

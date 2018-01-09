@@ -37,17 +37,19 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         // TODO: Send TCP RST for invalid connections
         // TODO: Optionally don't send TCP RST packets
 
-        // If the ACK bit is off, sequence number zero is used,
-        // <SEQ=0><ACK=SEG.SEQ+SEG.LEN><CTL=RST,ACK>
-
-        // If the ACK bit is on,
-        // <SEQ=SEG.ACK><CTL=RST>
+        if (seg->flags.ack == 1) {
+            // If the ACK bit is off, sequence number zero is used,
+            // <SEQ=0><ACK=SEG.SEQ+SEG.LEN><CTL=RST,ACK>
+            //tcp_send_rstack(sock, 0, seg->seqn + frame_data_len(frame));
+        } else {
+            // If the ACK bit is on,
+            // <SEQ=SEG.ACK><CTL=RST>
+            tcp_send_rst(sock, ntohl(seg->ackn));
+        }
 
         // Return.
         goto drop_pkt;
     }
-
-    bool ack_acceptable = false;
 
     switch (sock->state) {
         // If the state is LISTEN then
@@ -74,9 +76,10 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
 
             Return.
         */
-            if (seg->flags.ack == 1)
-                // TODO: Send RST for incoming ACK on LISTEN
+            if (seg->flags.ack == 1) {
+                tcp_send_rst(sock, ntohl(seg->ackn));
                 goto drop_pkt;
+            }
         /*
           third check for a SYN
 
@@ -112,7 +115,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             SND.NXT is set to ISS+1 and SND.UNA to ISS.  The connection
             state should be changed to SYN-RECEIVED.  Note that any other
             incoming control or data (combined with SYN) will be processed
-            in the SYN-RECEIVED state, but processing of SYN and ACK should
+            i;n the SYN-RECEIVED state, but processing of SYN and ACK should
             not be repeated.  If the listen was not fully specified (i.e.,
             the foreign socket was not fully specified), then the
             unspecified fields should be filled in now.
@@ -135,7 +138,8 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                         .nxt = ntohl(iss) + 1
                     },
                     .rcv = {
-                        .nxt = ntohl(seg->seqn) + 1
+                        .nxt = ntohl(seg->seqn) + 1,
+                        .wnd = UINT16_MAX
                     }
                 }
             };
@@ -174,21 +178,17 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                 <SEQ=SEG.ACK><CTL=RST>
 
               and discard the segment.  Return.
-        */
 
-            if (seg->flags.ack == 1) {
-                if (seg->ackn < tcb->iss || seg->ackn > tcb->snd.nxt) {
-                    // if (seg->flags.rst != 1)
-                        // TODO: Send RST <SEQ=SEG.ACK><CTL=RST>
-                    goto drop_pkt;
-                }
-        /*
               If SND.UNA =< SEG.ACK =< SND.NXT then the ACK is acceptable.
         */
-                ack_acceptable = tcb->snd.una <= seg->ackn &&
-                                 seg->ackn <= tcb->snd.nxt;
+            if (seg->flags.ack == 1) {
+                if (ntohl(seg->ackn) < tcb->iss ||
+                        ntohl(seg->ackn) > tcb->snd .nxt) {
+                     if (seg->flags.rst != 1)
+                         tcp_send_rst(sock, ntohl(seg->ackn));
+                    goto drop_pkt;
+                }
             }
-
         /*
           second check the RST bit
           If the RST bit is set
@@ -200,7 +200,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
 
         */
             if (seg->flags.rst == 1) {
-                if (ack_acceptable) {
+                if (tcp_ack_acceptable(tcb, seg)) {
                     // TODO: Send ECONNERESET to user process
                     ret = -ECONNRESET;
                     sock->state = TCP_CLOSED;
@@ -259,10 +259,10 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             are thereby acknowledged should be removed.
         */
             if (seg->flags.syn == 1) {
-                tcb->rcv.nxt = seg->seqn + 1;
-                tcb->irs = seg->seqn;
-                if (ack_acceptable)
-                    tcb->snd.una = seg->ackn;
+                tcb->rcv.nxt = ntohl(seg->seqn) + 1;
+                tcb->irs = ntohl(seg->seqn);
+                if (tcp_ack_acceptable(tcb, seg))
+                    tcb->snd.una = ntohl(seg->ackn);
 
              // TODO: Remove acknowledged segments from the retransmission queue
 
@@ -284,9 +284,9 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                     // RFC 1122: Section 4.2.2.20 (c)
                     // TCP event processing corrections
                     // https://tools.ietf.org/html/rfc1122#page-94
-                    tcb->snd.wnd = seg->wind;
-                    tcb->snd.wl1 = seg->seqn;
-                    tcb->snd.wl2 = seg->ackn;
+                    tcb->snd.wnd = ntohs(seg->wind);
+                    tcb->snd.wl1 = ntohl(seg->seqn);
+                    tcb->snd.wl2 = ntohl(seg->ackn);
 
                     ret = tcp_send_ack(sock);
                     goto drop_pkt;
@@ -358,7 +358,22 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         If the RCV.WND is zero, no segments will be acceptable, but
         special allowance should be made to accept valid ACKs, URGs and
         RSTs.
-
+    */
+    bool valid = true;
+    if (frame_data_len(frame) > 0 && tcb->rcv.wnd == 0) {
+        valid = false;
+        LOG(LINFO, "[TCP] data sent but RCV.WND is 0");
+    }
+    if (ntohl(seg->seqn) < tcb->rcv.nxt) {
+        valid = false;
+        LOG(LINFO, "[TCP] Recv'd seq number is less than expected RCV.NXT");
+        LOG(LINFO, "[TCP] seqn %hu, rcv.nxt %hu", ntohl(seg->seqn), tcb->rcv.nxt);
+    }
+    if (ntohl(seg->seqn)> tcb->rcv.nxt + tcb->rcv.wnd) {
+        valid = false;
+        LOG(LINFO, "[TCP] more data was sent than can fit in RCV.WND");
+    }
+    /*
         If an incoming segment is not acceptable, an acknowledgment
         should be sent in reply (unless the RST bit is set, if so drop
         the segment and return):
@@ -367,17 +382,28 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
 
         After sending the acknowledgment, drop the unacceptable segment
         and return.
-
+    */
+    if (!valid) {
+        if (seg->flags.rst == 0)
+            tcp_send_ack(sock);
+        goto drop_pkt;
+    }
+    /*
         In the following it is assumed that the segment is the idealized
         segment that begins at RCV.NXT and does not exceed the window.
         One could tailor actual segments to fit this assumption by
         trimming off any portions that lie outside the window (including
         SYN and FIN), and only processing further if the segment then
-        begins at RCV.NXT.  Segments with higher begining sequence
+        begins at RCV.NXT.  Segments with higher beginning sequence
         numbers may be held for later processing.
+
+    // TODO: Store out-of-order segments that are >RCV.NXT for later processing
 
     second check the RST bit,
 
+    */
+    switch(sock->state) {
+    /*
       SYN-RECEIVED STATE
 
         If the RST bit is set
@@ -391,7 +417,17 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
           on the retransmission queue should be removed.  And in the
           active OPEN case, enter the CLOSED state and delete the TCB,
           and return.
-
+    */
+        case TCP_SYN_RECEIVED:
+            if (seg->flags.rst == 1) {
+                // TODO: Differentiate between PASSIVE and ACTIVE open here
+                // TODO: Inform user of ECONNREFUSED if ACTIVE open
+                // TODO: Clear retransmission queue and remove tcb
+                ret = -ECONNREFUSED;
+                goto drop_pkt;
+            }
+            break;
+    /*
       ESTABLISHED
       FIN-WAIT-1
       FIN-WAIT-2
@@ -403,13 +439,39 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         "connection reset" signal.  Enter the CLOSED state, delete the
         TCB, and return.
 
+    */
+        case TCP_ESTABLISHED:
+        case TCP_FIN_WAIT_1:
+        case TCP_FIN_WAIT_2:
+        case TCP_CLOSE_WAIT:
+            if (seg->flags.rst == 1) {
+                // TODO: Interrupt user send() and recv() calls with ECONNRESET
+                // TODO: Clear retransmission queue and remove tcb
+                ret = -ECONNRESET;
+                goto drop_pkt;
+            }
+            break;
+    /*
       CLOSING STATE
       LAST-ACK STATE
       TIME-WAIT
 
         If the RST bit is set then, enter the CLOSED state, delete the
         TCB, and return.
+    */
+        case TCP_CLOSING:
+        case TCP_LAST_ACK:
+        case TCP_TIME_WAIT:
+            if (seg->flags.rst == 1) {
+                // TODO: Clear retransmission queue and remove tcb
+                goto drop_pkt;
+            }
+            break;
 
+        default:
+            break;
+    }
+    /*
     third check security and precedence
 
       SYN-RECEIVED
@@ -453,13 +515,46 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         If the SYN is not in the window this step would not be reached
         and an ack would have been sent in the first step (sequence
         number check).
+    */
+    switch (sock->state) {
+        case TCP_SYN_RECEIVED:
+        case TCP_ESTABLISHED:
+        case TCP_FIN_WAIT_1:
+        case TCP_FIN_WAIT_2:
+        case TCP_CLOSE_WAIT:
+        case TCP_CLOSING:
+        case TCP_LAST_ACK:
+        case TCP_TIME_WAIT:
+            // If SYN is set and iff seg->seqn is outside the rcv.wnd
+            if (seg->flags.syn == 1 && (ntohl(seg->seqn) < tcb->rcv.nxt ||
+                    ntohl(seg->seqn) > tcb->rcv.nxt + tcb->rcv.wnd)) {
+                // TODO: Interrupt user send() and recv() calls with ECONNRESET
+                tcp_send_rst(sock, ntohl(seg->ackn));
+                // TODO: Clear retransmission queue and remove tcb
+                // TODO: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
+                // https://tools.ietf.org/html/rfc5961#page-9
+                ret = -ECONNRESET;
+                goto drop_pkt;
+            }
+            break;
+
+        default:
+            break;
+    }
+    /*
 
     fifth check the ACK field,
 
       if the ACK bit is off drop the segment and return
-
+    */
+    if (seg->flags.ack != 1)
+        goto drop_pkt;
+    /*
+     
       if the ACK bit is on
-
+    */
+    switch (sock->state) {
+    /*
         SYN-RECEIVED STATE
 
           If SND.UNA =< SEG.ACK =< SND.NXT then enter ESTABLISHED state
@@ -471,7 +566,15 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
               <SEQ=SEG.ACK><CTL=RST>
 
             and send it.
-
+    */
+        case TCP_SYN_RECEIVED:
+            if (tcp_ack_acceptable(tcb, seg)) {
+                LOG(LNTCE, "TCP connection established!");
+                sock->state = TCP_ESTABLISHED;
+            } else
+                tcp_send_rst(sock, ntohl(seg->ackn));
+            break;
+    /*
         ESTABLISHED STATE
 
           If SND.UNA < SEG.ACK =< SND.NXT then, set SND.UNA <- SEG.ACK.
@@ -494,41 +597,84 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
           SND.WND, and that SND.WL2 records the acknowledgment number of
           the last segment used to update SND.WND.  The check here
           prevents using old segments to update the window.
+    */
+        case TCP_ESTABLISHED:
+        case TCP_FIN_WAIT_1:
+        case TCP_FIN_WAIT_2:
+        case TCP_CLOSE_WAIT:
+        case TCP_CLOSING:
+            // This differs from tcp_ack_acceptable() on the first </<=
+            if (tcb->snd.una < ntohl(seg->ackn) &&
+                    ntohl(seg->ackn) <= tcb->snd .nxt) {
+                tcb->snd.una = ntohl(seg->ackn);
+                // TODO: Remove any segments from the rtq that are ack'd
+                // TODO: Inform any waiting send() calls when acknowledgements
+                // arrive for data they are waiting to be sent.
 
+                // Update send window
+                tcb->snd.wnd = ntohs(seg->wind);
+                tcb->snd.wl1 = ntohl(seg->seqn);
+                tcb->snd.wl2 = ntohl(seg->ackn);
+            }
+            if (ntohl(seg->ackn) > tcb->snd.nxt) {
+                // TODO: Is sending an ACK here necessary?
+                tcp_send_ack(sock);
+                goto drop_pkt;
+            }
+        default:
+            break;
+    }
+    switch (sock->state) {
+    /*
         FIN-WAIT-1 STATE
 
           In addition to the processing for the ESTABLISHED state, if
           our FIN is now acknowledged then enter FIN-WAIT-2 and continue
           processing in that state.
-
+    */
+        case TCP_FIN_WAIT_1:
+            // TODO: Change FIN-WAIT-1 to FIN-WAIT-2 when FIN is ack'ed (?)
+            break;
+    /*
         FIN-WAIT-2 STATE
 
           In addition to the processing for the ESTABLISHED state, if
           the retransmission queue is empty, the user's CLOSE can be
           acknowledged ("ok") but do not delete the TCB.
-
-        CLOSE-WAIT STATE
-
-          Do the same processing as for the ESTABLISHED state.
-
+    */
+        case TCP_FIN_WAIT_2:
+            break;
+    /*
         CLOSING STATE
 
           In addition to the processing for the ESTABLISHED state, if
           the ACK acknowledges our FIN then enter the TIME-WAIT state,
           otherwise ignore the segment.
-
+    */
+        case TCP_CLOSING:
+            break;
+    /*
         LAST-ACK STATE
 
           The only thing that can arrive in this state is an
           acknowledgment of our FIN.  If our FIN is now acknowledged,
           delete the TCB, enter the CLOSED state, and return.
-
+    */
+        case TCP_LAST_ACK:
+            break;
+    /*
         TIME-WAIT STATE
 
           The only thing that can arrive in this state is a
           retransmission of the remote FIN.  Acknowledge it, and restart
           the 2 MSL timeout.
-
+    */
+        case TCP_TIME_WAIT:
+            break;
+        default:
+            break;
+    }
+    /*
     sixth, check the URG bit,
 
       ESTABLISHED STATE

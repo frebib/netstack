@@ -118,6 +118,10 @@ void ipv4_recv(struct frame *frame) {
             addr_t daddr = {.proto=PROTO_IPV4, .ipv4 = ntohl(hdr->daddr)};
             struct tcp_sock *sock = tcp_sock_lookup(&saddr, &daddr, sport, dport);
 
+            // TODO: Lookup TCP_LISTEN after existing sockets
+            // TODO: Allocate a new tcp_sock for new listening connections
+            //       Remember to fill in the addresses! They're required!
+
             /* Pass initial network csum as TCP packet csum seed */
             tcp_recv(child_frame, sock, tcp_ipv4_csum(hdr));
             return;
