@@ -42,7 +42,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c $(INC)
 netd: $(NETD)
 $(NETD):
 	@make -C $(NETD_DIR)
-	ln -sfv $(NETD) .
+	@ln -sfv $(NETD) .
 
 # Misc
 .PHONY: test doc install uninstall clean
