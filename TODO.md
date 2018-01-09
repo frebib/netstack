@@ -4,10 +4,6 @@
   - Line 60: reduce redundant arguments passed to arp_send_req/reply
   - Line 61: infer interface and hwtype based on routing rules
 
-## [include/netstack/inet.h](include/netstack/inet.h)
-  - Line 33: Use hashtbl instead of list to lookup sockets
-  - Line 34: Lock llist socks for concurrent access
-
 ## [include/netstack/intf/intf.h](include/netstack/intf/intf.h)
   - Line 28: Implement 'virtual' network interfaces
   - Line 42: Move arptbl into an 'ethernet' hardware struct into `void *ll`
@@ -20,7 +16,7 @@
 
 ## [include/netstack/tcp/tcp.h](include/netstack/tcp/tcp.h)
   - Line 40: Take endianness into account in tcp_hdr
-  - Line 121: Fix endianness in tcp.h
+  - Line 99: Fix endianness in tcp.h
 
 ## [lib/eth/arp.c](lib/eth/arp.c)
   - Line 73: Check for queued outgoing packets that can
@@ -30,6 +26,10 @@
   - Line 185: Use hwtype to determine length and type of address
   - Line 234: Add 'incomplete' entry to arp cache
   - Line 240: Use hwtype to determine length and type of address
+
+## [lib/inet.c](lib/inet.c)
+  - Line 20: Use hashtbl instead of list to lookup sockets
+  - Line 21: Lock llist socks for concurrent access
 
 ## [lib/intf/intf.c](lib/intf/intf.c)
   - Line 110: Implement rx 'software' timestamping

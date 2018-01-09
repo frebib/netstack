@@ -46,7 +46,7 @@ bool ipv4_log(struct pkt_log *log, struct frame *frame) {
             LOGT(trans, "%s:%d > ", fmtip4(ntohl(hdr->saddr)), sport);
             LOGT(trans, "%s:%d ", fmtip4(ntohl(hdr->daddr)), dport);
             LOGT(trans, "TCP ");
-            return tcp_log(log, child_frame, tcp_ipv4_csum(hdr));
+            return tcp_log(log, child_frame, inet_ipv4_csum(hdr));
         }
         case IP_P_ICMP:
             LOGT(trans, "%s > ", fmtip4(ntohl(hdr->saddr)));
@@ -123,7 +123,7 @@ void ipv4_recv(struct frame *frame) {
             //       Remember to fill in the addresses! They're required!
 
             /* Pass initial network csum as TCP packet csum seed */
-            tcp_recv(child_frame, sock, tcp_ipv4_csum(hdr));
+            tcp_recv(child_frame, sock, inet_ipv4_csum(hdr));
             return;
         }
         case IP_P_ICMP:

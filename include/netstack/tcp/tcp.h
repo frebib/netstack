@@ -82,28 +82,6 @@ struct tcp_hdr {
 
 }__attribute((packed));
 
-/*
-    Pseudo-header for calculating TCP checksum
-
-      0         1         2         3
-      0 2 4 6 8 0 2 4 6 8 0 2 4 6 8 0 2
-    +--------+--------+--------+--------+
-    |           Source Address          |
-    +--------+--------+--------+--------+
-    |         Destination Address       |
-    +--------+--------+--------+--------+
-    |  zero  |  proto |   TCP Length    |
-    +--------+--------+--------+--------+
-*/
-struct tcp_ipv4_phdr {
-    uint32_t saddr;
-    uint32_t daddr;
-    uint8_t  rsvd;
-    uint8_t  proto;
-    uint16_t hlen;              /* Total length of TCP header */
-}__attribute((packed));
-
-
 enum tcp_state {
     TCP_LISTEN,
     TCP_SYN_SENT,

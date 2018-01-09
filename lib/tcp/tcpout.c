@@ -22,7 +22,7 @@ int tcp_send(struct tcp_sock *sock, struct frame *frame) {
     hdr->dport = htons(inet->remport);
 
     // TODO: Don't assume IPv4 L3, choose based on sock->saddr
-    struct tcp_ipv4_phdr phdr = {
+    struct inet_ipv4_phdr phdr = {
             .saddr = htonl(inet->locaddr.ipv4),
             .daddr = htonl(inet->remaddr.ipv4),
             .hlen  = htons(frame_pkt_len(frame)),
