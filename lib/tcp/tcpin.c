@@ -20,12 +20,13 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
 
     struct tcp_hdr *seg = tcp_hdr(frame);
     struct tcb *tcb = &sock->tcb;
+    struct inet_sock *inet = &sock->inet;
 
     // If the state is CLOSED (i.e., TCB does not exist) then
     if (!sock || sock->state == TCP_CLOSED) {
 
         LOG(LDBUG, "[TCP] Reached TCP_CLOSED on %s:%hu",
-            fmtip4(sock->locaddr.ipv4), sock->remport);
+            fmtip4(inet->locaddr.ipv4), inet->remport);
 
         // all data in the incoming segment is discarded.  An incoming
         // segment containing a RST is discarded.  An incoming segment not
@@ -55,7 +56,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         // If the state is LISTEN then
         case TCP_LISTEN:
             LOG(LDBUG, "[TCP] Reached TCP_LISTEN on %s:%hu",
-                fmtip4(sock->locaddr.ipv4), sock->remport);
+                fmtip4(inet->locaddr.ipv4), inet->remport);
 
         /*
           first check for an RST
@@ -126,10 +127,12 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             struct ipv4_hdr *ip_hdr = ipv4_hdr(frame->parent);
             struct tcp_sock *syn_reply = malloc(sizeof(struct tcp_sock));
             *syn_reply = (struct tcp_sock) {
-                .remaddr = {.proto = PROTO_IPV4, .ipv4 = ntohl(ip_hdr->saddr)},
-                .locaddr = {.proto = PROTO_IPV4, .ipv4 = ntohl(ip_hdr->daddr)},
-                .locport = ntohs(seg->dport),
-                .remport = ntohs(seg->sport),
+                .inet = {
+                    .remaddr = {.proto = PROTO_IPV4, .ipv4 = ntohl(ip_hdr->saddr)},
+                    .locaddr = {.proto = PROTO_IPV4, .ipv4 = ntohl(ip_hdr->daddr)},
+                    .locport = ntohs(seg->dport),
+                    .remport = ntohs(seg->sport),
+                },
                 .state = TCP_SYN_RECEIVED,
                 .tcb = {
                     .irs = ntohl(seg->seqn),
@@ -166,7 +169,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             // If the state is SYN-SENT then
         case TCP_SYN_SENT:
             LOG(LDBUG, "[TCP] Reached TCP_SYN_SENT on %s:%hu",
-                fmtip4(sock->locaddr.ipv4), sock->remport);
+                fmtip4(inet->locaddr.ipv4), inet->remport);
         /*
           first check the ACK bit
 

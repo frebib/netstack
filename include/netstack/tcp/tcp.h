@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <netstack/log.h>
 #include <netstack/llist.h>
+#include <netstack/inet.h>
 #include <netstack/ip/ipv4.h>
 #include <netstack/intf/intf.h>
 
@@ -157,11 +158,9 @@ struct tcb {
         uint16_t up;    // receive urgent pointer
     } rcv;
 };
+
 struct tcp_sock {
-    addr_t locaddr;
-    addr_t remaddr;
-    uint16_t locport;
-    uint16_t remport;
+    struct inet_sock inet;
     enum tcp_state state;
     struct tcb tcb;
 };
@@ -207,8 +206,12 @@ bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum);
 /* Receives a tcp frame for processing in the network stack */
 void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum);
 
-struct tcp_sock *tcp_sock_lookup(addr_t *remaddr, addr_t *daddr,
-                                 uint16_t remport, uint16_t locport);
+static inline struct tcp_sock *tcp_sock_lookup(addr_t *remaddr, addr_t *locaddr,
+                                               uint16_t remport,
+                                               uint16_t locport) {
+    return (struct tcp_sock *)
+            inet_sock_lookup(&tcp_sockets, remaddr, locaddr, remport, locport);
+}
 
 /*
  * TCP Internet functions
