@@ -34,8 +34,12 @@ bool ipv4_log(struct pkt_log *log, struct frame *frame) {
     // Only log IPv4 packets sent by/destined for us
     addr_t sip = {.proto = PROTO_IPV4, .ipv4 = ntohl(hdr->saddr)};
     addr_t dip = {.proto = PROTO_IPV4, .ipv4 = ntohl(hdr->daddr)};
+    addr_t brd = {.proto = PROTO_IPV4, .ipv4 = 0xFFFFFFFF};
+    addr_t zro = {.proto = PROTO_IPV4};
     if (!intf_has_addr(frame->intf, &sip)
-        && !intf_has_addr(frame->intf, &dip)) {
+        && !intf_has_addr(frame->intf, &dip)
+        && !addreq(&dip, &brd)
+        && !addreq(&sip, &zro)) {
         return false;
     }
 
