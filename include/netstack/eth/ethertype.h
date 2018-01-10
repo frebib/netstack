@@ -10,6 +10,7 @@
 #define ETH_P_IP    0x0800  /* Internet Protocol Version 4 */
 #define ETH_P_IPV6  0x86DD  /* Internet Protocol Version 6 */
 
+#define ETH_P_VLAN  0x8100  /* 802.11Q VLAN */
 #define ETH_P_LLDP  0x88CC  /* Link Layer Discovery Protocol */
 
 
@@ -20,6 +21,7 @@ static inline char const *fmt_ethertype(unsigned short ethertype) {
         case ETH_P_IPV6:    return "ETH_P_IPV6";
         case ETH_P_ARP:     return "ETH_P_ARP";
         case ETH_P_LLDP:    return "ETH_P_LLDP";
+        case ETH_P_VLAN:    return "ETH_P_VLAN";
         default:            return NULL;
     }
 }

@@ -28,9 +28,15 @@ bool ether_log(struct pkt_log *log, struct frame *frame) {
     if (memcmp(hdr->daddr, &ETH_BRD_ADDR, ETH_ADDR_LEN) == 0)
         LOGT(trans, "Broadcast ");
 
-    frame->data += ETH_HDR_LEN;
+    frame->data += ether_hdr_len(frame);
     struct frame *child_frame = frame_child_copy(frame);
-    switch (ntohs(hdr->ethertype)) {
+    uint16_t ethertype = ntohs(hdr->ethertype);
+    if (ethertype == ETH_P_VLAN) {
+        struct eth_hdr_vlan *vhdr = (void *) hdr;
+        LOGT(trans, "VLAN %d ", vhdr->vlan);
+        ethertype = ntohs(vhdr->ethertype);
+    }
+    switch (ethertype) {
         case ETH_P_ARP:
             LOGT(trans, "ARP ");
             return arp_log(log, child_frame);
@@ -57,14 +63,17 @@ void ether_recv(struct frame *frame) {
     struct intf *intf = frame->intf;
 
     /* Frame data is after fixed header size */
-    frame->data += ETH_HDR_LEN;
+    frame->data += ether_hdr_len(frame);
 
     if (!ether_should_accept(hdr, intf)) {
         return;
     }
 
     struct frame *child_frame = frame_child_copy(frame);
-    switch (ntohs(hdr->ethertype)) {
+    uint16_t ethertype = ntohs(hdr->ethertype);
+    if (ethertype == ETH_P_VLAN)
+        ethertype = ntohs(((struct eth_hdr_vlan *) hdr)->ethertype);
+    switch (ethertype) {
         case ETH_P_ARP:
             arp_recv(child_frame);
             return;
