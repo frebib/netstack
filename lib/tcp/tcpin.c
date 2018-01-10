@@ -16,6 +16,9 @@ inline void tcp_free_sock(struct tcp_sock *sock) {
  * Follows 'SEGMENT ARRIVES'
  * https://tools.ietf.org/html/rfc793#page-65
  * https://github.com/romain-jacotin/quic/blob/master/doc/TCP.md#-segment-arrives
+ *
+ * TODO: Treat all seq and ack number arithmetic modulo UINT32_MAX
+ * See RFC793, bottom of page 52: https://tools.ietf.org/html/rfc793#page-52
  */
 int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     int ret = -1;
