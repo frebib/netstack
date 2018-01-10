@@ -92,3 +92,33 @@ ssize_t llist_contains(struct llist *list, void *data) {
     }
     return -1;
 }
+
+ssize_t llist_remove(struct llist *list, void *data) {
+    if (list == NULL)
+        return -1;
+    if (data == NULL)
+        return -1;
+
+    for_each_llist(list) {
+        if (llist_elem_data() != data)
+            continue;
+
+        // If no prev, must be head
+        if (!elem->prev)
+            llist_pop(list);
+        // If no next, must be tail
+        else if (!elem->next)
+            llist_pop_last(list);
+        else {
+            // Always has a next and prev element
+            elem->prev->next = elem->next;
+            elem->next->prev = elem->prev;
+        }
+
+        list->length--;
+        free(elem);
+
+        return 0;
+    }
+    return -1;
+}

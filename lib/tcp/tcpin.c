@@ -199,7 +199,8 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                     // TODO: Send ECONNERESET to user process
                     ret = -ECONNRESET;
                     sock->state = TCP_CLOSED;
-                    // TODO: Remove unneeded tcp_sock
+                    llist_remove(&tcp_sockets, sock);
+                    free(sock);
                 }
                 goto drop_pkt;
             }
@@ -417,7 +418,9 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             if (seg->flags.rst == 1) {
                 // TODO: Differentiate between PASSIVE and ACTIVE open here
                 // TODO: Inform user of ECONNREFUSED if ACTIVE open
-                // TODO: Clear retransmission queue and remove tcb
+                // TODO: Clear retransmission queue
+                llist_remove(&tcp_sockets, sock);
+                free(sock);
                 ret = -ECONNREFUSED;
                 goto drop_pkt;
             }
@@ -441,7 +444,9 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         case TCP_CLOSE_WAIT:
             if (seg->flags.rst == 1) {
                 // TODO: Interrupt user send() and recv() calls with ECONNRESET
-                // TODO: Clear retransmission queue and remove tcb
+                // TODO: Clear retransmission queue
+                llist_remove(&tcp_sockets, sock);
+                free(sock);
                 ret = -ECONNRESET;
                 goto drop_pkt;
             }
@@ -458,7 +463,9 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         case TCP_LAST_ACK:
         case TCP_TIME_WAIT:
             if (seg->flags.rst == 1) {
-                // TODO: Clear retransmission queue and remove tcb
+                // TODO: Clear retransmission queue
+                llist_remove(&tcp_sockets, sock);
+                free(sock);
                 goto drop_pkt;
             }
             break;
@@ -525,7 +532,9 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                                         seg_seq > tcb->rcv.nxt + tcb->rcv.wnd)) {
                 // TODO: Interrupt user send() and recv() calls with ECONNRESET
                 tcp_send_rst(sock, seg_ack);
-                // TODO: Clear retransmission queue and remove tcb
+                // TODO: Clear retransmission queue
+                llist_remove(&tcp_sockets, sock);
+                free(sock);
                 // TODO: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
                 // https://tools.ietf.org/html/rfc5961#page-9
                 ret = -ECONNRESET;

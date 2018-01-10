@@ -77,6 +77,15 @@ void *llist_pop_last(struct llist *list);
  */
 ssize_t llist_contains(struct llist *list, void *data);
 
+/*!
+ * Removes a data element from the list if it exists.
+ * Only removes the first instance of an element if it
+ * resides in the list more than once.
+ * Comparison is made by strict pointer checking.
+ * @return 0 if the element was removed, -1 otherwise
+ */
+ssize_t llist_remove(struct llist *list, void *data);
+
 
 #endif //NETSTACK_LLIST_H
 
