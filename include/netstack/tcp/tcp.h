@@ -185,11 +185,11 @@ bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum);
 void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum);
 
 static inline struct tcp_sock *tcp_sock_lookup(addr_t *remaddr, addr_t *locaddr,
-                                               uint16_t remport,
-                                               uint16_t locport) {
+                                               uint16_t remport, uint16_t locport) {
     return (struct tcp_sock *)
             inet_sock_lookup(&tcp_sockets, remaddr, locaddr, remport, locport);
 }
+
 
 /*
  * TCP Internet functions

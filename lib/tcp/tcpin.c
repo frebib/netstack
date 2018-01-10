@@ -125,33 +125,21 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             uint32_t iss = (uint32_t) rand();
             // TODO: Don't assume IPv4 parent for tcp_seg_arr()
             struct ipv4_hdr *ip_hdr = ipv4_hdr(frame->parent);
-            struct tcp_sock *syn_reply = malloc(sizeof(struct tcp_sock));
-            *syn_reply = (struct tcp_sock) {
-                .inet = {
-                    .remaddr = {.proto = PROTO_IPV4, .ipv4 = ntohl(ip_hdr->saddr)},
-                    .locaddr = {.proto = PROTO_IPV4, .ipv4 = ntohl(ip_hdr->daddr)},
-                    .locport = ntohs(seg->dport),
-                    .remport = ntohs(seg->sport),
-                },
-                .state = TCP_SYN_RECEIVED,
-                .tcb = {
+            sock->tcb = (struct tcb) {
                     .irs = ntohl(seg->seqn),
                     .iss = ntohl(iss),
                     .snd = {
-                        .nxt = ntohl(iss) + 1
+                            .nxt = ntohl(iss) + 1
                     },
                     .rcv = {
-                        .nxt = ntohl(seg->seqn) + 1,
-                        .wnd = UINT16_MAX
+                            .nxt = ntohl(seg->seqn) + 1,
+                            .wnd = UINT16_MAX
                     }
-                }
             };
-
-            // Store new connection state
-            llist_push(&tcp_sockets, syn_reply);
+            sock->state = TCP_SYN_RECEIVED;
 
             // Send SYN/ACK and drop incoming segment
-            ret = tcp_send_synack(syn_reply);
+            ret = tcp_send_synack(sock);
             goto drop_pkt;
 
         /*
