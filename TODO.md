@@ -103,20 +103,12 @@
   - Line 24: Don't assume IPv4 L3, choose based on sock->saddr
   - Line 34: Don't assume IPv4 pseudo-header for checksumming
   - Line 40: Implement functionality to specify IP flags (different for IP4/6?)
-  - Line 47: Work out route interface before allocating buffer
-  - Line 55: Allow for attaching data to SYN/ACK packet
-  - Line 59: Allocate space for TCP options
-  - Line 70: Work out route interface before allocating buffer
-  - Line 76: Allocate space for TCP options
-  - Line 87: Work out route interface before allocating buffer
-  - Line 93: Allocate space for TCP options
-  - Line 104: Work out route interface before allocating buffer
-  - Line 110: Allocate space for TCP options
-  - Line 121: Work out route interface before allocating buffer
-  - Line 127: Allocate space for TCP options
+  - Line 48: Work out route interface before allocating buffer
+  - Line 55: Allocate space for TCP options
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
   - Line 17: Add many configurable interfaces
   - Line 18: Add loopback interface
   - Line 52: Take different socket types into account here
   - Line 54: For now, assume everything is ethernet
+  - Line 112: close() or RST all open connections

@@ -43,92 +43,20 @@ int tcp_send(struct tcp_sock *sock, struct frame *frame) {
     return ret;
 }
 
-int tcp_send_ack(struct tcp_sock *sock) {
+int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
+                   uint8_t flags) {
     // TODO: Work out route interface before allocating buffer
     struct route_entry *rt = route_lookup(sock->inet.remaddr.ipv4);
 
     size_t size = intf_max_frame_size(rt->intf);
-    struct frame *ack = intf_frame_new(rt->intf, size);
-
-    size_t payld_sz = 0;
-    uint8_t *payld = frame_alloc(ack, payld_sz);
-    // TODO: Allow for attaching data to SYN/ACK packet
-    ack->data = payld;
-
+    struct frame *seg = intf_frame_new(rt->intf, size);
+    seg->data = seg->tail;
 
     // TODO: Allocate space for TCP options
-    struct tcp_hdr *hdr = frame_head_alloc(ack, sizeof(struct tcp_hdr));
-    hdr->seqn = htonl(sock->tcb.snd.nxt);
-    hdr->ackn = htonl(sock->tcb.rcv.nxt);
-    hdr->flagval = TCP_FLAG_ACK;
-
-    return tcp_send(sock, ack);
-}
-
-int tcp_send_synack(struct tcp_sock *sock) {
-
-    // TODO: Work out route interface before allocating buffer
-    struct route_entry *rt = route_lookup(sock->inet.remaddr.ipv4);
-
-    size_t size = intf_max_frame_size(rt->intf);
-    struct frame *synack = intf_frame_new(rt->intf, size);
-
-    // TODO: Allocate space for TCP options
-    struct tcp_hdr *hdr = frame_head_alloc(synack, sizeof(struct tcp_hdr));
-    hdr->seqn = htonl(sock->tcb.iss);
-    hdr->ackn = htonl(sock->tcb.rcv.nxt);
-    hdr->flagval = TCP_FLAG_SYN | TCP_FLAG_ACK;
-
-    return tcp_send(sock, synack);
-}
-
-int tcp_send_finack(struct tcp_sock *sock) {
-
-    // TODO: Work out route interface before allocating buffer
-    struct route_entry *rt = route_lookup(sock->inet.remaddr.ipv4);
-
-    size_t size = intf_max_frame_size(rt->intf);
-    struct frame *finack = intf_frame_new(rt->intf, size);
-
-    // TODO: Allocate space for TCP options
-    struct tcp_hdr *hdr = frame_head_alloc(finack, sizeof(struct tcp_hdr));
-    hdr->seqn = htonl(sock->tcb.snd.nxt);
-    hdr->ackn = htonl(sock->tcb.rcv.nxt);
-    hdr->flagval = TCP_FLAG_FIN | TCP_FLAG_ACK;
-
-    return tcp_send(sock, finack);
-}
-
-int tcp_send_rst(struct tcp_sock *sock, uint32_t seqn) {
-
-    // TODO: Work out route interface before allocating buffer
-    struct route_entry *rt = route_lookup(sock->inet.remaddr.ipv4);
-
-    size_t size = intf_max_frame_size(rt->intf);
-    struct frame *rst = intf_frame_new(rt->intf, size);
-
-    // TODO: Allocate space for TCP options
-    struct tcp_hdr *hdr = frame_head_alloc(rst, sizeof(struct tcp_hdr));
-    hdr->seqn = htonl(seqn);
-    hdr->ackn = 0;
-    hdr->flagval = TCP_FLAG_RST;
-
-    return tcp_send(sock, rst);
-}
-
-int tcp_send_rstack(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn) {
-
-    // TODO: Work out route interface before allocating buffer
-    struct route_entry *rt = route_lookup(sock->inet.remaddr.ipv4);
-
-    size_t size = intf_max_frame_size(rt->intf);
-    struct frame *rstack = intf_frame_new(rt->intf, size);
-
-    // TODO: Allocate space for TCP options
-    struct tcp_hdr *hdr = frame_head_alloc(rstack, sizeof(struct tcp_hdr));
+    struct tcp_hdr *hdr = frame_head_alloc(seg, sizeof(struct tcp_hdr));
     hdr->seqn = htonl(seqn);
     hdr->ackn = htonl(ackn);
-    hdr->flagval = TCP_FLAG_RST | TCP_FLAG_ACK;
+    hdr->flagval = flags;
 
-    return tcp_send(sock, rstack);
+    return tcp_send(sock, seg);
 }

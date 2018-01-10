@@ -232,29 +232,44 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock);
  */
 int tcp_send(struct tcp_sock *sock, struct frame *frame);
 
+int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
+                   uint8_t flags);
+
 /*!
  * Send a TCP ACK segment in the form
  *    <SEQ=SND.NXT><ACK=RCV.NXT><CTL=ACK>
  */
-int tcp_send_ack(struct tcp_sock *sock);
+#define tcp_send_ack(sock) \
+    tcp_send_empty((sock), (sock)->tcb.snd.nxt, (sock)->tcb.rcv.nxt, \
+        TCP_FLAG_ACK)
+
+/*!
+ * Send a TCP ACK segment in the form
+ *    <SEQ=SND.NXT><ACK=RCV.NXT><CTL=ACK>
+ */
+#define tcp_send_synack(sock) \
+    tcp_send_empty((sock), (sock)->tcb.iss, (sock)->tcb.rcv.nxt, \
+        TCP_FLAG_SYN | TCP_FLAG_ACK)
 
 /*!
  *
  */
-int tcp_send_synack(struct tcp_sock *sock);
-
-int tcp_send_finack(struct tcp_sock *sock);
+#define tcp_send_finack(sock) \
+    tcp_send_empty((sock), (sock)->tcb.snd.nxt, (sock)->tcb.rcv.nxt, \
+        TCP_FLAG_FIN | TCP_FLAG_ACK)
 
 /*!
  * Sends a TCP RST segment given a socket, in the form
  *    <SEQ={seqn}><CTL=RST>
  */
-int tcp_send_rst(struct tcp_sock *sock, uint32_t seqn);
+#define tcp_send_rst(sock, seq) \
+    tcp_send_empty((sock), (seq), 0, TCP_FLAG_RST)
 
 /*!
  * Sends a TCP RST/ACK segment given a socket, in the form
  *    <SEQ={seqn}><ACK={ackn}><CTL=RST,ACK>
  */
-int tcp_send_rstack(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn);
+#define tcp_send_rstack(sock, seq, ack) \
+    tcp_send_empty((sock), (seq), (ack), TCP_FLAG_RST | TCP_FLAG_ACK)
 
 #endif //NETSTACK_TCP_H

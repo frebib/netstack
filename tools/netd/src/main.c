@@ -109,6 +109,7 @@ int main(int argc, char **argv) {
 
                 // Cleanup TCP states
                 LOG(LNTCE, "Cleaning up %hu TCP sockets", tcp_sockets.length);
+                // TODO: close() or RST all open connections
                 llist_iter(&tcp_sockets, free);
                 llist_clear(&tcp_sockets);
 
