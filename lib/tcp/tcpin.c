@@ -51,12 +51,12 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         if (seg->flags.ack != 1) {
             // If the ACK bit is off, sequence number zero is used,
             // <SEQ=0><ACK=SEG.SEQ+SEG.LEN><CTL=RST,ACK>
-            tcp_send_rstack(sock, 0, seg_seq + frame_data_len(frame) + 1);
+            ret = tcp_send_rstack(sock, 0, seg_seq + frame_data_len(frame) + 1);
             tcp_free_sock(sock);
         } else {
             // If the ACK bit is on,
             // <SEQ=SEG.ACK><CTL=RST>
-            tcp_send_rst(sock, seg_ack);
+            ret = tcp_send_rst(sock, seg_ack);
             tcp_free_sock(sock);
         }
 
@@ -90,7 +90,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             Return.
         */
             if (seg->flags.ack == 1) {
-                tcp_send_rst(sock, seg_ack);
+                ret = tcp_send_rst(sock, seg_ack);
                 goto drop_pkt;
             }
         /*
@@ -190,7 +190,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                 if (seg_ack < tcb->iss ||
                     seg_ack > tcb->snd.nxt) {
                      if (seg->flags.rst != 1)
-                         tcp_send_rst(sock, seg_ack);
+                         ret = tcp_send_rst(sock, seg_ack);
                     goto drop_pkt;
                 }
             }
@@ -311,7 +311,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             sock->state = TCP_SYN_RECEIVED;
             LOG(LDBUG, "[TCP] SYN-RECEIVED state reached");
             LOG(LDBUG, "[TCP] Sending SYN/ACK from %s:%d", __FILE__, __LINE__);
-            tcp_send_synack(sock);
+            ret = tcp_send_synack(sock);
 
             // TODO: If there are other controls or text in the segment,
             // queue them for processing after the ESTABLISHED state is reached
@@ -395,7 +395,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     if (!valid) {
         if (seg->flags.rst == 0) {
             LOG(LDBUG, "[TCP] Sending ACK from %s:%d", __FILE__, __LINE__);
-            tcp_send_ack(sock);
+            ret = tcp_send_ack(sock);
         }
         goto drop_pkt;
     }
@@ -543,7 +543,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             if (seg->flags.syn == 1 && (seg_seq < tcb->rcv.nxt ||
                                         seg_seq > tcb->rcv.nxt + tcb->rcv.wnd)) {
                 // TODO: Interrupt user send() and recv() calls with ECONNRESET
-                tcp_send_rst(sock, seg_ack);
+                ret = tcp_send_rst(sock, seg_ack);
                 // TODO: Clear retransmission queue
                 tcp_free_sock(sock);
                 // TODO: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
@@ -587,7 +587,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                 sock->state = TCP_ESTABLISHED;
                 LOG(LDBUG, "[TCP] ESTABLISHED state reached");
             } else
-                tcp_send_rst(sock, seg_ack);
+                ret = tcp_send_rst(sock, seg_ack);
             break;
     /*
         ESTABLISHED STATE
@@ -634,7 +634,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             if (seg_ack > tcb->snd.nxt) {
                 // TODO: Is sending an ACK here necessary?
                 LOG(LDBUG, "[TCP] Sending ACK from %s:%d", __FILE__, __LINE__);
-                tcp_send_ack(sock);
+                ret = tcp_send_ack(sock);
                 goto drop_pkt;
             }
         default:
@@ -764,7 +764,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             tcb->rcv.wnd -= size;
 
             LOG(LDBUG, "[TCP] Sending ACK from %s:%d", __FILE__, __LINE__);
-            tcp_send_ack(sock);
+            ret = tcp_send_ack(sock);
             break;
         }
     /*
@@ -813,7 +813,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
 
         tcb->rcv.nxt = seg_seq + 1;
         LOG(LDBUG, "[TCP] Sending ACK from %s:%d", __FILE__, __LINE__);
-        tcp_send_ack(sock);
+        ret = tcp_send_ack(sock);
 
         switch (sock->state) {
     /*
