@@ -27,9 +27,13 @@
   - Line 234: Add 'incomplete' entry to arp cache
   - Line 240: Use hwtype to determine length and type of address
 
+## [lib/eth/ether.c](lib/eth/ether.c)
+  - Line 25: Make printing ether addresses optional
+
 ## [lib/inet.c](lib/inet.c)
   - Line 20: Use hashtbl instead of list to lookup sockets
   - Line 21: Lock llist socks for concurrent access
+  - Line 30: Match subnet broadcast addresses
 
 ## [lib/intf/intf.c](lib/intf/intf.c)
   - Line 110: Implement rx 'software' timestamping
@@ -66,9 +70,9 @@
   - Line 18: Define how routes with the same metric should behave?
 
 ## [lib/tcp/tcp.c](lib/tcp/tcp.c)
-  - Line 18: Work out why sometimes this is 0x0200 too small (in netwk byte-ord)
-  - Line 49: Check for TSO and GRO and account for it, somehow..
-  - Line 55: Other integrity checks
+  - Line 19: Work out why sometimes this is 0x0200 too small (in netwk byte-ord)
+  - Line 72: Check for TSO and GRO and account for it, somehow..
+  - Line 78: Other integrity checks
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
   - Line 48: Send TCP RST for invalid connections

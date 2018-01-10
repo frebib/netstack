@@ -41,7 +41,7 @@ bool ether_log(struct pkt_log *log, struct frame *frame) {
             LOGT(trans, "IPv6 unimpl ");
             return false;
         default: {
-            const char *ethertype = fmt_ethertype(hdr->ethertype);
+            const char *ethertype = fmt_ethertype(ntohs(hdr->ethertype));
             if (ethertype != NULL)
                 LOGT(trans, "unrecognised %s", ethertype);
             else
