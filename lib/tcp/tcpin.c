@@ -22,6 +22,9 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     struct tcb *tcb = &sock->tcb;
     struct inet_sock *inet = &sock->inet;
 
+    uint32_t seg_seq = ntohl(seg->seqn);
+    uint32_t seg_ack = ntohl(seg->ackn);
+
     // If the state is CLOSED (i.e., TCB does not exist) then
     if (!sock || sock->state == TCP_CLOSED) {
 
@@ -41,11 +44,12 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         if (seg->flags.ack == 1) {
             // If the ACK bit is off, sequence number zero is used,
             // <SEQ=0><ACK=SEG.SEQ+SEG.LEN><CTL=RST,ACK>
+            // TODO: Send RST/ACK for incoming ACK on TCP_CLOSED state
             //tcp_send_rstack(sock, 0, seg->seqn + frame_data_len(frame));
         } else {
             // If the ACK bit is on,
             // <SEQ=SEG.ACK><CTL=RST>
-            tcp_send_rst(sock, ntohl(seg->ackn));
+            tcp_send_rst(sock, seg_ack);
         }
 
         // Return.
@@ -78,7 +82,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             Return.
         */
             if (seg->flags.ack == 1) {
-                tcp_send_rst(sock, ntohl(seg->ackn));
+                tcp_send_rst(sock, seg_ack);
                 goto drop_pkt;
             }
         /*
@@ -116,7 +120,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             SND.NXT is set to ISS+1 and SND.UNA to ISS.  The connection
             state should be changed to SYN-RECEIVED.  Note that any other
             incoming control or data (combined with SYN) will be processed
-            i;n the SYN-RECEIVED state, but processing of SYN and ACK should
+            in the SYN-RECEIVED state, but processing of SYN and ACK should
             not be repeated.  If the listen was not fully specified (i.e.,
             the foreign socket was not fully specified), then the
             unspecified fields should be filled in now.
@@ -126,13 +130,13 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             // TODO: Don't assume IPv4 parent for tcp_seg_arr()
             struct ipv4_hdr *ip_hdr = ipv4_hdr(frame->parent);
             sock->tcb = (struct tcb) {
-                    .irs = ntohl(seg->seqn),
+                    .irs = seg_seq,
                     .iss = ntohl(iss),
                     .snd = {
                             .nxt = ntohl(iss) + 1
                     },
                     .rcv = {
-                            .nxt = ntohl(seg->seqn) + 1,
+                            .nxt = seg_seq + 1,
                             .wnd = UINT16_MAX
                     }
             };
@@ -173,10 +177,10 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
               If SND.UNA =< SEG.ACK =< SND.NXT then the ACK is acceptable.
         */
             if (seg->flags.ack == 1) {
-                if (ntohl(seg->ackn) < tcb->iss ||
-                        ntohl(seg->ackn) > tcb->snd .nxt) {
+                if (seg_ack < tcb->iss ||
+                    seg_ack > tcb->snd.nxt) {
                      if (seg->flags.rst != 1)
-                         tcp_send_rst(sock, ntohl(seg->ackn));
+                         tcp_send_rst(sock, seg_ack);
                     goto drop_pkt;
                 }
             }
@@ -250,10 +254,10 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             are thereby acknowledged should be removed.
         */
             if (seg->flags.syn == 1) {
-                tcb->rcv.nxt = ntohl(seg->seqn) + 1;
-                tcb->irs = ntohl(seg->seqn);
+                tcb->rcv.nxt = seg_seq + 1;
+                tcb->irs = seg_seq;
                 if (tcp_ack_acceptable(tcb, seg))
-                    tcb->snd.una = ntohl(seg->ackn);
+                    tcb->snd.una = seg_ack;
 
              // TODO: Remove acknowledged segments from the retransmission queue
 
@@ -276,8 +280,8 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                     // TCP event processing corrections
                     // https://tools.ietf.org/html/rfc1122#page-94
                     tcb->snd.wnd = ntohs(seg->wind);
-                    tcb->snd.wl1 = ntohl(seg->seqn);
-                    tcb->snd.wl2 = ntohl(seg->ackn);
+                    tcb->snd.wl1 = seg_seq;
+                    tcb->snd.wl2 = seg_ack;
 
                     ret = tcp_send_ack(sock);
                     goto drop_pkt;
@@ -355,12 +359,12 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         valid = false;
         LOG(LINFO, "[TCP] data sent but RCV.WND is 0");
     }
-    if (ntohl(seg->seqn) < tcb->rcv.nxt) {
+    if (seg_seq < tcb->rcv.nxt) {
         valid = false;
         LOG(LINFO, "[TCP] Recv'd seq number is less than expected RCV.NXT");
-        LOG(LINFO, "[TCP] seqn %hu, rcv.nxt %hu", ntohl(seg->seqn), tcb->rcv.nxt);
+        LOG(LINFO, "[TCP] SEQ %lu, RCV.NXT %lu", seg_seq, tcb->rcv.nxt);
     }
-    if (ntohl(seg->seqn)> tcb->rcv.nxt + tcb->rcv.wnd) {
+    if (seg_seq > tcb->rcv.nxt + tcb->rcv.wnd) {
         valid = false;
         LOG(LINFO, "[TCP] more data was sent than can fit in RCV.WND");
     }
@@ -517,10 +521,10 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         case TCP_LAST_ACK:
         case TCP_TIME_WAIT:
             // If SYN is set and iff seg->seqn is outside the rcv.wnd
-            if (seg->flags.syn == 1 && (ntohl(seg->seqn) < tcb->rcv.nxt ||
-                    ntohl(seg->seqn) > tcb->rcv.nxt + tcb->rcv.wnd)) {
+            if (seg->flags.syn == 1 && (seg_seq < tcb->rcv.nxt ||
+                                        seg_seq > tcb->rcv.nxt + tcb->rcv.wnd)) {
                 // TODO: Interrupt user send() and recv() calls with ECONNRESET
-                tcp_send_rst(sock, ntohl(seg->ackn));
+                tcp_send_rst(sock, seg_ack);
                 // TODO: Clear retransmission queue and remove tcb
                 // TODO: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
                 // https://tools.ietf.org/html/rfc5961#page-9
@@ -563,7 +567,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                 LOG(LNTCE, "TCP connection established!");
                 sock->state = TCP_ESTABLISHED;
             } else
-                tcp_send_rst(sock, ntohl(seg->ackn));
+                tcp_send_rst(sock, seg_ack);
             break;
     /*
         ESTABLISHED STATE
@@ -595,19 +599,19 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         case TCP_CLOSE_WAIT:
         case TCP_CLOSING:
             // This differs from tcp_ack_acceptable() on the first </<=
-            if (tcb->snd.una < ntohl(seg->ackn) &&
-                    ntohl(seg->ackn) <= tcb->snd .nxt) {
-                tcb->snd.una = ntohl(seg->ackn);
+            if (tcb->snd.una < seg_ack &&
+                seg_ack <= tcb->snd.nxt) {
+                tcb->snd.una = seg_ack;
                 // TODO: Remove any segments from the rtq that are ack'd
                 // TODO: Inform any waiting send() calls when acknowledgements
                 // arrive for data they are waiting to be sent.
 
                 // Update send window
                 tcb->snd.wnd = ntohs(seg->wind);
-                tcb->snd.wl1 = ntohl(seg->seqn);
-                tcb->snd.wl2 = ntohl(seg->ackn);
+                tcb->snd.wl1 = seg_seq;
+                tcb->snd.wl2 = seg_ack;
             }
-            if (ntohl(seg->ackn) > tcb->snd.nxt) {
+            if (seg_ack > tcb->snd.nxt) {
                 // TODO: Is sending an ACK here necessary?
                 tcp_send_ack(sock);
                 goto drop_pkt;
