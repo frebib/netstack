@@ -50,16 +50,16 @@
   - Line 88: Fix frame->data pointer head/tail difference
 
 ## [lib/ip/ipv4.c](lib/ip/ipv4.c)
-  - Line 32: Change to `if (!ipv4_should_accept(frame))` to accept other packets
-  - Line 83: Keep track of invalid packets
-  - Line 95: Take options into account here
-  - Line 102: Other integrity checks
-  - Line 104: Change to `if (!ipv4_should_accept(frame))` to accept other packets
-  - Line 144: Take source address into route calculation
-  - Line 153: Perform correct route/hardware address lookups when appropriate
-  - Line 196: Implement ARP cache locking
-  - Line 205: Rate limit ARP requests to prevent flooding
-  - Line 220: Make this user-configurable
+  - Line 33: Change to `if (!ipv4_should_accept(frame))` to accept other packets
+  - Line 84: Keep track of invalid packets
+  - Line 96: Take options into account here
+  - Line 103: Other integrity checks
+  - Line 105: Change to `if (!ipv4_should_accept(frame))` to accept other packets
+  - Line 157: Take source address into route calculation
+  - Line 166: Perform correct route/hardware address lookups when appropriate
+  - Line 209: Implement ARP cache locking
+  - Line 218: Rate limit ARP requests to prevent flooding
+  - Line 233: Make this user-configurable
 
 ## [lib/ip/route.c](lib/ip/route.c)
   - Line 5: Lock route table for writing
@@ -71,29 +71,28 @@
   - Line 55: Other integrity checks
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
-  - Line 41: Send TCP RST for invalid connections
-  - Line 42: Optionally don't send TCP RST packets
-  - Line 47: Send RST/ACK for incoming ACK on TCP_CLOSED state
-  - Line 103: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
-  - Line 130: Don't assume IPv4 parent for tcp_seg_arr()
-  - Line 199: Send ECONNERESET to user process
-  - Line 208: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
-  - Line 263: Remove acknowledged segments from the retransmission queue
-  - Line 303: If there are other controls or text in the segment,
-  - Line 396: Store out-of-order segments that are >RCV.NXT for later processing
-  - Line 419: Differentiate between PASSIVE and ACTIVE open here
-  - Line 420: Inform user of ECONNREFUSED if ACTIVE open
-  - Line 421: Clear retransmission queue
-  - Line 446: Interrupt user send() and recv() calls with ECONNRESET
-  - Line 447: Clear retransmission queue
-  - Line 466: Clear retransmission queue
-  - Line 533: Interrupt user send() and recv() calls with ECONNRESET
-  - Line 535: Clear retransmission queue
-  - Line 538: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
-  - Line 614: Remove any segments from the rtq that are ack'd
-  - Line 615: Inform any waiting send() calls when acknowledgements
-  - Line 624: Is sending an ACK here necessary?
-  - Line 640: Change FIN-WAIT-1 to FIN-WAIT-2 when FIN is ack'ed (?)
+  - Line 43: Send TCP RST for invalid connections
+  - Line 44: Optionally don't send TCP RST packets
+  - Line 106: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
+  - Line 133: Don't assume IPv4 parent for tcp_seg_arr()
+  - Line 202: Send ECONNERESET to user process
+  - Line 211: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
+  - Line 266: Remove acknowledged segments from the retransmission queue
+  - Line 306: If there are other controls or text in the segment,
+  - Line 399: Store out-of-order segments that are >RCV.NXT for later processing
+  - Line 422: Differentiate between PASSIVE and ACTIVE open here
+  - Line 423: Inform user of ECONNREFUSED if ACTIVE open
+  - Line 424: Clear retransmission queue
+  - Line 449: Interrupt user send() and recv() calls with ECONNRESET
+  - Line 450: Clear retransmission queue
+  - Line 469: Clear retransmission queue
+  - Line 536: Interrupt user send() and recv() calls with ECONNRESET
+  - Line 538: Clear retransmission queue
+  - Line 541: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
+  - Line 617: Remove any segments from the rtq that are ack'd
+  - Line 618: Inform any waiting send() calls when acknowledgements
+  - Line 627: Is sending an ACK here necessary?
+  - Line 643: Change FIN-WAIT-1 to FIN-WAIT-2 when FIN is ack'ed (?)
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
   - Line 15: Allow for tcp_hdr->hlen options
@@ -108,6 +107,8 @@
   - Line 76: Allocate space for TCP options
   - Line 87: Work out route interface before allocating buffer
   - Line 93: Allocate space for TCP options
+  - Line 104: Work out route interface before allocating buffer
+  - Line 110: Allocate space for TCP options
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
   - Line 17: Add many configurable interfaces

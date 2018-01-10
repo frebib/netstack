@@ -9,6 +9,7 @@
 #include <netstack/ip/route.h>
 #include <netstack/tcp/tcp.h>
 #include <netstack/checksum.h>
+#include <stdlib.h>
 
 bool ipv4_log(struct pkt_log *log, struct frame *frame) {
     struct ipv4_hdr *hdr = ipv4_hdr(frame);
@@ -119,7 +120,19 @@ void ipv4_recv(struct frame *frame) {
             struct tcp_sock *sock = tcp_sock_lookup(&saddr, &daddr, sport, dport);
 
             // No (part/complete) established connection was found
-            if (sock != NULL && sock->state == TCP_LISTEN) {
+            if (sock == NULL) {
+                // Allocate a new socket to provide address to tcp_send_rst()
+                sock = malloc(sizeof(struct tcp_sock));
+                *sock = (struct tcp_sock) {
+                        .inet = {
+                                .remaddr = saddr,
+                                .remport = sport,
+                                .locaddr = daddr,
+                                .locport = dport,
+                        },
+                        .state = TCP_CLOSED
+                };
+            } else if (sock->state == TCP_LISTEN) {
                 sock->inet.remaddr = saddr;
                 sock->inet.remport = sport;
                 sock->inet.locaddr = daddr;

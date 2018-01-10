@@ -15,19 +15,21 @@
 int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     int ret = -1;
 
+    // Don't allow NULL sockets because it provides no address to send RST to
+    if (sock == NULL)
+        return ret;
+
     // Ensure we always hold the frame as long as we need it
     frame_incref(frame);
 
-    struct tcp_hdr *seg = tcp_hdr(frame);
     struct tcb *tcb = &sock->tcb;
     struct inet_sock *inet = &sock->inet;
-
+    struct tcp_hdr *seg = tcp_hdr(frame);
     uint32_t seg_seq = ntohl(seg->seqn);
     uint32_t seg_ack = ntohl(seg->ackn);
 
     // If the state is CLOSED (i.e., TCB does not exist) then
-    if (!sock || sock->state == TCP_CLOSED) {
-
+    if (sock->state == TCP_CLOSED) {
         LOG(LDBUG, "[TCP] Reached TCP_CLOSED on %s:%hu",
             fmtip4(inet->locaddr.ipv4), inet->remport);
 
@@ -41,15 +43,16 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         // TODO: Send TCP RST for invalid connections
         // TODO: Optionally don't send TCP RST packets
 
-        if (seg->flags.ack == 1) {
+        if (seg->flags.ack != 1) {
             // If the ACK bit is off, sequence number zero is used,
             // <SEQ=0><ACK=SEG.SEQ+SEG.LEN><CTL=RST,ACK>
-            // TODO: Send RST/ACK for incoming ACK on TCP_CLOSED state
-            //tcp_send_rstack(sock, 0, seg->seqn + frame_data_len(frame));
+            tcp_send_rstack(sock, 0, seg_seq + frame_data_len(frame) + 1);
+            llist_remove(&tcp_sockets, sock);
         } else {
             // If the ACK bit is on,
             // <SEQ=SEG.ACK><CTL=RST>
             tcp_send_rst(sock, seg_ack);
+            llist_remove(&tcp_sockets, sock);
         }
 
         // Return.

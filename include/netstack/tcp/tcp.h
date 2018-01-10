@@ -239,8 +239,14 @@ int tcp_send_synack(struct tcp_sock *sock);
 
 /*!
  * Sends a TCP RST segment given a socket, in the form
- *    <SEQ=SEG.ACK><CTL=RST>
+ *    <SEQ={seqn}><CTL=RST>
  */
 int tcp_send_rst(struct tcp_sock *sock, uint32_t seqn);
+
+/*!
+ * Sends a TCP RST/ACK segment given a socket, in the form
+ *    <SEQ={seqn}><ACK={ackn}><CTL=RST,ACK>
+ */
+int tcp_send_rstack(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn);
 
 #endif //NETSTACK_TCP_H
