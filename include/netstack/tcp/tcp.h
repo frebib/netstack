@@ -243,6 +243,8 @@ int tcp_send_ack(struct tcp_sock *sock);
  */
 int tcp_send_synack(struct tcp_sock *sock);
 
+int tcp_send_finack(struct tcp_sock *sock);
+
 /*!
  * Sends a TCP RST segment given a socket, in the form
  *    <SEQ={seqn}><CTL=RST>

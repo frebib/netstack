@@ -121,6 +121,7 @@ void ipv4_recv(struct frame *frame) {
 
             // No (part/complete) established connection was found
             if (sock == NULL) {
+                LOG(LWARN, "[IPv4] Unrecognised incoming TCP connection");
                 // Allocate a new socket to provide address to tcp_send_rst()
                 sock = malloc(sizeof(struct tcp_sock));
                 *sock = (struct tcp_sock) {

@@ -149,8 +149,10 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                     }
             };
             sock->state = TCP_SYN_RECEIVED;
+            LOG(LDBUG, "[TCP] SYN-RECEIVED state reached");
 
             // Send SYN/ACK and drop incoming segment
+            LOG(LDBUG, "[TCP] Sending SYN/ACK from %s:%d", __FILE__, __LINE__);
             ret = tcp_send_synack(sock);
             goto drop_pkt;
 
@@ -207,6 +209,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                     // TODO: Send ECONNERESET to user process
                     ret = -ECONNRESET;
                     sock->state = TCP_CLOSED;
+                    LOG(LDBUG, "[TCP] CLOSED state reached");
                     tcp_free_sock(sock);
                 }
                 goto drop_pkt;
@@ -281,8 +284,8 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             below where the URG bit is checked, otherwise return.
         */
                 if (tcb->snd.una > tcb->iss) {
-                    LOG(LNTCE, "TCP connection established!");
                     sock->state = TCP_ESTABLISHED;
+                    LOG(LDBUG, "[TCP] ESTABLISHED state reached");
 
                     // RFC 1122: Section 4.2.2.20 (c)
                     // TCP event processing corrections
@@ -291,6 +294,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                     tcb->snd.wl1 = seg_seq;
                     tcb->snd.wl2 = seg_ack;
 
+                    LOG(LDBUG, "[TCP] Sending ACK from %s:%d", __FILE__, __LINE__);
                     ret = tcp_send_ack(sock);
                     goto drop_pkt;
                 }
@@ -305,6 +309,8 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             has been reached, return.
         */
             sock->state = TCP_SYN_RECEIVED;
+            LOG(LDBUG, "[TCP] SYN-RECEIVED state reached");
+            LOG(LDBUG, "[TCP] Sending SYN/ACK from %s:%d", __FILE__, __LINE__);
             tcp_send_synack(sock);
 
             // TODO: If there are other controls or text in the segment,
@@ -387,8 +393,10 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         and return.
     */
     if (!valid) {
-        if (seg->flags.rst == 0)
+        if (seg->flags.rst == 0) {
+            LOG(LDBUG, "[TCP] Sending ACK from %s:%d", __FILE__, __LINE__);
             tcp_send_ack(sock);
+        }
         goto drop_pkt;
     }
     /*
@@ -576,8 +584,8 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     */
         case TCP_SYN_RECEIVED:
             if (tcp_ack_acceptable(tcb, seg)) {
-                LOG(LNTCE, "TCP connection established!");
                 sock->state = TCP_ESTABLISHED;
+                LOG(LDBUG, "[TCP] ESTABLISHED state reached");
             } else
                 tcp_send_rst(sock, seg_ack);
             break;
@@ -625,6 +633,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             }
             if (seg_ack > tcb->snd.nxt) {
                 // TODO: Is sending an ACK here necessary?
+                LOG(LDBUG, "[TCP] Sending ACK from %s:%d", __FILE__, __LINE__);
                 tcp_send_ack(sock);
                 goto drop_pkt;
             }
@@ -702,9 +711,13 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
 
         This should not occur, since a FIN has been received from the
         remote side.  Ignore the URG.
+    */
 
+    /*
     seventh, process the segment text,
-
+    */
+    switch (sock->state) {
+    /*
       ESTABLISHED STATE
       FIN-WAIT-1 STATE
       FIN-WAIT-2 STATE
@@ -732,7 +745,29 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
 
         This acknowledgment should be piggybacked on a segment being
         transmitted if possible without incurring undue delay.
+    */
+        case TCP_ESTABLISHED:
+        case TCP_FIN_WAIT_1:
+        case TCP_FIN_WAIT_2: {
+            // TODO: Handle receiving segment payload
 
+            size_t size = frame_data_len(frame);
+            if (size < 1)
+                break;
+
+            char payld[size + 1];
+            memcpy(payld, frame->data, size);
+            payld[size] = '\0';
+            LOG(LINFO, "[TCP] Received data:\n'%s'", payld);
+
+            tcb->rcv.nxt += size;
+            tcb->rcv.wnd -= size;
+
+            LOG(LDBUG, "[TCP] Sending ACK from %s:%d", __FILE__, __LINE__);
+            tcp_send_ack(sock);
+            break;
+        }
+    /*
       CLOSE-WAIT STATE
       CLOSING STATE
       LAST-ACK STATE
@@ -740,35 +775,100 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
 
         This should not occur, since a FIN has been received from the
         remote side.  Ignore the segment text.
+    */
+        default:
+            break;
+    }
 
+    /*
     eighth, check the FIN bit,
 
       Do not process the FIN if the state is CLOSED, LISTEN or SYN-SENT
       since the SEG.SEQ cannot be validated; drop the segment and
       return.
-
+    */
+    if (seg->flags.fin != 1) {
+        switch (sock->state) {
+            case TCP_CLOSED:
+            case TCP_LISTEN:
+            case TCP_SYN_SENT:
+                goto drop_pkt;
+            default:
+                break;
+        }
+    } else {
+        if (seg_seq != tcb->rcv.nxt) {
+            LOG(LWARN, "[TCP] Recv'd out-of-order FIN. Dropping");
+            LOG(LWARN, "[TCP] SEQ %lu, RCV.NXT %lu", seg_seq, tcb->rcv.nxt);
+            goto drop_pkt;
+        }
+    /*
       If the FIN bit is set, signal the user "connection closing" and
       return any pending RECEIVEs with same message, advance RCV.NXT
       over the FIN, and send an acknowledgment for the FIN.  Note that
       FIN implies PUSH for any segment text not yet delivered to the
       user.
+    */
+        // TODO: Signal the user 'connection closing'
 
+        tcb->rcv.nxt = seg_seq + 1;
+        LOG(LDBUG, "[TCP] Sending ACK from %s:%d", __FILE__, __LINE__);
+        tcp_send_ack(sock);
+
+        switch (sock->state) {
+    /*
         SYN-RECEIVED STATE
         ESTABLISHED STATE
 
           Enter the CLOSE-WAIT state.
-
+    */
+            case TCP_SYN_RECEIVED:
+            case TCP_ESTABLISHED:
+                sock->state = TCP_CLOSE_WAIT;
+                LOG(LDBUG, "[TCP] CLOSE-WAIT state reached");
+                break;
+    /*
         FIN-WAIT-1 STATE
 
           If our FIN has been ACKed (perhaps in this segment), then
           enter TIME-WAIT, start the time-wait timer, turn off the other
           timers; otherwise enter the CLOSING state.
 
+    */
+            case TCP_FIN_WAIT_1:
+                /*
+                // TODO: Work out if 'our FIN has been ACKed'
+                if (our FIN has been ACKed) {
+                    sock->state = TCP_TIME_WAIT;
+                    // start the time-wait timer
+                    // stop other timers
+                } else {
+                    sock->state = TCP_CLOSING;
+                }
+                */
+                break;
+    /*
         FIN-WAIT-2 STATE
 
           Enter the TIME-WAIT state.  Start the time-wait timer, turn
           off the other timers.
+    */
+            case TCP_FIN_WAIT_2:
+                sock->state = TCP_TIME_WAIT;
+                LOG(LDBUG, "[TCP] TIME-WAIT state reached");
+                 // start the time-wait timer
+                 // stop other timers
+                break;
+    /*
+        TIME-WAIT STATE
 
+          Remain in the TIME-WAIT state.  Restart the 2 MSL time-wait
+          timeout.
+    */
+            case TCP_TIME_WAIT:
+                // Restart the 2 MSL time-wait timeout.
+                break;
+    /*
         CLOSE-WAIT STATE
 
           Remain in the CLOSE-WAIT state.
@@ -780,17 +880,14 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         LAST-ACK STATE
 
           Remain in the LAST-ACK state.
-
-        TIME-WAIT STATE
-
-          Remain in the TIME-WAIT state.  Restart the 2 MSL time-wait
-          timeout.
-
-    and return.
-
-     */
+    */
+            default:
+                break;
+        }
+    }
 
 drop_pkt:
     frame_deref(frame);
     return ret;
 }
+
