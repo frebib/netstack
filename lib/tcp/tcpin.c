@@ -5,6 +5,11 @@
 
 #include <netstack/tcp/tcp.h>
 
+inline void tcp_free_sock(struct tcp_sock *sock) {
+    llist_remove(&tcp_sockets, sock);
+    free(sock);
+}
+
 /*
  * Initial TCP input routine, after packet sanity checks in tcp_recv()
  *
@@ -47,12 +52,12 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             // If the ACK bit is off, sequence number zero is used,
             // <SEQ=0><ACK=SEG.SEQ+SEG.LEN><CTL=RST,ACK>
             tcp_send_rstack(sock, 0, seg_seq + frame_data_len(frame) + 1);
-            llist_remove(&tcp_sockets, sock);
+            tcp_free_sock(sock);
         } else {
             // If the ACK bit is on,
             // <SEQ=SEG.ACK><CTL=RST>
             tcp_send_rst(sock, seg_ack);
-            llist_remove(&tcp_sockets, sock);
+            tcp_free_sock(sock);
         }
 
         // Return.
@@ -202,8 +207,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                     // TODO: Send ECONNERESET to user process
                     ret = -ECONNRESET;
                     sock->state = TCP_CLOSED;
-                    llist_remove(&tcp_sockets, sock);
-                    free(sock);
+                    tcp_free_sock(sock);
                 }
                 goto drop_pkt;
             }
@@ -422,8 +426,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                 // TODO: Differentiate between PASSIVE and ACTIVE open here
                 // TODO: Inform user of ECONNREFUSED if ACTIVE open
                 // TODO: Clear retransmission queue
-                llist_remove(&tcp_sockets, sock);
-                free(sock);
+                tcp_free_sock(sock);
                 ret = -ECONNREFUSED;
                 goto drop_pkt;
             }
@@ -448,8 +451,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             if (seg->flags.rst == 1) {
                 // TODO: Interrupt user send() and recv() calls with ECONNRESET
                 // TODO: Clear retransmission queue
-                llist_remove(&tcp_sockets, sock);
-                free(sock);
+                tcp_free_sock(sock);
                 ret = -ECONNRESET;
                 goto drop_pkt;
             }
@@ -467,8 +469,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         case TCP_TIME_WAIT:
             if (seg->flags.rst == 1) {
                 // TODO: Clear retransmission queue
-                llist_remove(&tcp_sockets, sock);
-                free(sock);
+                tcp_free_sock(sock);
                 goto drop_pkt;
             }
             break;
@@ -536,8 +537,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                 // TODO: Interrupt user send() and recv() calls with ECONNRESET
                 tcp_send_rst(sock, seg_ack);
                 // TODO: Clear retransmission queue
-                llist_remove(&tcp_sockets, sock);
-                free(sock);
+                tcp_free_sock(sock);
                 // TODO: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
                 // https://tools.ietf.org/html/rfc5961#page-9
                 ret = -ECONNRESET;

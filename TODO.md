@@ -71,23 +71,23 @@
   - Line 55: Other integrity checks
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
-  - Line 43: Send TCP RST for invalid connections
-  - Line 44: Optionally don't send TCP RST packets
-  - Line 106: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
-  - Line 133: Don't assume IPv4 parent for tcp_seg_arr()
-  - Line 202: Send ECONNERESET to user process
-  - Line 211: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
-  - Line 266: Remove acknowledged segments from the retransmission queue
-  - Line 306: If there are other controls or text in the segment,
-  - Line 399: Store out-of-order segments that are >RCV.NXT for later processing
-  - Line 422: Differentiate between PASSIVE and ACTIVE open here
-  - Line 423: Inform user of ECONNREFUSED if ACTIVE open
-  - Line 424: Clear retransmission queue
-  - Line 449: Interrupt user send() and recv() calls with ECONNRESET
-  - Line 450: Clear retransmission queue
-  - Line 469: Clear retransmission queue
-  - Line 536: Interrupt user send() and recv() calls with ECONNRESET
-  - Line 538: Clear retransmission queue
+  - Line 48: Send TCP RST for invalid connections
+  - Line 49: Optionally don't send TCP RST packets
+  - Line 111: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
+  - Line 138: Don't assume IPv4 parent for tcp_seg_arr()
+  - Line 207: Send ECONNERESET to user process
+  - Line 215: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
+  - Line 270: Remove acknowledged segments from the retransmission queue
+  - Line 310: If there are other controls or text in the segment,
+  - Line 403: Store out-of-order segments that are >RCV.NXT for later processing
+  - Line 426: Differentiate between PASSIVE and ACTIVE open here
+  - Line 427: Inform user of ECONNREFUSED if ACTIVE open
+  - Line 428: Clear retransmission queue
+  - Line 452: Interrupt user send() and recv() calls with ECONNRESET
+  - Line 453: Clear retransmission queue
+  - Line 471: Clear retransmission queue
+  - Line 537: Interrupt user send() and recv() calls with ECONNRESET
+  - Line 539: Clear retransmission queue
   - Line 541: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
   - Line 617: Remove any segments from the rtq that are ack'd
   - Line 618: Inform any waiting send() calls when acknowledgements

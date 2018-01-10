@@ -210,6 +210,12 @@ uint16_t tcp_ipv4_csum(struct ipv4_hdr *hdr);
 #define tcp_ack_acceptable(tcb, seg) (tcb)->snd.una <= ntohl((seg)->ackn) && \
                                         ntohl((seg)->ackn) <= (tcb)->snd.nxt
 
+/*!
+ * Removes a TCP socket from the global socket list and deallocates it
+ * @param sock socket to free
+ */
+void tcp_free_sock(struct tcp_sock *sock);
+
 int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock);
 
 
