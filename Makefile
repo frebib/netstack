@@ -4,7 +4,7 @@ INCDIR = include
 
 override CFLAGS  += -fPIC -I$(INCDIR) -Wall -Werror -Wpedantic -Wno-unused-variable -g
 override LDFLAGS += -shared -Wl,--as-needed
-override LDLIBS  += -lpthread
+override LDLIBS  += -lpthread -lrt
 
 # Source and header files
 SRC = $(shell find $(SRCDIR) -type f -name '*.c')
