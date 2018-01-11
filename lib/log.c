@@ -3,6 +3,10 @@
 #include <string.h>
 #include <sysexits.h>
 
+#ifdef _GNU_SOURCE
+#include <pthread.h>
+#endif
+
 #include <netstack/log.h>
 
 struct log_config logconf = {
@@ -116,7 +120,6 @@ void VTLOGF(FILE *file, loglvl_t level, struct timespec *t, const char *fmt,
 
     // Append thread name to pre
 #ifdef _GNU_SOURCE
-#include <pthread.h>
     char name[32] = {0};
     pthread_getname_np(pthread_self(), name, 32);
     prelen += snprintf(pre + prelen, maxlen, "[%s] ", name);
