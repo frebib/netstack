@@ -28,7 +28,7 @@ bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum) {
     LOGT(trans, "flags [%s] ", fmt_tcp_flags(hdr, sflags));
 
     LOGT(trans, "seq %zu ", ntohl(hdr->seqn));
-    if (hdr->ackn)
+    if (hdr->flags.ack)
         LOGT(trans, "ack %zu ", ntohl(hdr->ackn));
 
     return true;
