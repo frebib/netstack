@@ -82,6 +82,26 @@ struct tcp_hdr {
 
 }__attribute((packed));
 
+struct tcb {
+    uint32_t irs;       // initial receive sequence number
+    uint32_t iss;       // initial send sequence number
+    // Send Sequence Variables
+    struct tcb_snd {
+        uint32_t una;   // send unacknowledged
+        uint32_t nxt;   // send next
+        uint32_t wnd;   // send window (what it is: https://tools.ietf.org/html/rfc793#page-20)
+        uint16_t up;    // send urgent pointer
+        uint32_t wl1;   // segment sequence number used for last window update
+        uint32_t wl2;   // segment acknowledgment number used for last window update
+    } snd;
+    // Receive Sequence Variables
+    struct tcb_rcv {
+        uint32_t nxt;   // receive next
+        uint16_t wnd;   // receive window
+        uint16_t up;    // receive urgent pointer
+    } rcv;
+};
+
 enum tcp_state {
     TCP_LISTEN,
     TCP_SYN_SENT,
@@ -95,6 +115,13 @@ enum tcp_state {
     TCP_LAST_ACK,
     TCP_TIME_WAIT
 };
+
+struct tcp_sock {
+    struct inet_sock inet;
+    enum tcp_state state;
+    struct tcb tcb;
+};
+
 
 // TODO: Fix endianness in tcp.h
 #if THE_HOST_IS_BIG_ENDIAN
@@ -117,31 +144,6 @@ enum tcp_state {
 #define TCP_FLAG_CWR    0x80
 #endif
 
-struct tcb {
-    uint32_t irs;       // initial receive sequence number
-    uint32_t iss;       // initial send sequence number
-    // Send Sequence Variables
-    struct tcb_snd {
-        uint32_t una;   // send unacknowledged
-        uint32_t nxt;   // send next
-        uint32_t wnd;   // send window (what it is: https://tools.ietf.org/html/rfc793#page-20)
-        uint16_t up;    // send urgent pointer
-        uint32_t wl1;   // segment sequence number used for last window update
-        uint32_t wl2;   // segment acknowledgment number used for last window update
-    } snd;
-    // Receive Sequence Variables
-    struct tcb_rcv {
-        uint32_t nxt;   // receive next
-        uint16_t wnd;   // receive window
-        uint16_t up;    // receive urgent pointer
-    } rcv;
-};
-
-struct tcp_sock {
-    struct inet_sock inet;
-    enum tcp_state state;
-    struct tcb tcb;
-};
 
 
 #define TCP_DEF_MSS 536
