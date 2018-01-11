@@ -67,8 +67,8 @@
 
 ## [lib/tcp/tcp.c](lib/tcp/tcp.c)
   - Line 18: Work out why sometimes this is 0x0200 too small (in netwk byte-ord)
-  - Line 49: Check for TSO and GRO and account for it, somehow..
-  - Line 55: Other integrity checks
+  - Line 54: Check for TSO and GRO and account for it, somehow..
+  - Line 60: Other integrity checks
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
   - Line 20: * TODO: Treat all seq and ack number arithmetic modulo UINT32_MAX

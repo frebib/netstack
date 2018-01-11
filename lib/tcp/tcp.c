@@ -40,6 +40,11 @@ void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {
     struct tcp_hdr *hdr = tcp_hdr(frame);
     frame->data += tcp_hdr_len(hdr);
 
+    if (tcp_hdr_len(hdr) > frame_pkt_len(frame)) {
+        LOG(LWARN, "Error: TCP header is too short!");
+        goto drop_pkt;
+    }
+
     // Invalid TCP checksums are caused by 'segmentation offload', or
     // more specifically 'generic-receive-offload' in Linux.
     // See also:
