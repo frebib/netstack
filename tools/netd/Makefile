@@ -3,10 +3,9 @@ OBJDIR = obj
 LIBDIR = ../..
 INCDIR = $(LIBDIR)/include
 
-override CFLAGS  += -fPIC -I$(INCDIR) -Wall -Werror -Wextra -Wpedantic
-override CFLAGS  += -Wno-unused-variable -Wno-unused-parameter -Wno-missing-braces -Wno-missing-field-initializers -g
-override LDFLAGS += -L$(LIBDIR) -Wl,--as-needed -Wl,-enable-new-dtags,-rpath,"$(LIBDIR)",-rpath,.
-override LDLIBS  += -lnetstack -lcap -ldl -lpthread
+CFLAGS   = -I$(INCDIR) -Wall -Werror -Wno-unused-variable -fstack-protector -O3
+LDFLAGS += -L$(LIBDIR) -Wl,--as-needed -Wl,-enable-new-dtags,-rpath,"$(LIBDIR)",-rpath,.
+LDLIBS  += -lnetstack -lcap -ldl -lpthread
 
 # Source and header files
 SRC = $(shell find $(SRCDIR) -type f -name '*.c')
@@ -38,7 +37,7 @@ $(TARGET_LIB_PATH):
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c $(INC)
 	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) -fPIC $(CFLAGS) -c $< -o $@
 
 # Misc
 .PHONY: test doc install uninstall clean

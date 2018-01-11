@@ -2,8 +2,7 @@ SRCDIR = lib
 OBJDIR = obj
 INCDIR = include
 
-override CFLAGS  += -fPIC -I$(INCDIR) -Wall -Werror -Wextra -Wpedantic
-override CFLAGS  += -Wno-unused-variable -Wno-unused-parameter -Wno-missing-braces -Wno-missing-field-initializers -g
+override CFLAGS  += -I$(INCDIR) -Wall -Werror -Wno-unused-variable -fstack-protector -O3
 override LDFLAGS += -shared -Wl,--as-needed
 override LDLIBS  += -lpthread -lrt
 
@@ -37,7 +36,7 @@ $(TARGET_LIB): $(OBJ)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c $(INC)
 	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) -fPIC $(CFLAGS) -c $< -o $@
 
 # Tools
 netd: $(NETD)
