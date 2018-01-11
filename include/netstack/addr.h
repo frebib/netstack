@@ -72,7 +72,7 @@ static inline bool addreq(addr_t *a, addr_t *b) {
 static inline bool addrzero(addr_t *a) {
     uint8_t sum = 0;
     size_t len = addrlen(a->proto);
-    for (int i = 0; i < len; ++i)
+    for (size_t i = 0; i < len; ++i)
         sum |= (uint8_t) (&a->address)[i];
 
     return (sum == 0);

@@ -3,7 +3,8 @@ OBJDIR = obj
 LIBDIR = ../..
 INCDIR = $(LIBDIR)/include
 
-override CFLAGS  += -fPIC -I$(INCDIR) -Wall -Werror -Wpedantic -Wno-unused-variable -g
+override CFLAGS  += -fPIC -I$(INCDIR) -Wall -Werror -Wextra -Wpedantic
+override CFLAGS  += -Wno-unused-variable -Wno-unused-parameter -Wno-missing-braces -Wno-missing-field-initializers -g
 override LDFLAGS += -L$(LIBDIR) -Wl,--as-needed -Wl,-enable-new-dtags,-rpath,"$(LIBDIR)",-rpath,.
 override LDLIBS  += -lnetstack -lcap -ldl -lpthread
 
