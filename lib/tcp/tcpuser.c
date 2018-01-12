@@ -40,7 +40,7 @@ int tcp_user_open(struct tcp_sock *sock) {
 
     int ret = tcp_send_syn(sock);
 
-    sock->state = TCP_SYN_SENT;
+    tcp_setstate(sock, TCP_SYN_SENT);
 
     // Wait indefinitely for the connection to be established
     pthread_cond_init(&sock->openwait, NULL);
@@ -64,7 +64,7 @@ int tcp_user_close(struct tcp_sock *sock) {
     switch (sock->state) {
         case TCP_CLOSE_WAIT:
             tcp_send_fin(sock);
-            sock->state = TCP_CLOSING;
+            tcp_setstate(sock, TCP_CLOSED);
             break;
         case TCP_CLOSING:
         case TCP_LAST_ACK:

@@ -66,6 +66,18 @@ void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {
     return;
 }
 
+void tcp_setstate(struct tcp_sock *sock, enum tcp_state state) {
+    // TODO: Perform queued actions when reaching certain states
+    // TODO: Lock sock->state
+    sock->state = state;
+    LOG(LDBUG, "[TCP] %s state reached", tcp_strstate(state));
+}
+
+
+/*
+ * TCP Internet functions
+ */
+
 uint16_t tcp_randomport() {
     // TODO: Choose a random unused outgoing port
     return (uint16_t) rand();

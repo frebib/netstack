@@ -152,8 +152,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                             .wnd = UINT16_MAX
                     }
             };
-            sock->state = TCP_SYN_RECEIVED;
-            LOG(LDBUG, "[TCP] SYN-RECEIVED state reached");
+            tcp_setstate(sock, TCP_SYN_RECEIVED);
 
             // Send SYN/ACK and drop incoming segment
             LOG(LDBUG, "[TCP] Sending SYN/ACK from %s:%d", __FILE__, __LINE__);
@@ -212,8 +211,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                 if (tcp_ack_acceptable(tcb, seg)) {
                     // TODO: Send ECONNERESET to user process
                     ret = -ECONNRESET;
-                    sock->state = TCP_CLOSED;
-                    LOG(LDBUG, "[TCP] CLOSED state reached");
+                    tcp_setstate(sock, TCP_CLOSED);
                     tcp_free_sock(sock);
                 }
                 goto drop_pkt;
@@ -288,8 +286,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             below where the URG bit is checked, otherwise return.
         */
                 if (tcb->snd.una > tcb->iss) {
-                    sock->state = TCP_ESTABLISHED;
-                    LOG(LDBUG, "[TCP] ESTABLISHED state reached");
+                    tcp_setstate(sock, TCP_ESTABLISHED);
 
                     // TODO: Allocate a RCV buffer
 
@@ -321,8 +318,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             segment, queue them for processing after the ESTABLISHED state
             has been reached, return.
         */
-            sock->state = TCP_SYN_RECEIVED;
-            LOG(LDBUG, "[TCP] SYN-RECEIVED state reached");
+            tcp_setstate(sock, TCP_SYN_RECEIVED);
             LOG(LDBUG, "[TCP] Sending SYN/ACK from %s:%d", __FILE__, __LINE__);
             ret = tcp_send_synack(sock);
 
@@ -338,8 +334,6 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         default:
             break;
     }
-
-    LOG(LDBUG, "Reached 'TCP Segment Arrives: Otherwise' section");
 
     /*
     Otherwise,
@@ -472,6 +466,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             if (seg->flags.rst == 1) {
                 // TODO: Interrupt user send() and recv() calls with ECONNRESET
                 // TODO: Clear retransmission queue
+                tcp_setstate(sock, TCP_CLOSED);
                 tcp_free_sock(sock);
                 ret = -ECONNRESET;
                 goto drop_pkt;
@@ -597,10 +592,11 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     */
         case TCP_SYN_RECEIVED:
             if (tcp_ack_acceptable(tcb, seg)) {
-                sock->state = TCP_ESTABLISHED;
-                LOG(LDBUG, "[TCP] ESTABLISHED state reached");
-            } else
+                tcp_setstate(sock, TCP_ESTABLISHED);
+            } else {
+                LOG(LDBUG, "[TCP] Sending RST from %s:%d", __FILE__, __LINE__);
                 ret = tcp_send_rst(sock, seg_ack);
+            }
             break;
     /*
         ESTABLISHED STATE
@@ -653,7 +649,9 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         default:
             break;
     }
-    switch (sock->state) {
+    // TODO: Work out if our FIN was ACK'ed
+    if (true) {
+        switch (sock->state) {
     /*
         FIN-WAIT-1 STATE
 
@@ -661,9 +659,9 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
           our FIN is now acknowledged then enter FIN-WAIT-2 and continue
           processing in that state.
     */
-        case TCP_FIN_WAIT_1:
-            // TODO: Change FIN-WAIT-1 to FIN-WAIT-2 when FIN is ack'ed (?)
-            break;
+            case TCP_FIN_WAIT_1:
+                tcp_setstate(sock, TCP_FIN_WAIT_2);
+                break;
     /*
         FIN-WAIT-2 STATE
 
@@ -671,8 +669,9 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
           the retransmission queue is empty, the user's CLOSE can be
           acknowledged ("ok") but do not delete the TCB.
     */
-        case TCP_FIN_WAIT_2:
-            break;
+            case TCP_FIN_WAIT_2:
+                // TODO: Send success to waiting close() calls
+                break;
     /*
         CLOSING STATE
 
@@ -680,8 +679,10 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
           the ACK acknowledges our FIN then enter the TIME-WAIT state,
           otherwise ignore the segment.
     */
-        case TCP_CLOSING:
-            break;
+            case TCP_CLOSING:
+                tcp_setstate(sock, TCP_TIME_WAIT);
+                tcp_timewait_start(sock);
+                break;
     /*
         LAST-ACK STATE
 
@@ -689,8 +690,10 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
           acknowledgment of our FIN.  If our FIN is now acknowledged,
           delete the TCB, enter the CLOSED state, and return.
     */
-        case TCP_LAST_ACK:
-            break;
+            case TCP_LAST_ACK:
+                tcp_setstate(sock, TCP_CLOSED);
+                tcp_free_sock(sock);
+                goto drop_pkt;
     /*
         TIME-WAIT STATE
 
@@ -698,10 +701,13 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
           retransmission of the remote FIN.  Acknowledge it, and restart
           the 2 MSL timeout.
     */
-        case TCP_TIME_WAIT:
-            break;
-        default:
-            break;
+            case TCP_TIME_WAIT:
+                tcp_send_ack(sock);
+                tcp_timewait_restart(sock);
+                break;
+            default:
+                break;
+        }
     }
     /*
     sixth, check the URG bit,
@@ -837,8 +843,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     */
             case TCP_SYN_RECEIVED:
             case TCP_ESTABLISHED:
-                sock->state = TCP_CLOSE_WAIT;
-                LOG(LDBUG, "[TCP] CLOSE-WAIT state reached");
+                tcp_setstate(sock, TCP_CLOSE_WAIT);
                 break;
     /*
         FIN-WAIT-1 STATE
@@ -849,16 +854,14 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
 
     */
             case TCP_FIN_WAIT_1:
-                /*
                 // TODO: Work out if 'our FIN has been ACKed'
-                if (our FIN has been ACKed) {
-                    sock->state = TCP_TIME_WAIT;
-                    // start the time-wait timer
-                    // stop other timers
+                if (true) {
+                    tcp_setstate(sock, TCP_TIME_WAIT);
+                    tcp_timewait_start(sock);
+                    // TODO: stop other TCP timers in FIN-WAIT-2
                 } else {
-                    sock->state = TCP_CLOSING;
+                    tcp_setstate(sock, TCP_CLOSING);
                 }
-                */
                 break;
     /*
         FIN-WAIT-2 STATE
@@ -867,10 +870,9 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
           off the other timers.
     */
             case TCP_FIN_WAIT_2:
-                sock->state = TCP_TIME_WAIT;
-                LOG(LDBUG, "[TCP] TIME-WAIT state reached");
-                 // start the time-wait timer
-                 // stop other timers
+                tcp_setstate(sock, TCP_TIME_WAIT);
+                tcp_timewait_start(sock);
+                 // TODO: stop other TCP timers in FIN-WAIT-2
                 break;
     /*
         TIME-WAIT STATE
@@ -879,7 +881,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
           timeout.
     */
             case TCP_TIME_WAIT:
-                // Restart the 2 MSL time-wait timeout.
+                tcp_timewait_restart(sock);
                 break;
     /*
         CLOSE-WAIT STATE

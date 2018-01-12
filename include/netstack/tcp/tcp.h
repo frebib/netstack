@@ -116,11 +116,30 @@ enum tcp_state {
     TCP_LAST_ACK,
     TCP_TIME_WAIT
 };
+static const char *tcp_strstate(enum tcp_state state) {
+    switch (state) {
+        case TCP_LISTEN:        return "LISTEN";
+        case TCP_SYN_SENT:      return "SYN-SENT";
+        case TCP_SYN_RECEIVED:  return "SYN-RECEIVED";
+        case TCP_ESTABLISHED:   return "ESTABLISHED";
+        case TCP_FIN_WAIT_1:    return "FIN-WAIT-1";
+        case TCP_FIN_WAIT_2:    return "FIN-WAIT-2";
+        case TCP_CLOSE_WAIT:    return "CLOSE-WAIT";
+        case TCP_CLOSING:       return "CLOSING";
+        case TCP_CLOSED:        return "CLOSED";
+        case TCP_LAST_ACK:      return "LAST-ACK";
+        case TCP_TIME_WAIT:     return "TIME-WAIT";
+        default:                return NULL;
+    }
+}
 
 struct tcp_sock {
     struct inet_sock inet;
     enum tcp_state state;
     struct tcb tcb;
+
+    // TCP timers
+    timeout_t timewait;
 
     // Thread wait locks
     pthread_cond_t openwait;
@@ -150,8 +169,8 @@ struct tcp_sock {
 #endif
 
 
-
-#define TCP_DEF_MSS 536
+#define TCP_DEF_MSS     536
+#define TCP_MSL         60      // Maximum Segment Lifetime (in seconds)
 
 
 /* Returns a string of characters/dots representing a set/unset TCP flag */
@@ -191,6 +210,20 @@ bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum);
 /* Receives a tcp frame for processing in the network stack */
 void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum);
 
+/*!
+ * Sets the state of the TCP connection
+ * Checks and performs queued actions on the socket
+ * @param sock  socket to change state of
+ * @param state state to set
+ */
+void tcp_setstate(struct tcp_sock *sock, enum tcp_state state);
+
+/*!
+ * Finds a matching tcp_sock with address/port quad, including matching
+ * against wildcard addresses and ports.
+ * @see inet_sock_lookup
+ * @return a tcp_sock instance, or NULL if no matches found
+ */
 static inline struct tcp_sock *tcp_sock_lookup(addr_t *remaddr, addr_t *locaddr,
                                                uint16_t remport, uint16_t locport) {
     return (struct tcp_sock *)
@@ -317,5 +350,19 @@ int tcp_user_recv();
 int tcp_user_close(struct tcp_sock *sock);
 int tcp_user_abort();
 int tcp_user_status();
+
+
+/*
+ * TCP timers
+ */
+void tcp_timewait_expire(struct tcp_sock *sock);
+
+#define tcp_timewait_start(sock) \
+    timeout_set(&(sock)->timewait, (void(*)(void *)) tcp_timewait_expire, \
+        (void *) (sock), TCP_MSL * 2, 0)
+
+#define tcp_timewait_restart(sock) timeout_restart(&(sock)->timewait, -1, -1)
+
+#define tcp_timewait_cancel(sock) timeout_cancel(&(sock)->timewait)
 
 #endif //NETSTACK_TCP_H
