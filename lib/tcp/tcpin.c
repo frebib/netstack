@@ -291,6 +291,8 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                     sock->state = TCP_ESTABLISHED;
                     LOG(LDBUG, "[TCP] ESTABLISHED state reached");
 
+                    // TODO: Allocate a RCV buffer
+
                     // RFC 1122: Section 4.2.2.20 (c)
                     // TCP event processing corrections
                     // https://tools.ietf.org/html/rfc1122#page-94
@@ -300,6 +302,13 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
 
                     LOG(LDBUG, "[TCP] Sending ACK from %s:%d", __FILE__, __LINE__);
                     ret = tcp_send_ack(sock);
+
+                    // Signal the open() call if it's waiting for us
+                    LOG(LDBUG, "Signalling the open() call");
+                    if (pthread_cond_signal(&sock->openwait)) {
+                        LOG(LERR, "pthread_cond_signal: %s", strerror (errno));
+                    }
+
                     goto drop_pkt;
                 }
             }

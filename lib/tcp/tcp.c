@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <netinet/in.h>
 
@@ -64,3 +65,14 @@ void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {
     drop_pkt:
     return;
 }
+
+uint16_t tcp_randomport() {
+    // TODO: Choose a random unused outgoing port
+    return (uint16_t) rand();
+}
+
+uint32_t tcp_seqnum() {
+    // TODO: Choose a secure initial sequence number
+    return (uint32_t) rand();
+}
+

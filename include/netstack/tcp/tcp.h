@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <netstack/log.h>
 #include <netstack/llist.h>
+#include <netstack/timer.h>
 #include <netstack/inet.h>
 #include <netstack/ip/ipv4.h>
 #include <netstack/intf/intf.h>
@@ -120,6 +121,10 @@ struct tcp_sock {
     struct inet_sock inet;
     enum tcp_state state;
     struct tcb tcb;
+
+    // Thread wait locks
+    pthread_cond_t openwait;
+    pthread_mutex_t openlock;
 };
 
 
@@ -204,6 +209,17 @@ static inline struct tcp_sock *tcp_sock_lookup(addr_t *remaddr, addr_t *locaddr,
  */
 uint16_t tcp_ipv4_csum(struct ipv4_hdr *hdr);
 
+/*!
+ * Returns a new random open outgoing TCP port
+ * @return a random port number
+ */
+uint16_t tcp_randomport();
+
+/*!
+ * Returns a new random initial sequence/acknowledgement number
+ * @return a random seq/ack number
+ */
+uint32_t tcp_seqnum();
 
 /*
  * TCP Input
@@ -246,7 +262,14 @@ int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
         TCP_FLAG_ACK)
 
 /*!
- * Send a TCP ACK segment in the form
+ * Send a TCP SYN segment in the form
+ *    <SEQ=SND.NXT><ACK=RCV.NXT><CTL=ACK>
+ */
+#define tcp_send_syn(sock) \
+    tcp_send_empty((sock), (sock)->tcb.iss, 0, TCP_FLAG_SYN)
+
+/*!
+ * Send a TCP SYN/ACK segment in the form
  *    <SEQ=SND.NXT><ACK=RCV.NXT><CTL=ACK>
  */
 #define tcp_send_synack(sock) \
@@ -254,11 +277,19 @@ int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
         TCP_FLAG_SYN | TCP_FLAG_ACK)
 
 /*!
- *
+ * Send a TCP FIN/ACK segment in the form
+ *    <SEQ=SND.NXT><ACK=RCV.NXT><CTL=FIN,ACK>
  */
 #define tcp_send_finack(sock) \
     tcp_send_empty((sock), (sock)->tcb.snd.nxt, (sock)->tcb.rcv.nxt, \
         TCP_FLAG_FIN | TCP_FLAG_ACK)
+
+/*!
+ *
+ */
+#define tcp_send_fin(sock) \
+    tcp_send_empty((sock), (sock)->tcb.snd.nxt, (sock)->tcb.rcv.nxt, \
+        TCP_FLAG_FIN)
 
 /*!
  * Sends a TCP RST segment given a socket, in the form
@@ -273,5 +304,18 @@ int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
  */
 #define tcp_send_rstack(sock, seq, ack) \
     tcp_send_empty((sock), (seq), (ack), TCP_FLAG_RST | TCP_FLAG_ACK)
+
+
+/*
+ * TCP User (calls)
+ * See: tcpuser.c
+ */
+int tcp_user_open(struct tcp_sock *sock);
+int tcp_user_accept(struct tcp_sock *sock);
+int tcp_user_send(struct tcp_sock *sock, void *data, size_t len);
+int tcp_user_recv();
+int tcp_user_close(struct tcp_sock *sock);
+int tcp_user_abort();
+int tcp_user_status();
 
 #endif //NETSTACK_TCP_H
