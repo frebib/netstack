@@ -362,6 +362,6 @@ void tcp_timewait_expire(struct tcp_sock *sock);
 
 #define tcp_timewait_restart(sock) timeout_restart(&(sock)->timewait, -1, -1)
 
-#define tcp_timewait_cancel(sock) timeout_cancel(&(sock)->timewait)
+#define tcp_timewait_cancel(sock) timeout_clear(&(sock)->timewait)
 
 #endif //NETSTACK_TCP_H

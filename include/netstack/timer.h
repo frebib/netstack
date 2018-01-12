@@ -35,7 +35,7 @@ int timeout_set(timeout_t *t, void (*fn)(void *), void *arg,
  * free()'s allocated t->timer if it was started
  * @param t
  */
-void timeout_cancel(timeout_t *t);
+void timeout_clear(timeout_t *t);
 
 /*!
  * Clears and resets a timer

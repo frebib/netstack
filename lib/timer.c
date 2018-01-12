@@ -40,7 +40,7 @@ int timeout_set(timeout_t *t, void (*fn)(void *), void *arg,
     timerspec.it_value.tv_nsec = nsec;
     if (timer_settime(t->timer, 0, &timerspec, NULL)) {
         LOG(LERR, "timer_settime() returned: %s", strerror(errno));
-        timeout_cancel(t);
+        timeout_clear(t);
         return -1;
     }
 
@@ -49,7 +49,7 @@ int timeout_set(timeout_t *t, void (*fn)(void *), void *arg,
     return 0;
 }
 
-inline void timeout_cancel(timeout_t *t) {
+inline void timeout_clear(timeout_t *t) {
     if (t->timer) {
         timer_delete(t->timer);
         t->timer = NULL;
@@ -62,7 +62,7 @@ int timeout_restart(timeout_t *t, time_t sec, time_t nsec) {
         return -1;
     }
 
-    timeout_cancel(t);
+    timeout_clear(t);
     sec  = (sec  == -1 ? sec  : t->timeout.tv_sec);
     nsec = (nsec == -1 ? nsec : t->timeout.tv_nsec);
     return timeout_set(t, t->func, t->arg, sec, nsec);
@@ -77,8 +77,5 @@ void netstack_timer_handler(int sig, siginfo_t *si, void *uc) {
 
         // Call passed function with provided argument
         t->func(t->arg);
-
-        // Clean up allocated memory
-        timeout_cancel(t);
     }
 }
