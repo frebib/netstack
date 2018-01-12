@@ -30,6 +30,26 @@ int tcp_user_open(struct tcp_sock *sock) {
       state, and return.
     */
 
+    if (sock == NULL) {
+        return ENOTSOCK;
+    }
+
+    switch (sock->state) {
+        case TCP_ESTABLISHED:
+        case TCP_FIN_WAIT_1:
+        case TCP_FIN_WAIT_2:
+        case TCP_LAST_ACK:
+        case TCP_CLOSING:
+        case TCP_CLOSE_WAIT:
+            return EISCONN;
+        case TCP_SYN_SENT:
+        case TCP_SYN_RECEIVED:
+            return EALREADY;
+        default:
+            break;
+    }
+
+    sock->opentype = TCP_ACTIVE_OPEN;
     sock->inet.locport = tcp_randomport();
     // TODO: Fill out 'user timeout' information
 
@@ -43,15 +63,19 @@ int tcp_user_open(struct tcp_sock *sock) {
     tcp_setstate(sock, TCP_SYN_SENT);
 
     // Wait indefinitely for the connection to be established
-    pthread_cond_init(&sock->openwait, NULL);
-    pthread_mutex_init(&sock->openlock, NULL);
-    LOG(LDBUG, "calling pthread_cond_wait() in %s()", __func__);
     while (sock->state != TCP_ESTABLISHED) {
-        pthread_cond_wait(&sock->openwait, &sock->openlock);
-        LOG(LDBUG, "sock->openwait signalled in %s()", __func__);
+        // TODO: Check for O_NONBLOCK
+        if (false) {
+            struct timespec t = {.tv_sec = 5, .tv_nsec = 0};
+            int e = pthread_cond_timedwait(&sock->openwait, &sock->openlock, &t);
+            if (e == ETIMEDOUT) {
+                tcp_free_sock(sock);
+                return ETIMEDOUT;
+            }
+        } else {
+            pthread_cond_wait(&sock->openwait, &sock->openlock);
+        }
     }
-    pthread_mutex_unlock(&sock->openlock);
-    pthread_mutex_destroy(&sock->openlock);
 
     return ret;
 }
@@ -62,17 +86,37 @@ int tcp_user_close(struct tcp_sock *sock) {
 
     // TODO: tcp_close() request until all send() calls have completed
     switch (sock->state) {
+        case TCP_LISTEN:
+            // TODO: Interrupt waiting recv() calls with -ECONNABORTED
+            tcp_setstate(sock, TCP_CLOSED);
+            tcp_free_sock(sock);
+            break;
+        case TCP_SYN_SENT:
+            tcp_free_sock(sock);
+            // TODO: Interrupt waiting send()/recv() calls with -ECONNABORTED
+            break;
+        case TCP_SYN_RECEIVED:
+            /* If no SENDs have been issued and there is no pending data to
+               send, then form a FIN segment and send it, and enter FIN-WAIT-1
+               state; otherwise queue for processing after entering ESTABLISHED
+               state. */
+            // TODO: Check for pending send() calls
+            // Fall through to TCP_ESTABLISHED
+        case TCP_ESTABLISHED:
+            tcp_send_finack(sock);
+            tcp_setstate(sock, TCP_FIN_WAIT_1);
+            break;
         case TCP_CLOSE_WAIT:
-            tcp_send_fin(sock);
+            tcp_send_finack(sock);
             tcp_setstate(sock, TCP_CLOSED);
             break;
         case TCP_CLOSING:
         case TCP_LAST_ACK:
         case TCP_TIME_WAIT:
             // Connection already closing
-            return -EALREADY;
+            return EALREADY;
         case TCP_CLOSED:
-            return -ENOTCONN;
+            return ENOTCONN;
         default:
             break;
     }

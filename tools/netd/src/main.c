@@ -86,6 +86,12 @@ int main(int argc, char **argv) {
             case SIGINT:
             case SIGHUP:
             case SIGQUIT:
+                // Cleanup TCP states
+                LOG(LNTCE, "Cleaning up %hu TCP sockets", tcp_sockets.length);
+                llist_iter(&tcp_sockets, tcp_sock_cleanup);
+                llist_iter(&tcp_sockets, free);
+                llist_clear(&tcp_sockets);
+
                 LOG(LNTCE, "Cleaning up interface %s", intf->name);
                 LOG(LNTCE, "Stopping threads");
                 // Cleanup threads
@@ -106,12 +112,6 @@ int main(int argc, char **argv) {
                 // Cleanup route table
                 llist_iter(&route_tbl, free);
                 llist_clear(&route_tbl);
-
-                // Cleanup TCP states
-                LOG(LNTCE, "Cleaning up %hu TCP sockets", tcp_sockets.length);
-                // TODO: close() or RST all open connections
-                llist_iter(&tcp_sockets, free);
-                llist_clear(&tcp_sockets);
 
                 // Cleanup interface meta
                 intf->free(intf);

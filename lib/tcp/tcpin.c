@@ -438,11 +438,14 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     */
         case TCP_SYN_RECEIVED:
             if (seg->flags.rst == 1) {
-                // TODO: Differentiate between PASSIVE and ACTIVE open here
-                // TODO: Inform user of ECONNREFUSED if ACTIVE open
-                // TODO: Clear retransmission queue
-                tcp_free_sock(sock);
-                ret = -ECONNREFUSED;
+                if (sock->opentype == TCP_PASSIVE_OPEN) {
+                    // TODO: Reset connection to LISTEN state
+                } else {
+                    // TODO: Inform user of ECONNREFUSED
+                    // TODO: Clear retransmission queue
+                    tcp_free_sock(sock);
+                    ret = -ECONNREFUSED;
+                }
                 goto drop_pkt;
             }
             break;

@@ -73,6 +73,26 @@ void tcp_setstate(struct tcp_sock *sock, enum tcp_state state) {
     LOG(LDBUG, "[TCP] %s state reached", tcp_strstate(state));
 }
 
+void tcp_sock_cleanup(struct tcp_sock *sock) {
+    switch(sock->state) {
+        case TCP_SYN_SENT:
+        case TCP_SYN_RECEIVED:
+        case TCP_ESTABLISHED:
+        case TCP_FIN_WAIT_1:
+        case TCP_FIN_WAIT_2:
+        case TCP_CLOSE_WAIT:
+        case TCP_CLOSING:
+        case TCP_LAST_ACK:
+            tcp_send_rst(sock, sock->tcb.snd.nxt);
+            break;
+        case TCP_TIME_WAIT:
+            tcp_timewait_cancel(sock);
+            break;
+        default:
+            break;
+    }
+}
+
 
 /*
  * TCP Internet functions

@@ -16,7 +16,7 @@
 
 ## [include/netstack/tcp/tcp.h](include/netstack/tcp/tcp.h)
   - Line 41: Take endianness into account in tcp_hdr
-  - Line 150: Fix endianness in tcp.h
+  - Line 151: Fix endianness in tcp.h
 
 ## [lib/eth/arp.c](lib/eth/arp.c)
   - Line 73: Check for queued outgoing packets that can
@@ -71,8 +71,8 @@
   - Line 61: Other integrity checks
   - Line 70: Perform queued actions when reaching certain states
   - Line 71: Lock sock->state
-  - Line 82: Choose a random unused outgoing port
-  - Line 87: Choose a secure initial sequence number
+  - Line 102: Choose a random unused outgoing port
+  - Line 107: Choose a secure initial sequence number
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
   - Line 20: * TODO: Treat all seq and ack number arithmetic modulo UINT32_MAX
@@ -87,25 +87,25 @@
   - Line 291: Allocate a RCV buffer
   - Line 325: If there are other controls or text in the segment,
   - Line 418: Store out-of-order segments that are >RCV.NXT for later processing
-  - Line 441: Differentiate between PASSIVE and ACTIVE open here
-  - Line 442: Inform user of ECONNREFUSED if ACTIVE open
-  - Line 443: Clear retransmission queue
-  - Line 467: Interrupt user send() and recv() calls with ECONNRESET
-  - Line 468: Clear retransmission queue
-  - Line 487: Clear retransmission queue
-  - Line 553: Interrupt user send() and recv() calls with ECONNRESET
-  - Line 555: Clear retransmission queue
-  - Line 557: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
-  - Line 634: Remove any segments from the rtq that are ack'd
-  - Line 635: Inform any waiting send() calls when acknowledgements
-  - Line 644: Is sending an ACK here necessary?
-  - Line 652: Work out if our FIN was ACK'ed
-  - Line 673: Send success to waiting close() calls
-  - Line 771: Handle receiving segment payload
-  - Line 831: Signal the user 'connection closing'
-  - Line 857: Work out if 'our FIN has been ACKed'
-  - Line 861: stop other TCP timers in FIN-WAIT-2
-  - Line 875: stop other TCP timers in FIN-WAIT-2
+  - Line 442: Reset connection to LISTEN state
+  - Line 444: Inform user of ECONNREFUSED
+  - Line 445: Clear retransmission queue
+  - Line 470: Interrupt user send() and recv() calls with ECONNRESET
+  - Line 471: Clear retransmission queue
+  - Line 490: Clear retransmission queue
+  - Line 556: Interrupt user send() and recv() calls with ECONNRESET
+  - Line 558: Clear retransmission queue
+  - Line 560: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
+  - Line 637: Remove any segments from the rtq that are ack'd
+  - Line 638: Inform any waiting send() calls when acknowledgements
+  - Line 647: Is sending an ACK here necessary?
+  - Line 655: Work out if our FIN was ACK'ed
+  - Line 676: Send success to waiting close() calls
+  - Line 774: Handle receiving segment payload
+  - Line 834: Signal the user 'connection closing'
+  - Line 860: Work out if 'our FIN has been ACKed'
+  - Line 864: stop other TCP timers in FIN-WAIT-2
+  - Line 878: stop other TCP timers in FIN-WAIT-2
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
   - Line 15: Allow for tcp_hdr->hlen options
@@ -117,12 +117,15 @@
   - Line 55: Allocate space for TCP options
 
 ## [lib/tcp/tcpuser.c](lib/tcp/tcpuser.c)
-  - Line 34: Fill out 'user timeout' information
-  - Line 63: tcp_close() request until all send() calls have completed
+  - Line 54: Fill out 'user timeout' information
+  - Line 67: Check for O_NONBLOCK
+  - Line 87: tcp_close() request until all send() calls have completed
+  - Line 90: Interrupt waiting recv() calls with -ECONNABORTED
+  - Line 96: Interrupt waiting send()/recv() calls with -ECONNABORTED
+  - Line 103: Check for pending send() calls
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
   - Line 17: Add many configurable interfaces
   - Line 18: Add loopback interface
   - Line 52: Take different socket types into account here
   - Line 54: For now, assume everything is ethernet
-  - Line 112: close() or RST all open connections

@@ -136,6 +136,7 @@ static const char *tcp_strstate(enum tcp_state state) {
 struct tcp_sock {
     struct inet_sock inet;
     enum tcp_state state;
+    bool opentype;      // Either TCP_ACTIVE_OPEN or TCP_PASSIVE_OPEN
     struct tcb tcb;
 
     // TCP timers
@@ -168,6 +169,9 @@ struct tcp_sock {
 #define TCP_FLAG_CWR    0x80
 #endif
 
+
+#define TCP_ACTIVE_OPEN     0x0
+#define TCP_PASSIVE_OPEN    0x1
 
 #define TCP_DEF_MSS     536
 #define TCP_MSL         60      // Maximum Segment Lifetime (in seconds)
@@ -229,6 +233,8 @@ static inline struct tcp_sock *tcp_sock_lookup(addr_t *remaddr, addr_t *locaddr,
     return (struct tcp_sock *)
             inet_sock_lookup(&tcp_sockets, remaddr, locaddr, remport, locport);
 }
+
+void tcp_sock_cleanup(struct tcp_sock *sock);
 
 
 /*
@@ -314,15 +320,8 @@ int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
  *    <SEQ=SND.NXT><ACK=RCV.NXT><CTL=FIN,ACK>
  */
 #define tcp_send_finack(sock) \
-    tcp_send_empty((sock), (sock)->tcb.snd.nxt, (sock)->tcb.rcv.nxt, \
+    tcp_send_empty((sock), (sock)->tcb.snd.nxt++, (sock)->tcb.rcv.nxt, \
         TCP_FLAG_FIN | TCP_FLAG_ACK)
-
-/*!
- *
- */
-#define tcp_send_fin(sock) \
-    tcp_send_empty((sock), (sock)->tcb.snd.nxt, (sock)->tcb.rcv.nxt, \
-        TCP_FLAG_FIN)
 
 /*!
  * Sends a TCP RST segment given a socket, in the form

@@ -50,9 +50,10 @@ int timeout_set(timeout_t *t, void (*fn)(void *), void *arg,
 }
 
 inline void timeout_cancel(timeout_t *t) {
-    if (t->timer)
+    if (t->timer) {
         timer_delete(t->timer);
-    t->timer = NULL;
+        t->timer = NULL;
+    }
 }
 
 int timeout_restart(timeout_t *t, time_t sec, time_t nsec) {
