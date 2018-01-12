@@ -54,11 +54,13 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         if (seg->flags.ack != 1) {
             // If the ACK bit is off, sequence number zero is used,
             // <SEQ=0><ACK=SEG.SEQ+SEG.LEN><CTL=RST,ACK>
+            LOG(LDBUG, "[TCP] Sending RST/ACK from %s:%d", __FILE__, __LINE__);
             ret = tcp_send_rstack(sock, 0, seg_seq + frame_data_len(frame) + 1);
             tcp_free_sock(sock);
         } else {
             // If the ACK bit is on,
             // <SEQ=SEG.ACK><CTL=RST>
+            LOG(LDBUG, "[TCP] Sending RST from %s:%d", __FILE__, __LINE__);
             ret = tcp_send_rst(sock, seg_ack);
             tcp_free_sock(sock);
         }
@@ -80,8 +82,11 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
 
             An incoming RST should be ignored.  Return.
         */
-            if (seg->flags.rst == 1)
+            if (seg->flags.rst == 1) {
+                // TODO: Reset connection to LISTEN state
+                tcp_restore_listen(sock);
                 goto drop_pkt;
+            }
         /*
           second check for an ACK
 
@@ -95,7 +100,9 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             Return.
         */
             if (seg->flags.ack == 1) {
+                LOG(LDBUG, "[TCP] Sending RST from %s:%d", __FILE__, __LINE__);
                 ret = tcp_send_rst(sock, seg_ack);
+                tcp_restore_listen(sock);
                 goto drop_pkt;
             }
         /*
@@ -108,8 +115,11 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
 
               <SEQ=SEG.ACK><CTL=RST>
         */
-            if (seg->flags.syn != 1)
+            if (seg->flags.syn != 1) {
+                tcp_restore_listen(sock);
                 goto drop_pkt;
+            }
+
 
             // Incoming 'frame' is SYN frame
 
@@ -192,8 +202,10 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             if (seg->flags.ack == 1) {
                 if (seg_ack < tcb->iss ||
                     seg_ack > tcb->snd.nxt) {
-                     if (seg->flags.rst != 1)
+                     if (seg->flags.rst != 1) {
+                         LOG(LDBUG, "[TCP] Sending RST from %s:%d", __FILE__, __LINE__);
                          ret = tcp_send_rst(sock, seg_ack);
+                     }
                     goto drop_pkt;
                 }
             }
@@ -388,6 +400,8 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     if (seg_seq > tcb->rcv.nxt + tcb->rcv.wnd) {
         valid = false;
         LOG(LINFO, "[TCP] more data was sent than can fit in RCV.WND");
+        LOG(LINFO, "[TCP] SEQ %lu, RCV.NXT %lu, RCV.WND %lu",
+            seg_seq, tcb->rcv.nxt, tcb->rcv.wnd);
     }
     /*
         If an incoming segment is not acceptable, an acknowledgment
@@ -439,7 +453,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         case TCP_SYN_RECEIVED:
             if (seg->flags.rst == 1) {
                 if (sock->opentype == TCP_PASSIVE_OPEN) {
-                    // TODO: Reset connection to LISTEN state
+                    tcp_restore_listen(sock);
                 } else {
                     // TODO: Inform user of ECONNREFUSED
                     // TODO: Clear retransmission queue
@@ -554,6 +568,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             if (seg->flags.syn == 1 && (seg_seq < tcb->rcv.nxt ||
                                         seg_seq > tcb->rcv.nxt + tcb->rcv.wnd)) {
                 // TODO: Interrupt user send() and recv() calls with ECONNRESET
+                LOG(LDBUG, "[TCP] Sending RST from %s:%d", __FILE__, __LINE__);
                 ret = tcp_send_rst(sock, seg_ack);
                 // TODO: Clear retransmission queue
                 tcp_free_sock(sock);
@@ -599,6 +614,9 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             } else {
                 LOG(LDBUG, "[TCP] Sending RST from %s:%d", __FILE__, __LINE__);
                 ret = tcp_send_rst(sock, seg_ack);
+
+                // SYN-RECEIVED is always PASSIVE_OPEN
+                tcp_restore_listen(sock);
             }
             break;
     /*
@@ -645,6 +663,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             }
             if (seg_ack > tcb->snd.nxt) {
                 // TODO: Is sending an ACK here necessary?
+                LOG(LDBUG, "[TCP] ACK received for something not yet sent");
                 LOG(LDBUG, "[TCP] Sending ACK from %s:%d", __FILE__, __LINE__);
                 ret = tcp_send_ack(sock);
                 goto drop_pkt;
@@ -909,3 +928,12 @@ drop_pkt:
     return ret;
 }
 
+void tcp_restore_listen(struct tcp_sock *sock) {
+    // TODO: Implement locking
+    // TODO: Restore previous local address if it was set
+    sock->inet.locaddr = (addr_t) {.proto = sock->inet.locaddr.proto};
+    sock->inet.remaddr = (addr_t) {.proto = sock->inet.remaddr.proto};
+    sock->inet.remport = 0;
+    LOG(LDBUG, "[TCP] Returning connection to LISTEN state");
+    tcp_setstate(sock, TCP_LISTEN);
+}

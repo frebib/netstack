@@ -242,13 +242,6 @@ void tcp_sock_cleanup(struct tcp_sock *sock);
  */
 
 /*!
- * Calculates the IPv4 network checksum for the TCP checksum initial value
- * @param hdr IPv4 header of TCP parent packet
- * @return IPv4 network checksum using TCP/IPv4 pseudo-header
- */
-uint16_t tcp_ipv4_csum(struct ipv4_hdr *hdr);
-
-/*!
  * Returns a new random open outgoing TCP port
  * @return a random port number
  */
@@ -275,6 +268,13 @@ void tcp_free_sock(struct tcp_sock *sock);
 
 int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock);
 
+/*!
+ * Restores a previously LISTENing socket to LISTEN state
+ * Use this function when an TCP_PASSIVE_OPEN connection attempt fails and
+ * the socket should be reset to allow other connections.
+ * @param sock
+ */
+void tcp_restore_listen(struct tcp_sock *sock);
 
 /*
  * TCP Output
