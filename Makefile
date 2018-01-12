@@ -2,7 +2,7 @@ SRCDIR = lib
 OBJDIR = obj
 INCDIR = include
 
-override CFLAGS  += -I$(INCDIR) -Wall -Werror -Wno-unused-variable -Wno-missing-braces -fstack-protector -O3
+override CFLAGS  += -I$(INCDIR) -Wall -Werror -Wno-unused-variable -Wno-unused-function -Wno-missing-braces -fstack-protector -O3 -g
 override LDFLAGS += -shared -Wl,--as-needed
 override LDLIBS  += -lpthread -lrt
 

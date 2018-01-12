@@ -3,7 +3,8 @@ OBJDIR = obj
 LIBDIR = ../..
 INCDIR = $(LIBDIR)/include
 
-CFLAGS   = -I$(INCDIR) -Wall -Werror -Wno-unused-variable -fstack-protector -O3
+CFLAGS  ?= -I$(INCDIR) -Wall -Werror -Wno-unused-variable -Wno-unused-function -Wno-missing-braces -fstack-protector -O3 -g
+CFLAGS  += -I$(INCDIR)
 LDFLAGS += -L$(LIBDIR) -Wl,--as-needed -Wl,-enable-new-dtags,-rpath,"$(LIBDIR)",-rpath,.
 LDLIBS  += -lnetstack -lcap -ldl -lpthread
 
