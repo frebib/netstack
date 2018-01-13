@@ -35,6 +35,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     struct tcp_hdr *seg = tcp_hdr(frame);
     uint32_t seg_seq = ntohl(seg->seqn);
     uint32_t seg_ack = ntohl(seg->ackn);
+    uint16_t seg_len = frame_data_len(frame);
 
     // If the state is CLOSED (i.e., TCB does not exist) then
     if (sock->state == TCP_CLOSED) {
@@ -75,15 +76,12 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             LOG(LDBUG, "[TCP] Reached TCP_LISTEN on %s:%hu",
                 fmtip4(inet->locaddr.ipv4), inet->remport);
 
-            // TODO: Reinstate LISTEN socket for any unacceptable connections
-
         /*
           first check for an RST
 
             An incoming RST should be ignored.  Return.
         */
             if (seg->flags.rst == 1) {
-                // TODO: Reset connection to LISTEN state
                 tcp_restore_listen(sock);
                 goto drop_pkt;
             }
@@ -388,7 +386,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         RSTs.
     */
     bool valid = true;
-    if (frame_data_len(frame) > 0 && tcb->rcv.wnd == 0) {
+    if (seg_len > 0 && tcb->rcv.wnd == 0) {
         valid = false;
         LOG(LINFO, "[TCP] data sent but RCV.WND is 0");
     }
@@ -397,11 +395,11 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         LOG(LINFO, "[TCP] Recv'd seq number is less than expected RCV.NXT");
         LOG(LINFO, "[TCP] SEQ %lu, RCV.NXT %lu", seg_seq, tcb->rcv.nxt);
     }
-    if (seg_seq > tcb->rcv.nxt + tcb->rcv.wnd) {
+    if (seg_seq + seg_len - 1 > tcb->rcv.nxt + tcb->rcv.wnd) {
         valid = false;
         LOG(LINFO, "[TCP] more data was sent than can fit in RCV.WND");
-        LOG(LINFO, "[TCP] SEQ %lu, RCV.NXT %lu, RCV.WND %lu",
-            seg_seq, tcb->rcv.nxt, tcb->rcv.wnd);
+        LOG(LINFO, "[TCP] SEQ %lu, LEN %lu, RCV.NXT %lu, RCV.WND %lu",
+            seg_seq, seg_len, tcb->rcv.nxt, tcb->rcv.wnd);
     }
     /*
         If an incoming segment is not acceptable, an acknowledgment
@@ -792,7 +790,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         case TCP_FIN_WAIT_2: {
             // TODO: Handle receiving segment payload
 
-            size_t size = frame_data_len(frame);
+            size_t size = seg_len;
             if (size < 1)
                 break;
 
