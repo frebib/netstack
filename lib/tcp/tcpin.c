@@ -181,8 +181,8 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
 
             // If the state is SYN-SENT then
         case TCP_SYN_SENT:
-            LOG(LDBUG, "[TCP] Reached TCP_SYN_SENT on %s:%hu",
-                straddr(&inet->locaddr), inet->remport);
+            LOG(LDBUG, "[TCP] Reached SYN-SENT on %s:%hu",
+                straddr(&inet->remaddr), inet->remport);
         /*
           first check the ACK bit
 
