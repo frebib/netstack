@@ -127,5 +127,5 @@
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
   - Line 17: Add many configurable interfaces
   - Line 18: Add loopback interface
-  - Line 52: Take different socket types into account here
-  - Line 54: For now, assume everything is ethernet
+  - Line 48: Take different socket types into account here
+  - Line 50: For now, assume everything is ethernet
