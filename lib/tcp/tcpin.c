@@ -5,6 +5,7 @@
 
 #include <netstack/tcp/tcp.h>
 
+
 inline void tcp_free_sock(struct tcp_sock *sock) {
     llist_remove(&tcp_sockets, sock);
     free(sock);
@@ -147,8 +148,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             unspecified fields should be filled in now.
         */
 
-            // TODO: Choose a good initial sequence number
-            uint32_t iss = (uint32_t) rand();
+            uint32_t iss = tcp_seqnum();
             sock->tcb = (struct tcb) {
                     .irs = seg_seq,
                     .iss = ntohl(iss),
@@ -298,16 +298,16 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                 if (tcb->snd.una > tcb->iss) {
                     tcp_setstate(sock, TCP_ESTABLISHED);
 
-                    // TODO: Allocate a RCV buffer
-
                     // RFC 1122: Section 4.2.2.20 (c)
                     // TCP event processing corrections
                     // https://tools.ietf.org/html/rfc1122#page-94
-                    tcb->snd.wnd = ntohs(seg->wind);
-                    tcb->snd.wl1 = seg_seq;
-                    tcb->snd.wl2 = seg_ack;
+                    tcp_update_wnd(tcb, seg);
+
+                    // Initialise established connection
+                    tcp_established(sock, seg);
 
                     LOG(LDBUG, "[TCP] Sending ACK from %s:%d", __FILE__, __LINE__);
+                    // TODO: Send pending data it the sndbuf
                     ret = tcp_send_ack(sock);
 
                     // Signal the open() call if it's waiting for us
@@ -655,9 +655,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                 // arrive for data they are waiting to be sent.
 
                 // Update send window
-                tcb->snd.wnd = ntohs(seg->wind);
-                tcb->snd.wl1 = seg_seq;
-                tcb->snd.wl2 = seg_ack;
+                tcp_update_wnd(tcb, seg);
             }
             if (seg_ack > tcb->snd.nxt) {
                 // TODO: Is sending an ACK here necessary?
@@ -924,6 +922,12 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
 drop_pkt:
     frame_deref(frame);
     return ret;
+}
+
+void tcp_update_wnd(struct tcb *tcb, struct tcp_hdr *seg) {
+    tcb->snd.wnd = ntohs(seg->wind);
+    tcb->snd.wl1 = ntohl(seg->seqn);
+    tcb->snd.wl2 = ntohl(seg->ackn);
 }
 
 void tcp_restore_listen(struct tcp_sock *sock) {

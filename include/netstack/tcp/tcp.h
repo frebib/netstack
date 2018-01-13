@@ -3,6 +3,10 @@
 
 #include <stdint.h>
 #include <stddef.h>
+
+// Ring buffer library
+#include <rbuf.h>
+
 #include <netstack/log.h>
 #include <netstack/llist.h>
 #include <netstack/timer.h>
@@ -139,6 +143,10 @@ struct tcp_sock {
     bool opentype;      // Either TCP_ACTIVE_OPEN or TCP_PASSIVE_OPEN
     struct tcb tcb;
 
+    // Data buffers
+    rbuf sndbuf;
+    rbuf rcvbuf;
+
     // TCP timers
     timeout_t timewait;
 
@@ -223,6 +231,14 @@ void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum);
 void tcp_setstate(struct tcp_sock *sock, enum tcp_state state);
 
 /*!
+ * Called on a newly established connection. It allocates required buffers
+ * for data transmission
+ * @param sock  socket to initialise
+ * @param seg   incoming tcp_hdr segment that established the connection
+ */
+void tcp_established(struct tcp_sock *sock, struct tcp_hdr *seg);
+
+/*!
  * Finds a matching tcp_sock with address/port quad, including matching
  * against wildcard addresses and ports.
  * @see inet_sock_lookup
@@ -253,6 +269,7 @@ uint16_t tcp_randomport();
  */
 uint32_t tcp_seqnum();
 
+
 /*
  * TCP Input
  * See: tcpin.c
@@ -267,6 +284,11 @@ uint32_t tcp_seqnum();
 void tcp_free_sock(struct tcp_sock *sock);
 
 int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock);
+
+/*!
+ * Updates the TCP send window from an incoming segment
+ */
+void tcp_update_wnd(struct tcb *tcb, struct tcp_hdr *seg);
 
 /*!
  * Restores a previously LISTENing socket to LISTEN state

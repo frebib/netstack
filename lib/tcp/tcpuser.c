@@ -57,6 +57,7 @@ int tcp_user_open(struct tcp_sock *sock) {
     sock->tcb.iss = iss;
     sock->tcb.snd.una = iss;
     sock->tcb.snd.nxt = iss + 1;
+    sock->tcb.rcv.wnd = UINT16_MAX;
 
     int ret = tcp_send_syn(sock);
 

@@ -73,6 +73,15 @@ void tcp_setstate(struct tcp_sock *sock, enum tcp_state state) {
     LOG(LDBUG, "[TCP] %s state reached", tcp_strstate(state));
 }
 
+void tcp_established(struct tcp_sock *sock, struct tcp_hdr *seg) {
+
+    // Allocate send/receive buffers
+    rbuf_init(&sock->rcvbuf, sock->tcb.rcv.wnd, BYTE);
+    rbuf_init(&sock->sndbuf, sock->tcb.snd.wnd, BYTE);
+    LOG(LDBUG, "[TCP] Allocated SND.WND %hu, RCV.WND %hu",
+        sock->tcb.snd.wnd, sock->tcb.rcv.wnd);
+}
+
 void tcp_sock_cleanup(struct tcp_sock *sock) {
     switch(sock->state) {
         case TCP_SYN_SENT:
@@ -91,6 +100,12 @@ void tcp_sock_cleanup(struct tcp_sock *sock) {
         default:
             break;
     }
+
+    // Deallocate dynamically allocated data buffers
+    if (sock->rcvbuf.size > 0)
+        rbuf_destroy(&sock->rcvbuf);
+    if (sock->sndbuf.size > 0)
+        rbuf_destroy(&sock->sndbuf);
 }
 
 
