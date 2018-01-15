@@ -36,7 +36,7 @@ ext: $(RBUF)
 tools: netd
 
 # Compilation
-$(TARGET_LIB): ext $(OBJ)
+$(TARGET_LIB): $(RBUF) $(OBJ)
 	$(CC) $(LDFLAGS) $(OBJ) $(LDLIBS) -o $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c $(INC)
