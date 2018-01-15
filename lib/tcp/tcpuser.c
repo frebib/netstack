@@ -59,12 +59,15 @@ int tcp_user_open(struct tcp_sock *sock) {
     sock->tcb.snd.nxt = iss + 1;
     sock->tcb.rcv.wnd = UINT16_MAX;
 
-    int ret = tcp_send_syn(sock);
+    int ret;
+    if ((ret = tcp_send_syn(sock))) {
+        return ret;
+    }
 
     tcp_setstate(sock, TCP_SYN_SENT);
 
     // Wait indefinitely for the connection to be established
-    while (sock->state != TCP_ESTABLISHED) {
+    while (sock->state != TCP_ESTABLISHED && ret == 0) {
         // TODO: Check for O_NONBLOCK
         if (false) {
             struct timespec t = {.tv_sec = 5, .tv_nsec = 0};
@@ -76,6 +79,8 @@ int tcp_user_open(struct tcp_sock *sock) {
         } else {
             pthread_cond_wait(&sock->openwait, &sock->openlock);
         }
+        ret = (int) sock->openret;
+        pthread_mutex_unlock(&sock->openlock);
     }
 
     return ret;

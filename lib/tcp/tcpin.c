@@ -219,10 +219,13 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         */
             if (seg->flags.rst == 1) {
                 if (tcp_ack_acceptable(tcb, seg)) {
+                    pthread_mutex_lock(&sock->openlock);
+                    sock->openret = ECONNRESET;
+                    pthread_mutex_unlock(&sock->openlock);
+                    pthread_cond_signal(&sock->openwait);
                     // TODO: Send ECONNERESET to user process
                     ret = -ECONNRESET;
                     tcp_setstate(sock, TCP_CLOSED);
-                    tcp_free_sock(sock);
                 }
                 goto drop_pkt;
             }

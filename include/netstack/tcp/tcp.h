@@ -153,6 +153,7 @@ struct tcp_sock {
     // Thread wait locks
     pthread_cond_t openwait;
     pthread_mutex_t openlock;
+    size_t openret;
 };
 
 
