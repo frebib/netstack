@@ -38,6 +38,7 @@ flags = [
     'c',
     '-Dnetstack_EXPORTS',
     '-Iinclude',
+    '-Iext/ring_buffer/src',
     '-Wall',
     '-Werror',
     '-Wpedantic',
