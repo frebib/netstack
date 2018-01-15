@@ -47,7 +47,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c $(INC)
 netd: $(NETD)
 $(NETD):
 	@make -C $(NETD_DIR)
-	@ln -sfv $(NETD) .
+	@ln -sfv $(NETD) netd
 
 $(RBUF):
 	@make -C $(@D) dynamic
