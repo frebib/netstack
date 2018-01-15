@@ -70,6 +70,18 @@ int rawsock_new(struct intf *interface) {
         return -1;
     }
 
+    // Bind to specific interface to prevent duplicate packet reception
+    struct sockaddr_ll sa_ll = {
+            .sll_ifindex = if_ni->if_index,
+            .sll_family = AF_PACKET
+    };
+    if (bind(sock, (struct sockaddr *) &sa_ll, sizeof(sa_ll))) {
+        LOGERR("bind");
+        if_freenameindex(if_ni_head);
+        close(sock);
+        return -1;
+    }
+
     // Get chosen interface mac address
     uint8_t *hwaddr = malloc(IFHWADDRLEN);
     struct ifreq req;

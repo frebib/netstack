@@ -40,10 +40,10 @@
 
 ## [lib/intf/rawsock.c](lib/intf/rawsock.c)
   - Line 41: This is hacky, assuiming lo is loopback
-  - Line 123: Move some of this cleanup logic into a generic intf_free() function
-  - Line 132: Ensure frames are destroyed, even if they still have references
-  - Line 157: Allocate a buffer from the interface for frame storage
-  - Line 162: Find an appropriate size for the control buffer
+  - Line 135: Move some of this cleanup logic into a generic intf_free() function
+  - Line 144: Ensure frames are destroyed, even if they still have references
+  - Line 169: Allocate a buffer from the interface for frame storage
+  - Line 174: Find an appropriate size for the control buffer
 
 ## [lib/ip/icmp.c](lib/ip/icmp.c)
   - Line 82: Don't assume IPv4 parent
