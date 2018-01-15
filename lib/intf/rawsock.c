@@ -26,14 +26,14 @@ int rawsock_new(struct intf *interface) {
     // Use SOCK_DGRAM to remove ethernet header
     int sock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
     if (sock < 0) {
-        perror("Error: could not create socket");
+        LOGERR("socket");
         return -1;
     }
 
     int opt = true;
     int err = setsockopt(sock, SOL_SOCKET, SO_TIMESTAMPNS, &opt, sizeof(int));
     if (err < 0) {
-        perror("Could not set SO_TIMESTAMPNS on socket");
+        LOGERR("setsockopt SO_TIMESTAMPNS");
         close(sock);
         return -1;
     }
@@ -51,7 +51,7 @@ int rawsock_new(struct intf *interface) {
         memset(&ifr, 0, sizeof(ifr));
         strncpy(ifr.ifr_name, if_ni->if_name, IFNAMSIZ);
         if (ioctl(ifrsock, SIOCGIFFLAGS, &ifr) < 0)
-            perror("SIOCGIFFLAGS");
+            LOGERR("ioctl SIOCGIFFLAGS");
         close(ifrsock);
         if (!(ifr.ifr_flags & IFF_UP)) {
             if_ni++;

@@ -80,6 +80,12 @@ void LOG(loglvl_t level, const char *fmt, ...);
 void VLOG(loglvl_t level, const char *fmt, va_list args);
 void TLOG (loglvl_t level, struct timespec *t, const char *fmt, ...);
 void VTLOG(loglvl_t level, struct timespec *t, const char *fmt, va_list args);
+/*! Equivalent of perror(3) */
+#define LOGERR(fmt, ...) LOG(LERR, (fmt ": %s (%s:%lu)"), ##__VA_ARGS__, \
+                                strerror(errno), __FILE__, __LINE__)
+#define LOGE(lvl, fmt, ...) LOG((lvl), (fmt ": %s (%s:%lu)"), ##__VA_ARGS__, \
+                                    strerror(errno), __FILE__, __LINE__)
+
 
 /*!
  * Generate log entry and write it to file

@@ -316,7 +316,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                     // Signal the open() call if it's waiting for us
                     LOG(LDBUG, "Signalling the open() call");
                     if (pthread_cond_signal(&sock->openwait)) {
-                        LOG(LERR, "pthread_cond_signal: %s", strerror (errno));
+                        LOGERR("pthread_cond_signal");
                     }
 
                     goto drop_pkt;

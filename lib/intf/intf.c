@@ -50,7 +50,6 @@ void _intf_send_thread(struct intf *intf) {
     pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 
-
     // Wait on the sendctr for something to send
     while (sem_wait(&intf->sendctr) == 0) {
 
@@ -151,7 +150,7 @@ void _intf_recv_thread(struct intf *intf) {
     }
 
     if (count == -1) {
-        perror("recv error");
+        LOGERR("recv");
     }
 }
 

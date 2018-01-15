@@ -8,6 +8,7 @@
 #endif
 
 #include <netstack/log.h>
+#include <errno.h>
 
 struct log_config logconf = {
         .streams = LLIST_INITIALISER,
@@ -160,7 +161,7 @@ void VLOGT(struct log_trans *trans, const char *fmt, va_list args) {
         while (newsize <= minsize);
 
         if ((trans->str = realloc(trans->str, newsize)) == NULL) {
-            perror("realloc");
+            LOGERR("realloc");
             exit(EX_OSERR);
         }
     }

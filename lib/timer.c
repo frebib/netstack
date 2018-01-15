@@ -19,7 +19,7 @@ int timeout_set(timeout_t *t, void (*fn)(void *), void *arg,
     sigemptyset(&sa.sa_mask);
 
     if (sigaction(TIMER_SIGNAL, &sa, NULL)) {
-        LOG(LERR, "sigaction() returned: %s", strerror(errno));
+        LOGERR("sigaction");
         return -1;
     }
 
@@ -30,7 +30,7 @@ int timeout_set(timeout_t *t, void (*fn)(void *), void *arg,
     te.sigev_signo = TIMER_SIGNAL;
     te.sigev_value.sival_ptr = t;
     if (timer_create(CLOCK_REALTIME, &te, &t->timer)) {
-        LOG(LERR, "timer_create() returned: %s", strerror(errno));
+        LOGERR("timer_create");
         free(t);
         return -1;
     }
@@ -39,7 +39,7 @@ int timeout_set(timeout_t *t, void (*fn)(void *), void *arg,
     timerspec.it_value.tv_sec = sec;
     timerspec.it_value.tv_nsec = nsec;
     if (timer_settime(t->timer, 0, &timerspec, NULL)) {
-        LOG(LERR, "timer_settime() returned: %s", strerror(errno));
+        LOGERR("timer_settime");
         timeout_clear(t);
         return -1;
     }

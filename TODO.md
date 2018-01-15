@@ -32,11 +32,11 @@
   - Line 21: Lock llist socks for concurrent access
 
 ## [lib/intf/intf.c](lib/intf/intf.c)
-  - Line 110: Implement rx 'software' timestamping
-  - Line 117: Conditionally print debugging information
-  - Line 134: Use same frame stack instead of cloning across threads
-  - Line 202: Check intf hwtype to calculate max frame size
-  - Line 228: Selectively choose an appropriate address from intf
+  - Line 109: Implement rx 'software' timestamping
+  - Line 116: Conditionally print debugging information
+  - Line 133: Use same frame stack instead of cloning across threads
+  - Line 201: Check intf hwtype to calculate max frame size
+  - Line 227: Selectively choose an appropriate address from intf
 
 ## [lib/intf/rawsock.c](lib/intf/rawsock.c)
   - Line 41: This is hacky, assuiming lo is loopback
