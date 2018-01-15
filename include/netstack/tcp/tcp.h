@@ -315,6 +315,8 @@ int tcp_send(struct tcp_sock *sock, struct frame *frame);
 int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
                    uint8_t flags);
 
+int tcp_send_data(struct tcp_sock *sock, uint8_t flags);
+
 /*!
  * Send a TCP ACK segment in the form
  *    <SEQ=SND.NXT><ACK=RCV.NXT><CTL=ACK>

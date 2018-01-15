@@ -67,12 +67,12 @@
 
 ## [lib/tcp/tcp.c](lib/tcp/tcp.c)
   - Line 19: Work out why sometimes this is 0x0200 too small (in netwk byte-ord)
-  - Line 55: Check for TSO and GRO and account for it, somehow..
-  - Line 61: Other integrity checks
-  - Line 70: Perform queued actions when reaching certain states
-  - Line 71: Lock sock->state
-  - Line 117: Choose a random unused outgoing port
-  - Line 122: Choose a secure initial sequence number
+  - Line 57: Check for TSO and GRO and account for it, somehow..
+  - Line 63: Other integrity checks
+  - Line 72: Perform queued actions when reaching certain states
+  - Line 73: Lock sock->state
+  - Line 119: Choose a random unused outgoing port
+  - Line 124: Choose a secure initial sequence number
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
   - Line 21: * TODO: Treat all seq and ack number arithmetic modulo UINT32_MAX
@@ -107,21 +107,29 @@
   - Line 938: Restore previous local address if it was set
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
-  - Line 15: Allow for tcp_hdr->hlen options
-  - Line 17: Vary hdr->wind in tcp_send()
-  - Line 24: Don't assume IPv4 L3, choose based on sock->saddr
-  - Line 34: Don't assume IPv4 pseudo-header for checksumming
-  - Line 40: Implement functionality to specify IP flags (different for IP4/6?)
-  - Line 48: Work out route interface before allocating buffer
-  - Line 55: Allocate space for TCP options
+  - Line 16: Allow for tcp_hdr->hlen options
+  - Line 18: Vary hdr->wind in tcp_send()
+  - Line 25: Don't assume IPv4 L3, choose based on sock->saddr
+  - Line 35: Don't assume IPv4 pseudo-header for checksumming
+  - Line 41: Implement functionality to specify IP flags (different for IP4/6?)
+  - Line 49: Work out route interface before allocating buffer
+  - Line 56: Allocate space for TCP options
+  - Line 66: Work out route interface before allocating buffer
+  - Line 74: Implement MSS variability. Default MSS is quite small
+  - Line 81: Allocate space for TCP options
+  - Line 89: Start the retransmission timeout
 
 ## [lib/tcp/tcpuser.c](lib/tcp/tcpuser.c)
   - Line 54: Fill out 'user timeout' information
   - Line 71: Check for O_NONBLOCK
-  - Line 93: tcp_close() request until all send() calls have completed
-  - Line 96: Interrupt waiting recv() calls with -ECONNABORTED
-  - Line 102: Interrupt waiting send()/recv() calls with -ECONNABORTED
-  - Line 109: Check for pending send() calls
+  - Line 114: Wait on send() for something? (Buffer is full, wait for space?)
+  - Line 119: Write to sndbuf and output directly at the same time
+  - Line 125: Signal sending thread and offload segmentation/transmission
+  - Line 126: Check for MSG_MORE flag and don't trigger for a short while
+  - Line 145: tcp_close() request until all send() calls have completed
+  - Line 148: Interrupt waiting recv() calls with -ECONNABORTED
+  - Line 154: Interrupt waiting send()/recv() calls with -ECONNABORTED
+  - Line 161: Check for pending send() calls
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
   - Line 17: Add many configurable interfaces

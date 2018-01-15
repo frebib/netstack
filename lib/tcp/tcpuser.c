@@ -86,6 +86,58 @@ int tcp_user_open(struct tcp_sock *sock) {
     return ret;
 }
 
+int tcp_user_send(struct tcp_sock *sock, void *data, size_t len) {
+    if (sock == NULL) {
+        return -ENOTSOCK;
+    }
+
+    int sent = 0;
+    bool send = true;
+    switch (sock->state) {
+        case TCP_CLOSED:
+        case TCP_LISTEN:
+            return -ENOTCONN;
+        case TCP_FIN_WAIT_1:
+        case TCP_FIN_WAIT_2:
+        case TCP_CLOSING:
+        case TCP_LAST_ACK:
+        case TCP_TIME_WAIT:
+            return ESHUTDOWN;
+        case TCP_SYN_SENT:
+        case TCP_SYN_RECEIVED:
+            send = false;
+        default:
+            // ESTABLISHED or CLOSE-WAIT
+            break;
+    }
+
+    // TODO: Wait on send() for something? (Buffer is full, wait for space?)
+
+    if (len >= rbuf_free(&sock->sndbuf))
+        return -ENOSPC;
+
+    // TODO: Write to sndbuf and output directly at the same time
+    rbuf_write(&sock->sndbuf, data, len);
+
+    if (send != true)
+        return sent;
+
+    // TODO: Signal sending thread and offload segmentation/transmission
+    // TODO: Check for MSG_MORE flag and don't trigger for a short while
+    while (sent < len) {
+        int ret = tcp_send_data(sock, TCP_FLAG_PSH | TCP_FLAG_ACK);
+        if (ret < 0) {
+            LOG(LINFO, "[TCP] tcp_send_data returned: %s", strerror(ret));
+            sent = ret;
+            break;
+        }
+        sent += ret;
+    }
+    LOG(LDBUG, "[TCP] Sent %lu bytes", sent);
+    
+    return sent;
+}
+
 int tcp_user_close(struct tcp_sock *sock) {
     if (!sock)
         return -ENOTSOCK;

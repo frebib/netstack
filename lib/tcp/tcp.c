@@ -32,6 +32,8 @@ bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum) {
     if (hdr->flags.ack)
         LOGT(trans, "ack %zu ", ntohl(hdr->ackn));
 
+    LOGT(trans, "wind %hu ", ntohs(hdr->wind));
+
     return true;
 }
 
