@@ -251,6 +251,29 @@ static inline struct tcp_sock *tcp_sock_lookup(addr_t *remaddr, addr_t *locaddr,
             inet_sock_lookup(&tcp_sockets, remaddr, locaddr, remport, locport);
 }
 
+/*!
+ * Removes a socket from the global socket list
+ * Should be called before tcp_free_sock() to avoid race conditions
+ */
+#define tcp_untrack_sock(sock) llist_remove(&tcp_sockets, (sock))
+
+/*!
+ * Removes a TCP socket from the global socket list and deallocates it
+ * @param sock socket to free
+ */
+void tcp_free_sock(struct tcp_sock *sock);
+
+/*!
+ * Deallocates a socket. Does NOT remove it from the global socket list
+ * @param sock socket to free
+ */
+void tcp_destroy_sock(struct tcp_sock *sock);
+
+/*!
+ * Cleans up incomplete operations such as still-open connections, waiting
+ * send/recv calls and calls tcp_free_sock()
+ * @param sock
+ */
 void tcp_sock_cleanup(struct tcp_sock *sock);
 
 
@@ -277,12 +300,6 @@ uint32_t tcp_seqnum();
  */
 #define tcp_ack_acceptable(tcb, seg) (tcb)->snd.una <= ntohl((seg)->ackn) && \
                                         ntohl((seg)->ackn) <= (tcb)->snd.nxt
-
-/*!
- * Removes a TCP socket from the global socket list and deallocates it
- * @param sock socket to free
- */
-void tcp_free_sock(struct tcp_sock *sock);
 
 int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock);
 

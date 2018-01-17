@@ -6,11 +6,6 @@
 #include <netstack/tcp/tcp.h>
 
 
-inline void tcp_free_sock(struct tcp_sock *sock) {
-    llist_remove(&tcp_sockets, sock);
-    free(sock);
-}
-
 /*
  * Initial TCP input routine, after packet sanity checks in tcp_recv()
  *
@@ -58,13 +53,13 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             // <SEQ=0><ACK=SEG.SEQ+SEG.LEN><CTL=RST,ACK>
             LOG(LDBUG, "[TCP] Sending RST/ACK from %s:%d", __FILE__, __LINE__);
             ret = tcp_send_rstack(sock, 0, seg_seq + frame_data_len(frame) + 1);
-            tcp_free_sock(sock);
+            tcp_destroy_sock(sock);
         } else {
             // If the ACK bit is on,
             // <SEQ=SEG.ACK><CTL=RST>
             LOG(LDBUG, "[TCP] Sending RST from %s:%d", __FILE__, __LINE__);
             ret = tcp_send_rst(sock, seg_ack);
-            tcp_free_sock(sock);
+            tcp_destroy_sock(sock);
         }
 
         // Return.
@@ -458,7 +453,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                 } else {
                     // TODO: Inform user of ECONNREFUSED
                     // TODO: Clear retransmission queue
-                    tcp_free_sock(sock);
+                    tcp_destroy_sock(sock);
                     ret = -ECONNREFUSED;
                 }
                 goto drop_pkt;
@@ -485,7 +480,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                 // TODO: Interrupt user send() and recv() calls with ECONNRESET
                 // TODO: Clear retransmission queue
                 tcp_setstate(sock, TCP_CLOSED);
-                tcp_free_sock(sock);
+                tcp_destroy_sock(sock);
                 ret = -ECONNRESET;
                 goto drop_pkt;
             }
@@ -503,7 +498,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         case TCP_TIME_WAIT:
             if (seg->flags.rst == 1) {
                 // TODO: Clear retransmission queue
-                tcp_free_sock(sock);
+                tcp_destroy_sock(sock);
                 goto drop_pkt;
             }
             break;
@@ -572,7 +567,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                 LOG(LDBUG, "[TCP] Sending RST from %s:%d", __FILE__, __LINE__);
                 ret = tcp_send_rst(sock, seg_ack);
                 // TODO: Clear retransmission queue
-                tcp_free_sock(sock);
+                tcp_destroy_sock(sock);
                 // TODO: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
                 // https://tools.ietf.org/html/rfc5961#page-9
                 ret = -ECONNRESET;
@@ -713,7 +708,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     */
             case TCP_LAST_ACK:
                 tcp_setstate(sock, TCP_CLOSED);
-                tcp_free_sock(sock);
+                tcp_destroy_sock(sock);
                 goto drop_pkt;
     /*
         TIME-WAIT STATE

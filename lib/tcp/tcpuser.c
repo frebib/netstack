@@ -73,7 +73,7 @@ int tcp_user_open(struct tcp_sock *sock) {
             struct timespec t = {.tv_sec = 5, .tv_nsec = 0};
             int e = pthread_cond_timedwait(&sock->openwait, &sock->openlock, &t);
             if (e == ETIMEDOUT) {
-                tcp_free_sock(sock);
+                tcp_destroy_sock(sock);
                 return ETIMEDOUT;
             }
         } else {
@@ -145,13 +145,11 @@ int tcp_user_close(struct tcp_sock *sock) {
     // TODO: tcp_close() request until all send() calls have completed
     switch (sock->state) {
         case TCP_LISTEN:
-            // TODO: Interrupt waiting recv() calls with -ECONNABORTED
             tcp_setstate(sock, TCP_CLOSED);
-            tcp_free_sock(sock);
+            tcp_sock_cleanup(sock);
             break;
         case TCP_SYN_SENT:
-            tcp_free_sock(sock);
-            // TODO: Interrupt waiting send()/recv() calls with -ECONNABORTED
+            tcp_sock_cleanup(sock);
             break;
         case TCP_SYN_RECEIVED:
             /* If no SENDs have been issued and there is no pending data to

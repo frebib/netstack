@@ -6,5 +6,5 @@ void tcp_timewait_expire(struct tcp_sock *sock) {
     tcp_setstate(sock, TCP_CLOSED);
     // Clear this timeout
     tcp_timewait_cancel(sock);
-    tcp_free_sock(sock);
+    tcp_destroy_sock(sock);
 }

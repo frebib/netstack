@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include <netinet/in.h>
 
@@ -84,7 +85,30 @@ void tcp_established(struct tcp_sock *sock, struct tcp_hdr *seg) {
         sock->tcb.snd.wnd, sock->tcb.rcv.wnd);
 }
 
+inline void tcp_free_sock(struct tcp_sock *sock) {
+    // Deallocate dynamically allocated data buffers
+    if (sock->rcvbuf.size > 0)
+        rbuf_destroy(&sock->rcvbuf);
+    if (sock->sndbuf.size > 0)
+        rbuf_destroy(&sock->sndbuf);
+
+    free(sock);
+}
+
+inline void tcp_destroy_sock(struct tcp_sock *sock) {
+    tcp_untrack_sock(sock);
+    tcp_free_sock(sock);
+}
+
 void tcp_sock_cleanup(struct tcp_sock *sock) {
+
+    pthread_mutex_lock(&sock->openlock);
+    sock->openret = ECONNABORTED;
+    pthread_mutex_unlock(&sock->openlock);
+    pthread_cond_broadcast(&sock->openwait);
+
+    // TODO: Interrupt waiting send()/recv() calls with ECONNABORTED
+
     switch(sock->state) {
         case TCP_SYN_SENT:
         case TCP_SYN_RECEIVED:
@@ -103,11 +127,8 @@ void tcp_sock_cleanup(struct tcp_sock *sock) {
             break;
     }
 
-    // Deallocate dynamically allocated data buffers
-    if (sock->rcvbuf.size > 0)
-        rbuf_destroy(&sock->rcvbuf);
-    if (sock->sndbuf.size > 0)
-        rbuf_destroy(&sock->sndbuf);
+    // Deallocate socket memory
+    tcp_destroy_sock(sock);
 }
 
 

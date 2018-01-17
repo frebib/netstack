@@ -85,7 +85,6 @@ int main(int argc, char **argv) {
                 // Cleanup TCP states
                 LOG(LNTCE, "Cleaning up %hu TCP sockets", tcp_sockets.length);
                 llist_iter(&tcp_sockets, tcp_sock_cleanup);
-                llist_iter(&tcp_sockets, free);
                 llist_clear(&tcp_sockets);
 
                 LOG(LNTCE, "Cleaning up interface %s", intf->name);
