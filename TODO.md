@@ -33,15 +33,15 @@
   - Line 103: Implement rx 'software' timestamping
   - Line 110: Conditionally print debugging information
   - Line 127: Use same frame stack instead of cloning across threads
-  - Line 194: Check intf hwtype to calculate max frame size
-  - Line 220: Selectively choose an appropriate address from intf
+  - Line 192: Check intf hwtype to calculate max frame size
+  - Line 218: Selectively choose an appropriate address from intf
 
 ## [lib/intf/rawsock.c](lib/intf/rawsock.c)
-  - Line 41: This is hacky, assuiming lo is loopback
-  - Line 135: Move some of this cleanup logic into a generic intf_free() function
-  - Line 144: Ensure frames are destroyed, even if they still have references
-  - Line 169: Allocate a buffer from the interface for frame storage
-  - Line 174: Find an appropriate size for the control buffer
+  - Line 39: This is hacky, assuiming lo is loopback
+  - Line 131: Move some of this cleanup logic into a generic intf_free() function
+  - Line 140: Ensure frames are destroyed, even if they still have references
+  - Line 165: Allocate a buffer from the interface for frame storage
+  - Line 170: Find an appropriate size for the control buffer
 
 ## [lib/ip/icmp.c](lib/ip/icmp.c)
   - Line 82: Don't assume IPv4 parent

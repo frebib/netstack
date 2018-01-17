@@ -31,7 +31,7 @@ int tcp_user_open(struct tcp_sock *sock) {
     */
 
     if (sock == NULL) {
-        return ENOTSOCK;
+        return -ENOTSOCK;
     }
 
     switch (sock->state) {
@@ -41,10 +41,10 @@ int tcp_user_open(struct tcp_sock *sock) {
         case TCP_LAST_ACK:
         case TCP_CLOSING:
         case TCP_CLOSE_WAIT:
-            return EISCONN;
+            return -EISCONN;
         case TCP_SYN_SENT:
         case TCP_SYN_RECEIVED:
-            return EALREADY;
+            return -EALREADY;
         default:
             break;
     }
@@ -60,26 +60,26 @@ int tcp_user_open(struct tcp_sock *sock) {
     sock->tcb.rcv.wnd = UINT16_MAX;
 
     int ret;
-    if ((ret = tcp_send_syn(sock))) {
+    if ((ret = tcp_send_syn(sock)) < 0) {
         return ret;
     }
 
     tcp_setstate(sock, TCP_SYN_SENT);
 
     // Wait indefinitely for the connection to be established
-    while (sock->state != TCP_ESTABLISHED && ret == 0) {
+    while (sock->state != TCP_ESTABLISHED && ret >= 0) {
         // TODO: Check for O_NONBLOCK
         if (false) {
             struct timespec t = {.tv_sec = 5, .tv_nsec = 0};
             int e = pthread_cond_timedwait(&sock->openwait, &sock->openlock, &t);
             if (e == ETIMEDOUT) {
                 tcp_destroy_sock(sock);
-                return ETIMEDOUT;
+                return -ETIMEDOUT;
             }
         } else {
             pthread_cond_wait(&sock->openwait, &sock->openlock);
         }
-        ret = (int) sock->openret;
+        ret = sock->openret;
         pthread_mutex_unlock(&sock->openlock);
     }
 
@@ -102,7 +102,7 @@ int tcp_user_send(struct tcp_sock *sock, void *data, size_t len) {
         case TCP_CLOSING:
         case TCP_LAST_ACK:
         case TCP_TIME_WAIT:
-            return ESHUTDOWN;
+            return -ESHUTDOWN;
         case TCP_SYN_SENT:
         case TCP_SYN_RECEIVED:
             send = false;
@@ -127,7 +127,7 @@ int tcp_user_send(struct tcp_sock *sock, void *data, size_t len) {
     while (sent < len) {
         int ret = tcp_send_data(sock, TCP_FLAG_PSH | TCP_FLAG_ACK);
         if (ret < 0) {
-            LOGE(LINFO, "[TCP] tcp_send_data returned");
+            LOG(LINFO, "[TCP] tcp_send_data returned: %s", strerror(ret));
             sent = ret;
             break;
         }
@@ -170,9 +170,9 @@ int tcp_user_close(struct tcp_sock *sock) {
         case TCP_LAST_ACK:
         case TCP_TIME_WAIT:
             // Connection already closing
-            return EALREADY;
+            return -EALREADY;
         case TCP_CLOSED:
-            return ENOTCONN;
+            return -ENOTCONN;
         default:
             break;
     }

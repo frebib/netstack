@@ -58,7 +58,7 @@ void _intf_send_thread(struct intf *intf) {
         if (frame) {
             // Send the frame!
             int ret = (int) intf->send_frame(frame);
-            if (ret != 0)
+            if (ret < 0)
                 LOG(LINFO, "send_frame() returned %ld: %s", ret, strerror(ret));
 
             // Log outgoing packets
@@ -161,10 +161,8 @@ int pthread_create_named(pthread_t *id, char *name,
 }
 
 int intf_init(struct intf *intf) {
-    if (intf == NULL) {
-        errno = EINVAL;
-        return -1;
-    }
+    if (intf == NULL)
+        return EINVAL;
 
     /* Create a semaphore for locking the send queue */
     sem_init(&intf->sendctr, 0, 0);

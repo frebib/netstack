@@ -57,10 +57,8 @@ inline void timeout_clear(timeout_t *t) {
 }
 
 int timeout_restart(timeout_t *t, time_t sec, time_t nsec) {
-    if (!t) {
-        errno = EINVAL;
-        return -1;
-    }
+    if (!t)
+        return -EINVAL;
 
     timeout_clear(t);
     sec  = (sec  == -1 ? sec  : t->timeout.tv_sec);

@@ -106,7 +106,7 @@ inline void tcp_destroy_sock(struct tcp_sock *sock) {
 void tcp_sock_cleanup(struct tcp_sock *sock) {
 
     pthread_mutex_lock(&sock->openlock);
-    sock->openret = ECONNABORTED;
+    sock->openret = -ECONNABORTED;
     pthread_mutex_unlock(&sock->openlock);
     pthread_cond_broadcast(&sock->openwait);
 

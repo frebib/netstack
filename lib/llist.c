@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include <netstack/llist.h>
-#include <netstack/log.h>
 
 // Private
 void *llist_pop_nolock(struct llist *list);
@@ -87,9 +87,8 @@ void *llist_pop(struct llist *list) {
 }
 
 void *llist_pop_last_nolock(struct llist *list) {
-    if (!list->tail) {
+    if (!list->tail)
         return NULL;
-    }
 
     struct llist_elem *remove = list->tail;
     void *data = remove->data;
@@ -113,10 +112,8 @@ void *llist_pop_last(struct llist *list) {
 }
 
 ssize_t llist_contains(struct llist *list, void *data) {
-    if (list == NULL)
-        return -1;
-    if (data == NULL)
-        return -1;
+    if (list == NULL || data == NULL)
+        return -EINVAL;
 
     pthread_mutex_lock(&list->lock);
 
@@ -130,14 +127,12 @@ ssize_t llist_contains(struct llist *list, void *data) {
         i++;
     }
     pthread_mutex_unlock(&list->lock);
-    return -1;
+    return -ENODATA;
 }
 
 ssize_t llist_remove(struct llist *list, void *data) {
-    if (list == NULL)
-        return -1;
-    if (data == NULL)
-        return -1;
+    if (list == NULL || data == NULL)
+        return -EINVAL;
 
     pthread_mutex_lock(&list->lock);
 
@@ -164,5 +159,5 @@ ssize_t llist_remove(struct llist *list, void *data) {
     }
 
     pthread_mutex_unlock(&list->lock);
-    return -1;
+    return -ENODATA;
 }

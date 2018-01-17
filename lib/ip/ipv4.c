@@ -252,7 +252,7 @@ int ipv4_send(struct frame *child, uint8_t proto, uint16_t flags,
         case PROTO_ETHER:
             return ether_send(frame, ETH_P_IP, dmac->ether);
         default:
-            return 0;
+            return -ENODEV;
     }
 }
 

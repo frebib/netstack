@@ -17,10 +17,8 @@
 #include <netstack/intf/rawsock.h>
 
 int rawsock_new(struct intf *interface) {
-    if (interface == NULL) {
-        errno = EINVAL;
-        return -1;
-    }
+    if (interface == NULL)
+        return -EINVAL;
 
     // Open a raw socket (raw layer 2/3 frames)
     // Use SOCK_DGRAM to remove ethernet header
@@ -63,11 +61,9 @@ int rawsock_new(struct intf *interface) {
         if_ni++;
     }
     if (if_ni == NULL) {
-        errno = ENODEV;
-
         if_freenameindex(if_ni_head);
         close(sock);
-        return -1;
+        return -ENODEV;
     }
 
     // Bind to specific interface to prevent duplicate packet reception
@@ -227,5 +223,5 @@ long rawsock_send_frame(struct frame *frame) {
     ssize_t ret = sendto(ll->sock, frame->head, frame->tail - frame->head, 0,
                          (const struct sockaddr *) &sa, sizeof(sa));
 
-    return ret != 0 ? errno : 0;
+    return ret < 0 ? errno : ret;
 }
