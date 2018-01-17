@@ -390,6 +390,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     }
     if (seg_seq < tcb->rcv.nxt) {
         valid = false;
+        LOG(LINFO, "[TCP] Possible duplicate segment?");
         LOG(LINFO, "[TCP] Recv'd seq number is less than expected RCV.NXT");
         LOG(LINFO, "[TCP] SEQ %lu, RCV.NXT %lu", seg_seq, tcb->rcv.nxt);
     }

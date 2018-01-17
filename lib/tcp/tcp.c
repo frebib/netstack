@@ -86,6 +86,9 @@ void tcp_established(struct tcp_sock *sock, struct tcp_hdr *seg) {
 }
 
 inline void tcp_free_sock(struct tcp_sock *sock) {
+    // Cancel all running timers
+    tcp_timewait_cancel(sock);
+
     // Deallocate dynamically allocated data buffers
     if (sock->rcvbuf.size > 0)
         rbuf_destroy(&sock->rcvbuf);
