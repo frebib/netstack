@@ -18,7 +18,6 @@ struct inet_sock *inet_sock_lookup(struct llist *socks,
                                    addr_t *remaddr, addr_t *locaddr,
                                    uint16_t remport, uint16_t locport) {
     // TODO: Use hashtbl instead of list to lookup sockets
-    // TODO: Lock llist socks for concurrent access
 
     for_each_llist(socks) {
         struct inet_sock *sock = llist_elem_data();

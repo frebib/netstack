@@ -2,9 +2,7 @@
 #include <netstack/ip/route.h>
 #include <netstack/ip/ipv4.h>
 
-// TODO: Lock route table for writing
 struct llist route_tbl = LLIST_INITIALISER;
-pthread_mutex_t route_lck = PTHREAD_MUTEX_INITIALIZER;
 
 struct route_entry *route_lookup(uint32_t addr) {
     struct route_entry *bestrt = NULL;

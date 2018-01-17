@@ -12,12 +12,8 @@ int intf_dispatch(struct frame *frame) {
     // Ensure send() has a reference, keeping the frame alive
     frame_incref(frame);
 
-    // Obtain the sendqlck
-    pthread_mutex_lock(&frame->intf->sendqlck);
     // Push the frame into the queue
     queue_push(&frame->intf->sendq, frame);
-    // Release the sendqlck
-    pthread_mutex_unlock(&frame->intf->sendqlck);
     // Signal the sendctr sem
     sem_post(&frame->intf->sendctr);
 
@@ -56,9 +52,7 @@ void _intf_send_thread(struct intf *intf) {
         // Wait until send is complete before allowing cancellation
         pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
 
-        pthread_mutex_lock(&intf->sendqlck);
         struct frame *frame = queue_pop(&intf->sendq);
-        pthread_mutex_unlock(&intf->sendqlck);
 
         // Only attempt to send a non-null frame
         if (frame) {
@@ -174,7 +168,6 @@ int intf_init(struct intf *intf) {
 
     /* Create a semaphore for locking the send queue */
     sem_init(&intf->sendctr, 0, 0);
-    pthread_mutex_init(&intf->sendqlck, NULL);
 
     intf->arptbl = (struct llist) LLIST_INITIALISER;
     intf->sendq = (struct llist) LLIST_INITIALISER;

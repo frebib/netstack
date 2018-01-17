@@ -111,7 +111,6 @@ void arp_log_tbl(struct intf *intf, loglvl_t level) {
 /* Retrieves IPv4 address from table, otherwise NULL */
 addr_t *arp_get_hwaddr(struct intf *intf, uint16_t hwtype, addr_t *protoaddr) {
 
-    // TODO: Implement ARP cache locking
     for_each_llist(&intf->arptbl) {
         struct arp_entry *entry = llist_elem_data();
 

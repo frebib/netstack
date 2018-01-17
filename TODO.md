@@ -20,23 +20,21 @@
 
 ## [lib/eth/arp.c](lib/eth/arp.c)
   - Line 73: Check for queued outgoing packets that can
-  - Line 114: Implement ARP cache locking
-  - Line 137: Use hashtable for ARP lookups on IPv4
-  - Line 143: This doesn't account for protocol addresses that change hw
-  - Line 185: Use hwtype to determine length and type of address
-  - Line 234: Add 'incomplete' entry to arp cache
-  - Line 240: Use hwtype to determine length and type of address
+  - Line 136: Use hashtable for ARP lookups on IPv4
+  - Line 142: This doesn't account for protocol addresses that change hw
+  - Line 184: Use hwtype to determine length and type of address
+  - Line 233: Add 'incomplete' entry to arp cache
+  - Line 239: Use hwtype to determine length and type of address
 
 ## [lib/inet.c](lib/inet.c)
   - Line 20: Use hashtbl instead of list to lookup sockets
-  - Line 21: Lock llist socks for concurrent access
 
 ## [lib/intf/intf.c](lib/intf/intf.c)
-  - Line 109: Implement rx 'software' timestamping
-  - Line 116: Conditionally print debugging information
-  - Line 133: Use same frame stack instead of cloning across threads
-  - Line 201: Check intf hwtype to calculate max frame size
-  - Line 227: Selectively choose an appropriate address from intf
+  - Line 103: Implement rx 'software' timestamping
+  - Line 110: Conditionally print debugging information
+  - Line 127: Use same frame stack instead of cloning across threads
+  - Line 194: Check intf hwtype to calculate max frame size
+  - Line 220: Selectively choose an appropriate address from intf
 
 ## [lib/intf/rawsock.c](lib/intf/rawsock.c)
   - Line 41: This is hacky, assuiming lo is loopback
@@ -62,8 +60,7 @@
   - Line 238: Make this user-configurable
 
 ## [lib/ip/route.c](lib/ip/route.c)
-  - Line 5: Lock route table for writing
-  - Line 18: Define how routes with the same metric should behave?
+  - Line 16: Define how routes with the same metric should behave?
 
 ## [lib/tcp/tcp.c](lib/tcp/tcp.c)
   - Line 19: Work out why sometimes this is 0x0200 too small (in netwk byte-ord)

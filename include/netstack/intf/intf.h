@@ -44,7 +44,6 @@ struct intf {
 
     // Concurrency locking for send queue
     sem_t sendctr;
-    pthread_mutex_t sendqlck;
     struct llist sendq;
 
     // Interface send/recv thread ids

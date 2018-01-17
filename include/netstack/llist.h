@@ -2,14 +2,21 @@
 #define NETSTACK_LLIST_H
 
 #include <stdio.h>
+#include <pthread.h>
 
-#define LLIST_INITIALISER { .head = NULL, .tail = NULL, .length = 0 }
+#define LLIST_INITIALISER { \
+        .lock = PTHREAD_MUTEX_INITIALIZER, \
+        .head = NULL, \
+        .tail = NULL, \
+        .length = 0 \
+    }
 
 struct llist_elem {
     void *data;
     struct llist_elem *next, *prev;
 };
 struct llist {
+    pthread_mutex_t lock;
     struct llist_elem *head, *tail;
     size_t length;
 };
@@ -20,9 +27,9 @@ struct llist {
  * @param list list iterate over
  */
 #define for_each_llist(list) \
-    for (struct llist_elem *elem = (list)->head; \
-        elem != NULL; \
-        elem = elem->next)
+    for (struct llist_elem *elem = (list)->head, \
+        *next = (elem ? elem->next : NULL); elem != NULL; \
+        elem = next, next = (elem ? elem->next : NULL))
 
 #define llist_iter(list, fn) \
     for_each_llist(list) \
