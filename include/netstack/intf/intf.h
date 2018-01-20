@@ -36,14 +36,14 @@ struct intf {
     size_t mtu;
 
     // Internet Addresses (IPv4/6)
-    struct llist inet;
+    llist_t inet;
 
     // TODO: Move arptbl into an 'ethernet' hardware struct into `void *ll`
-    struct llist arptbl;
+    llist_t arptbl;
 
     // Concurrency locking for send queue
     sem_t sendctr;
-    struct llist sendq;
+    llist_t sendq;
 
     // Interface send/recv thread ids
     pthread_t threads[INTF_THR_MAX];

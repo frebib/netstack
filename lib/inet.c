@@ -14,7 +14,7 @@ uint16_t inet_ipv4_csum(struct ipv4_hdr *hdr) {
     return ~in_csum(&pseudo_hdr, sizeof(pseudo_hdr), 0);
 }
 
-struct inet_sock *inet_sock_lookup(struct llist *socks,
+struct inet_sock *inet_sock_lookup(llist_t *socks,
                                    addr_t *remaddr, addr_t *locaddr,
                                    uint16_t remport, uint16_t locport) {
     // TODO: Use hashtbl instead of list to lookup sockets

@@ -52,7 +52,7 @@ uint16_t inet_ipv4_csum(struct ipv4_hdr *hdr);
  * @param locport local port
  * @return a matching inet_sock object, or NULL if no matches found
  */
-struct inet_sock *inet_sock_lookup(struct llist *socks,
+struct inet_sock *inet_sock_lookup(llist_t *socks,
                                    addr_t *remaddr, addr_t *locaddr,
                                    uint16_t remport, uint16_t locport);
 

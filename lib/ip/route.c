@@ -2,7 +2,7 @@
 #include <netstack/ip/route.h>
 #include <netstack/ip/ipv4.h>
 
-struct llist route_tbl = LLIST_INITIALISER;
+llist_t route_tbl = LLIST_INITIALISER;
 
 struct route_entry *route_lookup(uint32_t addr) {
     struct route_entry *bestrt = NULL;

@@ -5,11 +5,11 @@
 #include <netstack/llist.h>
 
 // Private
-void *llist_pop_nolock(struct llist *list);
-void *llist_pop_last_nolock(struct llist *list);
+void *llist_pop_nolock(llist_t *list);
+void *llist_pop_last_nolock(llist_t *list);
 
 
-void llist_clear(struct llist *list) {
+void llist_clear(llist_t *list) {
     if (list == NULL)
         return;
 
@@ -27,7 +27,7 @@ void llist_clear(struct llist *list) {
     pthread_mutex_unlock(&list->lock);
 }
 
-void llist_append(struct llist *list, void *data) {
+void llist_append(llist_t *list, void *data) {
     pthread_mutex_lock(&list->lock);
 
     struct llist_elem *last = malloc(sizeof(struct llist_elem));
@@ -44,7 +44,7 @@ void llist_append(struct llist *list, void *data) {
     pthread_mutex_unlock(&list->lock);
 }
 
-void llist_push(struct llist *list, void *data) {
+void llist_push(llist_t *list, void *data) {
     pthread_mutex_lock(&list->lock);
 
     struct llist_elem *first = malloc(sizeof(struct llist_elem));
@@ -61,7 +61,7 @@ void llist_push(struct llist *list, void *data) {
     pthread_mutex_unlock(&list->lock);
 }
 
-void *llist_pop_nolock(struct llist *list) {
+void *llist_pop_nolock(llist_t *list) {
     if (!list->head)
         return NULL;
 
@@ -79,14 +79,14 @@ void *llist_pop_nolock(struct llist *list) {
     return data;
 }
 
-void *llist_pop(struct llist *list) {
+void *llist_pop(llist_t *list) {
     pthread_mutex_lock(&list->lock);
     void* ret = llist_pop_nolock(list);
     pthread_mutex_unlock(&list->lock);
     return ret;
 }
 
-void *llist_pop_last_nolock(struct llist *list) {
+void *llist_pop_last_nolock(llist_t *list) {
     if (!list->tail)
         return NULL;
 
@@ -104,14 +104,14 @@ void *llist_pop_last_nolock(struct llist *list) {
     return data;
 }
 
-void *llist_pop_last(struct llist *list) {
+void *llist_pop_last(llist_t *list) {
     pthread_mutex_lock(&list->lock);
     void* ret = llist_pop_last_nolock(list);
     pthread_mutex_unlock(&list->lock);
     return ret;
 }
 
-ssize_t llist_contains(struct llist *list, void *data) {
+ssize_t llist_contains(llist_t *list, void *data) {
     if (list == NULL || data == NULL)
         return -EINVAL;
 
@@ -130,7 +130,7 @@ ssize_t llist_contains(struct llist *list, void *data) {
     return -ENODATA;
 }
 
-ssize_t llist_remove(struct llist *list, void *data) {
+ssize_t llist_remove(llist_t *list, void *data) {
     if (list == NULL || data == NULL)
         return -EINVAL;
 

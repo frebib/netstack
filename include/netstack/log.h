@@ -22,7 +22,7 @@ typedef uint8_t loglvl_t;
 #define loglvl_max (1 << (sizeof(loglvl_t) * 8)) /* Max amount of log levels */
 
 struct log_config {
-    struct llist streams;       /* Standard logging output */
+    llist_t streams;       /* Standard logging output */
     char *lvlstr[loglvl_max];   /* String representations of log levels */
 };
 
@@ -42,7 +42,7 @@ struct log_trans {
 
 struct pkt_log {
     struct log_trans t; /* Log transaction to write to */
-    struct llist filter;/* List of options, similar to those in * tcpdump */
+    llist_t filter;/* List of options, similar to those in * tcpdump */
 };
 
 /*

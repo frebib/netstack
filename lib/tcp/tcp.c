@@ -7,7 +7,7 @@
 #include <netstack/tcp/tcp.h>
 #include <netstack/checksum.h>
 
-struct llist tcp_sockets = LLIST_INITIALISER;
+llist_t tcp_sockets = LLIST_INITIALISER;
 
 bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum) {
     struct tcp_hdr *hdr = tcp_hdr(frame);

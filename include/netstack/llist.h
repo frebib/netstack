@@ -15,11 +15,11 @@ struct llist_elem {
     void *data;
     struct llist_elem *next, *prev;
 };
-struct llist {
+typedef struct llist {
     pthread_mutex_t lock;
     struct llist_elem *head, *tail;
     size_t length;
-};
+} llist_t;
 
 /*!
  * Iterate over each element in a loop.
@@ -51,38 +51,38 @@ struct llist {
  * Caution: This will not deallocate the element data,
  *          that must be done beforehand
  */
-void llist_clear(struct llist *list);
+void llist_clear(llist_t *list);
 
 /*!
  * Adds a new element to the end of the list
  */
-void llist_append(struct llist *list, void *data);
+void llist_append(llist_t *list, void *data);
 
 /*!
  * Inserts a new element to the start of the list (prepend)
  * @param list list to prepend to
  * @param data data to prepend to the start of the list
  */
-void llist_push(struct llist *list, void *data);
+void llist_push(llist_t *list, void *data);
 
 /*!
  * Fetch and remove the first element from the list
  * @return data from the first element of the list
  */
-void *llist_pop(struct llist *list);
+void *llist_pop(llist_t *list);
 
 /*!
  * Fetch and remove the last element from the list
  * @return data from the last element of the list
  */
-void *llist_pop_last(struct llist *list);
+void *llist_pop_last(llist_t *list);
 
 /*!
  * Checks if a list contains an data element
  * Comparison is made by strict pointer checking
  * @return the index of the element if found, -1 otherwise
  */
-ssize_t llist_contains(struct llist *list, void *data);
+ssize_t llist_contains(llist_t *list, void *data);
 
 /*!
  * Removes a data element from the list if it exists.
@@ -91,7 +91,7 @@ ssize_t llist_contains(struct llist *list, void *data);
  * Comparison is made by strict pointer checking.
  * @return 0 if the element was removed, -1 otherwise
  */
-ssize_t llist_remove(struct llist *list, void *data);
+ssize_t llist_remove(llist_t *list, void *data);
 
 
 #endif //NETSTACK_LLIST_H

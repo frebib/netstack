@@ -15,7 +15,7 @@
 #include <netstack/intf/intf.h>
 
 // Global TCP states list
-extern struct llist tcp_sockets;
+extern llist_t tcp_sockets;
 
 /*
     Source: https://tools.ietf.org/html/rfc793#page-15

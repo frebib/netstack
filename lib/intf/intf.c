@@ -167,8 +167,8 @@ int intf_init(struct intf *intf) {
     /* Create a semaphore for locking the send queue */
     sem_init(&intf->sendctr, 0, 0);
 
-    intf->arptbl = (struct llist) LLIST_INITIALISER;
-    intf->sendq = (struct llist) LLIST_INITIALISER;
+    intf->arptbl = (llist_t) LLIST_INITIALISER;
+    intf->sendq = (llist_t) LLIST_INITIALISER;
 
     LOG(LDBUG, "Creating threads\n");
 

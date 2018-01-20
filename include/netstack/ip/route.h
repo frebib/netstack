@@ -6,7 +6,7 @@
 #include <netstack/intf/intf.h>
 
 /* Global route table, for all interfaces */
-extern struct llist route_tbl;
+extern llist_t route_tbl;
 extern pthread_mutex_t route_lck;
 
 /*
