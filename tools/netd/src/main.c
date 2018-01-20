@@ -69,12 +69,8 @@ int main(int argc, char **argv) {
     }
 
     // Main thread captures signals, waiting for program termination
-    while (true) {
-        int signum;
-        if (sigwait(&sigs, &signum) != 0) {
-            perror("Signal error");
-        }
-
+    int signum;
+    while (sigwait(&sigs, &signum) == 0) {
         LOG(LINFO, "Caught signal: %s\n", strsignal(signum));
 
         switch (signum) {
@@ -123,4 +119,5 @@ int main(int argc, char **argv) {
                 continue;
         }
     }
+    perror("Signal error");
 }
