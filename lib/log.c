@@ -19,7 +19,7 @@ struct log_config logconf = {
                 [LNTCE] = "NOTICE",
                 [LINFO] = "INFO",
                 [LDBUG] = "DEBUG",
-                [LTRCE] = "TRACE"
+                [LTRCE] = "TRACE",
         }
 };
 

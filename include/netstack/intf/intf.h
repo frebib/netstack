@@ -6,6 +6,7 @@
 #include <net/if.h>
 #include <sys/types.h>
 
+#include <netstack.h>
 #include <netstack/addr.h>
 #include <netstack/frame.h>
 #include <netstack/llist.h>
@@ -22,8 +23,6 @@ struct frame;
 #define INTF_THR_SEND   0x01
 #define INTF_THR_MAX    0x02
 
-// Frame logging
-#define LFRAME  0x10
 
 // TODO: Implement 'virtual' network interfaces
 // `man netdevice` gives a good overview

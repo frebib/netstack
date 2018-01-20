@@ -5,8 +5,8 @@
   - Line 61: infer interface and hwtype based on routing rules
 
 ## [include/netstack/intf/intf.h](include/netstack/intf/intf.h)
-  - Line 28: Implement 'virtual' network interfaces
-  - Line 42: Move arptbl into an 'ethernet' hardware struct into `void *ll`
+  - Line 27: Implement 'virtual' network interfaces
+  - Line 41: Move arptbl into an 'ethernet' hardware struct into `void *ll`
 
 ## [include/netstack/ip/ipv4.h](include/netstack/ip/ipv4.h)
   - Line 30: Take endianness into account in ipv4_hdr
@@ -128,7 +128,6 @@
   - Line 159: Check for pending send() calls
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
-  - Line 17: Add many configurable interfaces
-  - Line 18: Add loopback interface
-  - Line 48: Take different socket types into account here
-  - Line 50: For now, assume everything is ethernet
+  - Line 16: Add many configurable interfaces
+  - Line 17: Add loopback interface
+  - Line 30: Take interface etc. configuration from config file

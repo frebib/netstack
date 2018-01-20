@@ -4,11 +4,10 @@
 #include <netdb.h>
 #include <string.h>
 #include <pthread.h>
-#include <sysexits.h>
 
 #include <sys/wait.h>
-#include <sys/capability.h>
 
+#include <netstack.h>
 #include <netstack/log.h>
 #include <netstack/ip/route.h>
 #include <netstack/tcp/tcp.h>
@@ -18,42 +17,23 @@
 // TODO: Add loopback interface
 static struct intf *intf;
 
+
 int main(int argc, char **argv) {
 
-    // Initialise default logging with stdout & stderr
-    log_default();
-    logconf.lvlstr[LFRAME] = "PACKET";
+    // Initialise default config & netstack internals
+    netstack_init();
 
     // Check for effective CAP_NET_RAW,CAP_NET_ADMIN capabilities
-    cap_flag_value_t hasRaw = CAP_CLEAR,
-            hasAdmin = CAP_CLEAR;
-    cap_t capabilities = cap_get_proc();
-    if (cap_get_flag(capabilities, CAP_NET_RAW, CAP_EFFECTIVE, &hasRaw) ||
-        cap_get_flag(capabilities, CAP_NET_ADMIN, CAP_EFFECTIVE, &hasAdmin)) {
-        LOG(LERR, "Error checking capabilities");
-    }
-    cap_free(capabilities);
+    if (netstack_checkcap(argv[0]))
+        exit(EXIT_FAILURE);
 
-    // Check and error if capabilities aren't set
-    if (hasRaw != CAP_SET) {
-        LOG(LCRIT, "You don't have the CAP_NET_RAW capability.\n"
-                "Use 'setcap cap_net_raw+ep %s' or run as root", argv[0]);
-        exit(1);
-    } else if (hasAdmin != CAP_SET) {
-        LOG(LCRIT, "You don't have the CAP_NET_ADMIN capability.\n"
-                "Use 'setcap cap_net_admin+ep %s' or run as root", argv[0]);
-        exit(1);
-    }
-
-    // TODO: Take different socket types into account here
-    // e.g. TUN vs TAP, ignoring ETHER layer for example
-    // TODO: For now, assume everything is ethernet
+    // TODO: Take interface etc. configuration from config file
 
     // Create a INTF_RAWSOCK interface for sending/recv'ing data
     intf = calloc(sizeof(struct intf), 1);
     if (rawsock_new(intf) != 0) {
         LOG(LCRIT, "Could not create INTF_RAWSOCK");
-        return EX_IOERR;
+        exit(EXIT_FAILURE);
     }
 
     // Create interface send/recv threads
@@ -83,7 +63,6 @@ int main(int argc, char **argv) {
                 llist_iter(&tcp_sockets, tcp_sock_cleanup);
                 llist_clear(&tcp_sockets);
 
-                LOG(LNTCE, "Cleaning up interface %s", intf->name);
                 LOG(LNTCE, "Stopping threads");
                 // Cleanup threads
                 // Send all terminations first, before waiting
@@ -105,6 +84,7 @@ int main(int argc, char **argv) {
                 llist_clear(&route_tbl);
 
                 // Cleanup interface meta
+                LOG(LNTCE, "Cleaning up interface %s", intf->name);
                 intf->free(intf);
                 free(intf);
 
