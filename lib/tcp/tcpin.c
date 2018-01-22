@@ -919,7 +919,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     }
 
 drop_pkt:
-    frame_deref(frame);
+    frame_decref(frame);
     return ret;
 }
 

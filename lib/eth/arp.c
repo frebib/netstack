@@ -194,7 +194,7 @@ int arp_send_req(struct intf *intf, uint16_t hwtype,
 
     int ret = ether_send(frame, ETH_P_ARP, ETH_BRD_ADDR);
     // Ensure frame is free'd if it was never actually sent
-    frame_deref(frame);
+    frame_decref(frame);
 
     // Sending ARP request was successful, add incomplete cache entry
     if (!ret) {
@@ -249,6 +249,6 @@ int arp_send_reply(struct intf *intf, uint8_t hwtype, uint32_t sip,
 
     int ret = ether_send(frame, ETH_P_ARP, ETH_BRD_ADDR);
     // Ensure frame is free'd if it was never actually sent
-    frame_deref(frame);
+    frame_decref(frame);
     return ret;
 }

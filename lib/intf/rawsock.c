@@ -138,7 +138,7 @@ void rawsock_free(struct intf *intf) {
     llist_iter(&intf->inet, free);
     llist_clear(&intf->inet);
     // TODO: Ensure frames are destroyed, even if they still have references
-    llist_iter(&intf->sendq, frame_deref);
+    llist_iter(&intf->sendq, frame_decref);
 }
 
 long rawsock_recv_frame(struct frame *frame) {
@@ -150,7 +150,7 @@ long rawsock_recv_frame(struct frame *frame) {
     int sock = *((int *) interface->ll);
 
     // Allow cancellation around peek() as this is the main blocking call
-    pthread_cleanup_push((void (*)(void *)) frame_deref, frame) ;
+    pthread_cleanup_push((void (*)(void *)) frame_decref, frame) ;
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 
     // use MSG_PEEK to get lookahead amount available to recv

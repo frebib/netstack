@@ -23,7 +23,7 @@ void frame_init_buf(struct frame *frame, void *buffer, size_t buf_size) {
     frame->data = frame->tail;
 }
 
-void frame_deref(struct frame *frame) {
+void frame_decref(struct frame *frame) {
     if (frame == NULL)
         return;
 

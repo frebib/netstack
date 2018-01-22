@@ -82,7 +82,7 @@ void _intf_send_thread(struct intf *intf) {
                 LOGT_DISPOSE(&log.t);
 
             // Frame sent, disown it
-            frame_deref(frame);
+            frame_decref(frame);
         }
 
         pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
@@ -126,13 +126,13 @@ void _intf_recv_thread(struct intf *intf) {
 
         // TODO: Use same frame stack instead of cloning across threads
         // Call frame_free() to ensure cloned frames are destroyed.
-        // frame_deref() won't free cloned frames here because the buffer is
+        // frame_decref() won't free cloned frames here because the buffer is
         // still referenced in rawframe.
-        frame_deref(logframe);
+        frame_decref(logframe);
         frame_free(logframe);
 
         // Allocate a new frame
-        frame_deref(rawframe);
+        frame_decref(rawframe);
         rawframe = NULL;
 
         // Check if the thread should exit

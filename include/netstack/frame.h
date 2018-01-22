@@ -76,7 +76,7 @@ void frame_init_buf(struct frame *frame, void *buffer, size_t buf_size);
  *    memory leaks!
  * @param frame frame to dereference
  */
-void frame_deref(struct frame *frame);
+void frame_decref(struct frame *frame);
 
 /*!
  * Frees a frame but NOT it's enclosed buffer

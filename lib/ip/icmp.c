@@ -106,6 +106,6 @@ int send_icmp_reply(struct frame *ctrl) {
                         ntohl(ip->saddr), ntohl(ip->daddr));
     // Reply frame is no longer our responsibility. Ensure it is cleaned up
     // in the case that it wasn't actually sent
-    frame_deref(reply);
+    frame_decref(reply);
     return ret;
 }
