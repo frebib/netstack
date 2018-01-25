@@ -7,7 +7,7 @@
 
 int netstack_init(void) {
     // Initialise default logging with stdout & stderr
-    log_default();
+    log_default(&logconf);
     logconf.lvlstr[LFRAME] = "PACKET";
 
     return 0;

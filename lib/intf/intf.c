@@ -59,7 +59,7 @@ void _intf_send_thread(struct intf *intf) {
             // Send the frame!
             int ret = (int) intf->send_frame(frame);
             if (ret < 0)
-                LOG(LINFO, "send_frame() returned %ld: %s", ret, strerror(ret));
+                LOGSE(LINFO, "send_frame() returned %ld", ret, ret);
 
             // Log outgoing packets
             struct pkt_log log = PKT_TRANS(LFRAME);

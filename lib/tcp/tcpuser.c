@@ -127,7 +127,7 @@ int tcp_user_send(struct tcp_sock *sock, void *data, size_t len) {
     while (sent < len) {
         int ret = tcp_send_data(sock, TCP_FLAG_PSH | TCP_FLAG_ACK);
         if (ret < 0) {
-            LOG(LINFO, "[TCP] tcp_send_data returned: %s", strerror(ret));
+            LOGSE(LINFO, "[TCP] tcp_send_data returned", ret);
             sent = ret;
             break;
         }

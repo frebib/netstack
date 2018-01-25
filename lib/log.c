@@ -2,13 +2,13 @@
 #include <stdbool.h>
 #include <string.h>
 #include <sysexits.h>
+#include <errno.h>
 
 #ifdef _GNU_SOURCE
 #include <pthread.h>
 #endif
 
 #include <netstack/log.h>
-#include <errno.h>
 
 struct log_config logconf = {
         .streams = LLIST_INITIALISER,
@@ -20,10 +20,12 @@ struct log_config logconf = {
                 [LINFO] = "INFO",
                 [LDBUG] = "DEBUG",
                 [LTRCE] = "TRACE",
-        }
+        },
+        .lock = PTHREAD_MUTEX_INITIALIZER
 };
 
-void log_default(void) {
+void log_default(struct log_config *conf) {
+    // Add stdout/stderr streams
     struct log_stream *out = malloc(sizeof(struct log_stream));
     out->stream = stdout;
     out->min = LNULL;
@@ -134,11 +136,15 @@ void VTLOGF(FILE *file, loglvl_t level, struct timespec *t, const char *fmt,
     char str[len];
     vsnprintf(str, (size_t) len, fmt, args2);
 
+    pthread_mutex_lock(&logconf.lock);
+
     // Print to output file
     char *line, *tmp = str;
     // Print line-by-line using \n as delimiter
     while ((line = strtok_r(NULL, "\n", &tmp)) != NULL)
         fprintf(file, "%s%s\n", pre, line);
+
+    pthread_mutex_unlock(&logconf.lock);
 }
 
 void VLOGT(struct log_trans *trans, const char *fmt, va_list args) {
