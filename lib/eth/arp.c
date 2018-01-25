@@ -13,6 +13,8 @@ bool arp_log(struct pkt_log *log, struct frame *frame) {
     frame->data += ARP_HDR_LEN;
     struct log_trans *trans = &log->t;
 
+    LOGT(trans, "hw 0x%X ", ntohs(msg->hwtype));
+
     struct arp_ipv4 *req;
     switch (ntohs(msg->proto)) {
         case ETH_P_IP:
@@ -109,7 +111,7 @@ void arp_log_tbl(struct intf *intf, loglvl_t level) {
 }
 
 /* Retrieves IPv4 address from table, otherwise NULL */
-addr_t *arp_get_hwaddr(struct intf *intf, uint16_t hwtype, addr_t *protoaddr) {
+addr_t *arp_get_hwaddr(struct intf *intf, proto_t hwtype, addr_t *protoaddr) {
 
     for_each_llist(&intf->arptbl) {
         struct arp_entry *entry = llist_elem_data();
@@ -129,6 +131,15 @@ addr_t *arp_get_hwaddr(struct intf *intf, uint16_t hwtype, addr_t *protoaddr) {
     }
 
     return NULL;
+}
+
+uint16_t arp_proto_hw(proto_t proto) {
+    switch (proto) {
+        case PROTO_ETHER:
+            return ARP_HW_ETHER;
+        default:
+            return 0;
+    }
 }
 
 bool arp_update_entry(struct intf *intf, addr_t *hwaddr, addr_t *protoaddr) {

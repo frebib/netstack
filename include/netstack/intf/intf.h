@@ -28,7 +28,7 @@ struct frame;
 // `man netdevice` gives a good overview
 struct intf {
     uint8_t type;
-    uint8_t proto;          /* Defines the protocol running in the interface */
+    proto_t proto;          /* Defines the protocol running in the interface */
     // Link layer information
     char name[IFNAMSIZ];
     void *ll;

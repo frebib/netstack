@@ -22,7 +22,7 @@ typedef uint8_t ip6_addr_t[16];
 
 
 typedef struct addr {
-    uint16_t proto;
+    proto_t proto;
     union {
         uint8_t     address;
         eth_addr_t  ether;
@@ -32,11 +32,16 @@ typedef struct addr {
 } addr_t;
 
 
+static size_t addrlen(proto_t proto);
+static bool addreq(addr_t *a, addr_t *b);
+static bool addrzero(addr_t *a);
+static char *straddr(addr_t *addr);
+
 /*!
  * Gets the length of a protocol address given the protocol
  * @return the length of the address, or 0 for invalid protocols
  */
-static inline size_t addrlen(uint16_t proto) {
+static inline size_t addrlen(proto_t proto) {
     switch (proto) {
         /* Hardware protocols (layer 1) */
         case PROTO_ETHER:   return sizeof(eth_addr_t);

@@ -213,7 +213,7 @@ int ipv4_send(struct frame *child, uint8_t proto, uint16_t flags,
 
     // TODO: Implement ARP cache locking
     addr_t nexthop_ip4 = { .proto = PROTO_IPV4, .ipv4 = nexthop };
-    addr_t *dmac = arp_get_hwaddr(rt->intf, ARP_HW_ETHER, &nexthop_ip4);
+    addr_t *dmac = arp_get_hwaddr(rt->intf, PROTO_ETHER, &nexthop_ip4);
 
     if (dmac == NULL) {
         struct log_trans trans = LOG_TRANS(LTRCE);
@@ -221,7 +221,8 @@ int ipv4_send(struct frame *child, uint8_t proto, uint16_t flags,
         LOGT(&trans, ", %s);", fmtip4(nexthop));
         LOGT_COMMIT(&trans);
         // TODO: Rate limit ARP requests to prevent flooding
-        arp_send_req(rt->intf, ARP_HW_ETHER, saddr, nexthop);
+        // Convert proto_t value to ARP_HW_* for transmission
+        arp_send_req(rt->intf, arp_proto_hw(PROTO_ETHER), saddr, nexthop);
 
         frame_parent_free(frame);
         return -EHOSTUNREACH;

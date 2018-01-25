@@ -67,7 +67,13 @@ int arp_send_reply(struct intf *intf, uint8_t hwtype, uint32_t sip,
 
 /* Retrieve a hwaddress from ARP cache, or NULL of no cache hit */
 /* Does NOT send ARP requests for cache misses.. */
-addr_t *arp_get_hwaddr(struct intf *intf, uint16_t hwtype, addr_t *protoaddr);
+addr_t *arp_get_hwaddr(struct intf *intf, proto_t hwtype, addr_t *protoaddr);
+
+/*!
+ * Converts a PROTO_* value to a ARP_HW_*
+ * @return a ARP_HW_* value, or 0 if no match
+ */
+uint16_t arp_proto_hw(proto_t proto);
 
 /* ARP table cache */
 

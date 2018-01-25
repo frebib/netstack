@@ -6,18 +6,22 @@
  * that can be manipulated in software
  */
 
-/* Hardware protocols (layer 1) */
-#define PROTO_ETHER     0x01
+typedef enum proto {
+    /* Hardware protocols (layer 2) */
+    PROTO_ETHER     = 0x20,         /* Ethernet */
+    PROTO_ETHER_VL  = 0x21,         /* Ethernet with 802.1q VLANs */
 
-/* Network protocols (layer 2) */
-#define PROTO_IP        0x12
-#define PROTO_IPV4      0x13
-#define PROTO_IPV6      0x14
+    /* Network protocols  (layer 3) */
+    PROTO_IP        = 0x30,
+    PROTO_IPV4      = 0x31,
+    PROTO_IPV6      = 0x32,
 
-/* Transport protocols (layer 3) */
-#define PROTO_TCP       0x20
-#define PROTO_UDP       0x21
-#define PROTO_ICMP      0x22
+    /* Transport protocols (layer 4) */
+    PROTO_TCP       = 0x41,
+    PROTO_UDP       = 0x42,
+    PROTO_ICMP      = 0x43,
+
+} proto_t;
 
 
 #endif //NETSTACK_PROTO_H
