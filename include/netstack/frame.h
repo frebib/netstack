@@ -3,49 +3,75 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdatomic.h>
 #include <time.h>
+#include <netstack/proto.h>
+#include <netstack/col/alist.h>
 #include <netstack/intf/intf.h>
+#include <netstack/lock/shared.h>
 
 // Fix circular include issue
 struct intf;
 
+
+/*
+ * List of protocol layers found in a frame
+ * The list is strictly ordered by appearance within the frame
+ */
+struct frame_layer {
+    proto_t proto;
+    void *hdr;
+    void *data;
+};
+ARRAYLIST_DEFINE(frame_stack, struct frame_layer);
+
+
+/*
+ * A frame is ALWAYS stored in network byte order
+ */
+
 struct frame {
-    struct intf *intf;      /* Always present for incoming packets*/
-    size_t buf_size;
-    int   *buf_refcount;    /* Dynamically allocated reference count for
-                               buffer. Persists across copied child/parents */
+    struct intf *intf;      /* Always present for incoming packets */
     struct timespec time;   /* Send/recv time for frame */
-    uint8_t *buffer,
+    frame_stack_t layer;    /* Arraylist of protocol layers in frame, ordered */
+    size_t buf_sz;
+    uint8_t *buffer,        /* These pointers are for 'current use' only.
+                               refer to proto[] for list of protocol ptrs */
             *head,          /* It cannot be assumed that head and data */
             *data,          /* are a contiguous region of memory */
             *tail;
 
-    struct frame *parent,
-                 *child;
+    pthread_rwlock_t lock;
+    atomic_uint refcount;
 };
 
-/* Shifts the head and data pointers backwards by size */
-#define frame_alloc(frame, size) \
+/*!
+ * Shifts the head and data pointers backwards by size
+ */
+#define frame_data_alloc(frame, size) \
         (void *) ((frame)->head = (frame)->data -= (size))
 
-/* Shifts the data pointer backwards by size from data */
+/*!
+ * Sets the data pointer to head then shifts head back by size
+ */
 #define frame_head_alloc(frame, size) \
-        (void *) ((frame)->head = (frame)->data - (size))
+        (void *) ((frame)->head = ((frame)->data = (frame)->head) - (size))
 
-/* Calculates the total length of the frame header and payload */
+/*!
+ * Calculates the total length of the frame header and payload
+ * */
 #define frame_pkt_len(frame) (uint16_t) ((frame)->tail - (frame)->head)
 
-/* Calculates the total length of the frame header */
+/*!
+ * Calculates the total length of the frame header
+ */
 #define frame_hdr_len(frame) (uint16_t) ((frame)->data - (frame)->head)
 
-/* Calculates the total length of the frame payload */
+/*!
+ * Calculates the total length of the frame payload
+ */
 #define frame_data_len(frame) (uint16_t) ((frame)->tail - (frame)->data)
 
-#define frame_incref(frame) (*(frame)->buf_refcount)++
-
-/* Initialises a new frame on the heap,
-   with a buffer if a size is provided,
-   linked to an optional socket */
 
 /*!
  * Initialises a new frame, allocating it using calloc(3)
@@ -68,39 +94,73 @@ struct frame *frame_init(struct intf *intf, void *buffer, size_t buf_size);
 void frame_init_buf(struct frame *frame, void *buffer, size_t buf_size);
 
 /*!
+ * Increases the reference count for a frame, preventing it from being
+ * deallocated prematurely. To release the reference, call frame_decref()
+ * Note: There is no requirement to hold frame->lock as this operation is atomic
+ */
+#define frame_incref(frame) atomic_fetch_add(&(frame)->refcount, 1)
+
+/*!
  * Indicates the frame is no longer required.
  * If refcount hits zero, the frame and buffer is free'd
  *    Whoever creates a frame is responsible for dereferencing it.
  *    When a frame is passed to any internal code, it can be assumed that any
  *    required references will be added. Any dangling frames will cause
  *    memory leaks!
+ * Note: The shared frame->lock should be held before calling this
  * @param frame frame to dereference
  */
 void frame_decref(struct frame *frame);
 
 /*!
- * Frees a frame but NOT it's enclosed buffer
+ * Clones a frame
+ * A clone has:
+ *    Its own lock
+ *    Its own refcount
+ *    No buffer, so that it cannot be free'd
+ *    A copied frame-stack (independent from original frame)
+ * @param orig frame to clone
  */
-void frame_free(struct frame *frame);
+struct frame *frame_clone(struct frame *orig);
 
 /*!
- * Frees a frame and all of its parents but NOT it's enclosed buffer
+ * Obtains the frame mutex lock to prevent simultaneous access
+ * @param type  lock for reading or reading/writing
+ * @return see pthread_mutex_lock(3P)
  */
-void frame_parent_free(struct frame *frame);
-
-struct frame *frame_clone(struct frame *original);
-
-/*!
- * Clones a frame, setting it's child to the clone and the parent of the
- * child to the original frame.
- * @return the new child frame
- */
-struct frame *frame_child_copy(struct frame *parent);
+#define frame_lock(frame, type) shared_lock(&(frame)->lock, (type))
 
 /*!
- * Similar to frame_child_copy, a frame is cloned to be used as the parent
- * @return the new parent frame
+ * Releases the frame mutex lock
+ * @return see pthread_mutex_lock(3P)
  */
-struct frame *frame_parent_copy(struct frame *parent);
+#define frame_unlock(frame) shared_unlock(&(frame)->lock)
+
+/*!
+ * Pushes a protocol into the frame protocol stack
+ * @param frame  frame to add protocol to
+ * @param proto  protocol to add
+ * @param hdr    pointer to protocol header
+ * @param data   pointer to protocol data
+ * @return 0 on success, negative on error
+ */
+int frame_layer_push_ptr(struct frame *f, proto_t prot, void *hdr, void *data);
+
+/*!
+ * Performs the same operation as frame_layer_push_ptr() but
+ * assumes hdr and data pointers are frame->head and frame->data respectively
+ */
+#define frame_layer_push(frame, proto) \
+        frame_layer_push_ptr((frame), (proto), (frame)->head, (frame)->data)
+
+/*!
+ * Finds the nth outer frame_layer
+ * @param frame frame to search
+ * @param rel relative index of frame layer
+ *            values are relative from the inner-most layer
+ *            0 is the inner-most layer, 1 is the parent of that etc.
+ * @return a pointer to a frame_layer, or NULL if not found
+ */
+struct frame_layer *frame_layer_outer(struct frame *frame, uint8_t rel);
 
 #endif //NETSTACK_FRAME_H

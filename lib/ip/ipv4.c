@@ -11,6 +11,7 @@
 #include <netstack/checksum.h>
 #include <stdlib.h>
 
+
 bool ipv4_log(struct pkt_log *log, struct frame *frame) {
     struct ipv4_hdr *hdr = ipv4_hdr(frame);
     uint16_t hdr_len = (uint16_t) ipv4_hdr_len(hdr);
@@ -43,21 +44,21 @@ bool ipv4_log(struct pkt_log *log, struct frame *frame) {
         return false;
     }
 
-    struct frame *child_frame = frame_child_copy(frame);
+    frame->head = frame->data;
     switch (hdr->proto) {
         case IP_P_TCP: {
-            uint16_t sport = htons(tcp_hdr(child_frame)->sport);
-            uint16_t dport = htons(tcp_hdr(child_frame)->dport);
+            uint16_t sport = htons(tcp_hdr(frame)->sport);
+            uint16_t dport = htons(tcp_hdr(frame)->dport);
             LOGT(trans, "%s:%d > ", fmtip4(ntohl(hdr->saddr)), sport);
             LOGT(trans, "%s:%d ", fmtip4(ntohl(hdr->daddr)), dport);
             LOGT(trans, "TCP ");
-            return tcp_log(log, child_frame, inet_ipv4_csum(hdr));
+            return tcp_log(log, frame, inet_ipv4_csum(hdr));
         }
         case IP_P_ICMP:
             LOGT(trans, "%s > ", fmtip4(ntohl(hdr->saddr)));
             LOGT(trans, "%s ", fmtip4(ntohl(hdr->daddr)));
             LOGT(trans, "ICMP ");
-            return icmp_log(log, child_frame);
+            return icmp_log(log, frame);
         case IP_P_UDP:
             LOGT(trans, "%s > ", fmtip4(ntohl(hdr->saddr)));
             LOGT(trans, "%s ", fmtip4(ntohl(hdr->daddr)));
@@ -113,42 +114,16 @@ void ipv4_recv(struct frame *frame) {
         return;
     }
 
-    struct frame *child_frame = frame_child_copy(frame);
+    // Push IP into protocol stack
+    frame_layer_push(frame, PROTO_IPV4);
+
+    frame->head = frame->data;
     switch (hdr->proto) {
-        case IP_P_TCP: {
-            struct tcp_hdr *tcp_hdr = tcp_hdr(child_frame);
-            uint16_t sport = htons(tcp_hdr->sport);
-            uint16_t dport = htons(tcp_hdr->dport);
-            addr_t saddr = {.proto=PROTO_IPV4, .ipv4 = ntohl(hdr->saddr)};
-            addr_t daddr = {.proto=PROTO_IPV4, .ipv4 = ntohl(hdr->daddr)};
-            struct tcp_sock *sock = tcp_sock_lookup(&saddr, &daddr, sport, dport);
-
-            // No (part/complete) established connection was found
-            if (sock == NULL) {
-                LOG(LWARN, "[IPv4] Unrecognised incoming TCP connection");
-                // Allocate a new socket to provide address to tcp_send_rst()
-                sock = malloc(sizeof(struct tcp_sock));
-                *sock = (struct tcp_sock) {
-                        .inet = {
-                                .remaddr = saddr,
-                                .remport = sport,
-                                .locaddr = daddr,
-                                .locport = dport,
-                        },
-                        .state = TCP_CLOSED
-                };
-            } else if (sock->state == TCP_LISTEN) {
-                sock->inet.remaddr = saddr;
-                sock->inet.remport = sport;
-                sock->inet.locaddr = daddr;
-            }
-
-            /* Pass initial network csum as TCP packet csum seed */
-            tcp_recv(child_frame, sock, inet_ipv4_csum(hdr));
+        case IP_P_TCP:
+            tcp_ipv4_recv(frame, hdr);
             return;
-        }
         case IP_P_ICMP:
-            icmp_recv(child_frame);
+            icmp_recv(frame);
             return;
         case IP_P_UDP:
         default:
@@ -156,7 +131,7 @@ void ipv4_recv(struct frame *frame) {
     }
 }
 
-int ipv4_send(struct frame *child, uint8_t proto, uint16_t flags,
+int ipv4_send(struct frame *frame, uint8_t proto, uint16_t flags,
               ip4_addr_t daddr, ip4_addr_t saddr) {
 
     // TODO: Take source address into route calculation
@@ -175,7 +150,6 @@ int ipv4_send(struct frame *child, uint8_t proto, uint16_t flags,
     }
 
     // Set frame interface now it is known from route
-    struct frame *frame = frame_parent_copy(child);
     frame->intf = rt->intf;
 
     ip4_addr_t nexthop = (rt->flags & RT_GATEWAY) ? rt->gwaddr : daddr;
@@ -186,7 +160,6 @@ int ipv4_send(struct frame *child, uint8_t proto, uint16_t flags,
             LOG(LERR, "The requested address %s is invalid for "
                     "interface %s", fmtip4(saddr), rt->intf->name);
 
-            frame_parent_free(frame);
             return -EADDRNOTAVAIL;
         }
     } else {
@@ -195,7 +168,6 @@ int ipv4_send(struct frame *child, uint8_t proto, uint16_t flags,
             LOG(LERR, "Could not get interface address for %s",
                     rt->intf->name);
 
-            frame_parent_free(frame);
             return -EADDRNOTAVAIL;
         }
 
@@ -203,7 +175,6 @@ int ipv4_send(struct frame *child, uint8_t proto, uint16_t flags,
             LOG(LERR, "Interface %s has no address for IPv4",
                     rt->intf->name);
 
-            frame_parent_free(frame);
             return -EADDRNOTAVAIL;
         }
 
@@ -224,11 +195,11 @@ int ipv4_send(struct frame *child, uint8_t proto, uint16_t flags,
         // Convert proto_t value to ARP_HW_* for transmission
         arp_send_req(rt->intf, arp_proto_hw(PROTO_ETHER), saddr, nexthop);
 
-        frame_parent_free(frame);
         return -EHOSTUNREACH;
     }
 
     // Construct IPv4 header
+    // TODO: Dynamically allocate IPv4 header space
     struct ipv4_hdr *hdr = frame_head_alloc(frame, sizeof(struct ipv4_hdr));
     hdr->hlen = 5;
     hdr->version = 4;

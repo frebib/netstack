@@ -189,8 +189,8 @@ int arp_send_req(struct intf *intf, uint16_t hwtype,
                  uint32_t saddr, uint32_t daddr) {
 
     struct frame *frame = intf_frame_new(intf, intf_max_frame_size(intf));
-    struct arp_ipv4 *req = frame_alloc(frame, sizeof(struct arp_ipv4));
-    struct arp_hdr *hdr = frame_alloc(frame, sizeof(struct arp_hdr));
+    struct arp_ipv4 *req = frame_data_alloc(frame, sizeof(struct arp_ipv4));
+    struct arp_hdr *hdr = frame_data_alloc(frame, sizeof(struct arp_hdr));
 
     // TODO: Use hwtype to determine length and type of address
     memcpy(&req->saddr, intf->ll_addr, ETH_ADDR_LEN);
@@ -244,8 +244,8 @@ int arp_send_reply(struct intf *intf, uint8_t hwtype, uint32_t sip,
     // TODO: Add 'incomplete' entry to arp cache
 
     struct frame *frame = intf_frame_new(intf, intf_max_frame_size(intf));
-    struct arp_ipv4 *req = frame_alloc(frame, sizeof(struct arp_ipv4));
-    struct arp_hdr *hdr = frame_alloc(frame, sizeof(struct arp_hdr));
+    struct arp_ipv4 *req = frame_data_alloc(frame, sizeof(struct arp_ipv4));
+    struct arp_hdr *hdr = frame_data_alloc(frame, sizeof(struct arp_hdr));
 
     // TODO: Use hwtype to determine length and type of address
     memcpy(&req->saddr, intf->ll_addr, ETH_ADDR_LEN);

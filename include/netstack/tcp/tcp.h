@@ -94,7 +94,7 @@ struct tcb {
     struct tcb_snd {
         uint32_t una;   // send unacknowledged
         uint32_t nxt;   // send next
-        uint32_t wnd;   // send window (what it is: https://tools.ietf.org/html/rfc793#page-20)
+        uint16_t wnd;   // send window (what it is: https://tools.ietf.org/html/rfc793#page-20)
         uint16_t up;    // send urgent pointer
         uint32_t wl1;   // segment sequence number used for last window update
         uint32_t wl2;   // segment acknowledgment number used for last window update
@@ -219,6 +219,9 @@ static inline char *fmt_tcp_flags(struct tcp_hdr *hdr, char *buffer) {
 #define tcp_hdr_len(hdr) ((uint16_t) ((hdr)->hlen * 4))
 
 bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum);
+
+/* Receives a tcp frame given an ipv4 parent */
+void tcp_ipv4_recv(struct frame *frame, struct ipv4_hdr *hdr);
 
 /* Receives a tcp frame for processing in the network stack */
 void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum);

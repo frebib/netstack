@@ -392,12 +392,12 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         valid = false;
         LOG(LINFO, "[TCP] Possible duplicate segment?");
         LOG(LINFO, "[TCP] Recv'd seq number is less than expected RCV.NXT");
-        LOG(LINFO, "[TCP] SEQ %lu, RCV.NXT %lu", seg_seq, tcb->rcv.nxt);
+        LOG(LINFO, "[TCP] SEQ %u, RCV.NXT %u", seg_seq, tcb->rcv.nxt);
     }
     if (seg_seq + seg_len - 1 > tcb->rcv.nxt + tcb->rcv.wnd) {
         valid = false;
         LOG(LINFO, "[TCP] more data was sent than can fit in RCV.WND");
-        LOG(LINFO, "[TCP] SEQ %lu, LEN %lu, RCV.NXT %lu, RCV.WND %lu",
+        LOG(LINFO, "[TCP] SEQ %u, LEN %hu, RCV.NXT %u, RCV.WND %hu",
             seg_seq, seg_len, tcb->rcv.nxt, tcb->rcv.wnd);
     }
     /*
@@ -835,7 +835,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     } else {
         if (seg_seq != tcb->rcv.nxt) {
             LOG(LWARN, "[TCP] Recv'd out-of-order FIN. Dropping");
-            LOG(LWARN, "[TCP] SEQ %lu, RCV.NXT %lu", seg_seq, tcb->rcv.nxt);
+            LOG(LWARN, "[TCP] SEQ %u, RCV.NXT %u", seg_seq, tcb->rcv.nxt);
             goto drop_pkt;
         }
     /*

@@ -28,21 +28,22 @@ bool ether_log(struct pkt_log *log, struct frame *frame) {
     if (memcmp(hdr->daddr, &ETH_BRD_ADDR, ETH_ADDR_LEN) == 0)
         LOGT(trans, "Broadcast ");
 
-    frame->data += ether_hdr_len(frame);
-    struct frame *child_frame = frame_child_copy(frame);
+    frame->data = frame->head + sizeof(struct eth_hdr);
     uint16_t ethertype = ntohs(hdr->ethertype);
     if (ethertype == ETH_P_VLAN) {
         struct eth_hdr_vlan *vhdr = (void *) hdr;
         LOGT(trans, "VLAN %d ", vhdr->vlan);
         ethertype = ntohs(vhdr->ethertype);
+        frame->data += 6;
     }
+    frame->head = frame->data;
     switch (ethertype) {
         case ETH_P_ARP:
             LOGT(trans, "ARP ");
-            return arp_log(log, child_frame);
+            return arp_log(log, frame);
         case ETH_P_IP:
             LOGT(trans, "IPv4 ");
-            return ipv4_log(log, child_frame);
+            return ipv4_log(log, frame);
         case ETH_P_IPV6:
             LOGT(trans, "IPv6 unimpl ");
             return false;
@@ -62,34 +63,42 @@ void ether_recv(struct frame *frame) {
     struct eth_hdr *hdr = (struct eth_hdr *) frame->head;
     struct intf *intf = frame->intf;
 
-    /* Frame data is after fixed header size */
+    // Frame data is after fixed header size
     frame->data += ether_hdr_len(frame);
 
+    // Handle 802.1Q VLANs
+    proto_t proto = PROTO_ETHER;
+    uint16_t ethertype = ntohs(hdr->ethertype);
+    if (ethertype == ETH_P_VLAN) {
+        ethertype = ntohs(((struct eth_hdr_vlan *) hdr)->ethertype);
+        proto = PROTO_ETHER_VL;
+    }
+
+    // Drop packets that we're not accepting
     if (!ether_should_accept(hdr, intf)) {
         return;
     }
 
-    struct frame *child_frame = frame_child_copy(frame);
-    uint16_t ethertype = ntohs(hdr->ethertype);
-    if (ethertype == ETH_P_VLAN)
-        ethertype = ntohs(((struct eth_hdr_vlan *) hdr)->ethertype);
+    // Push ethernet into protocol stack
+    frame_layer_push(frame, proto);
+
+    frame->head = frame->data;
     switch (ethertype) {
         case ETH_P_ARP:
-            arp_recv(child_frame);
+            arp_recv(frame);
             return;
         case ETH_P_IP:
-            ipv4_recv(child_frame);
+            ipv4_recv(frame);
             return;
         default:
             return;
     }
 }
 
-int ether_send(struct frame *child, uint16_t ethertype, eth_addr_t mac) {
+int ether_send(struct frame *frame, uint16_t ethertype, eth_addr_t mac) {
 
-    struct frame *frame = frame_parent_copy(child);
     struct intf *intf = frame->intf;
-    struct eth_hdr *hdr = frame_alloc(frame, sizeof(struct eth_hdr));
+    struct eth_hdr *hdr = frame_head_alloc(frame, sizeof(struct eth_hdr));
     memcpy(hdr->saddr, intf->ll_addr, ETH_ADDR_LEN);
     memcpy(hdr->daddr, mac, ETH_ADDR_LEN);
     hdr->ethertype = htons(ethertype);

@@ -58,16 +58,6 @@ struct pkt_log {
 #define LTRCE 0x20
 #define LNULL 0x00
 
-#define logcrit(...) log(LCRIT, __VA_ARGS__)
-#define logerr(...)  log(LERR,  __VA_ARGS__)
-#define logwarn(...) log(LWARN, __VA_ARGS__)
-#define logntce(...) log(LNTCE, __VA_ARGS__)
-#define loginfo(...) log(LINFO, __VA_ARGS__)
-#define logdbug(...) log(LDBUG, __VA_ARGS__)
-#define logtrce(...) log(LTRCE, __VA_ARGS__)
-
-
-// macros: __FILE__, __LINE__, __func__
 
 /*!
  * Initialise log_config with stdout and stderr default log streams
@@ -77,10 +67,17 @@ void log_default(struct log_config *conf);
 /*!
  * Generate log entry
  */
-void LOG(loglvl_t level, const char *fmt, ...);
-void VLOG(loglvl_t level, const char *fmt, va_list args);
-void TLOG (loglvl_t level, struct timespec *t, const char *fmt, ...);
-void VTLOG(loglvl_t level, struct timespec *t, const char *fmt, va_list args);
+void LOG(loglvl_t level, const char *fmt, ...)
+        __attribute__((__format__ (__printf__, 2, 3)));
+
+void VLOG(loglvl_t level, const char *fmt, va_list args)
+        __attribute__((__format__ (__printf__, 2, 0)));
+
+void TLOG(loglvl_t level, struct timespec *t, const char *fmt, ...)
+        __attribute__((__format__ (__printf__, 3, 4)));
+
+void VTLOG(loglvl_t level, struct timespec *t, const char *fmt, va_list args)
+        __attribute__((__format__ (__printf__, 3, 0)));
 
 /*!
  * Equivalent of perror(3)
@@ -114,24 +111,32 @@ void VTLOG(loglvl_t level, struct timespec *t, const char *fmt, va_list args);
  *            func -> thread_start
  */
 #define LOGFN(lvl, fmt, ...) \
-    LOG((lvl), fmt ": %s:%lu<%s>", ##__VA_ARGS__, __FILE__, __LINE__, __func__)
+    LOG((lvl), fmt ": %s:%u<%s>", ##__VA_ARGS__, __FILE__, __LINE__, __func__)
 
 /*!
  * Generate log entry and write it to file
  */
-void LOGF(FILE *file, loglvl_t level, const char *fmt, ...);
-void VLOGF(FILE *file, loglvl_t level, const char *fmt, va_list args);
+void LOGF(FILE *file, loglvl_t level, const char *fmt, ...)
+        __attribute__((__format__ (__printf__, 3, 4)));
+
+void VLOGF(FILE *file, loglvl_t level, const char *fmt, va_list args)
+        __attribute__((__format__ (__printf__, 3, 0)));
+
 void TLOGF(FILE *file, loglvl_t level, struct timespec *t, const char *fmt,
-           ...);
+           ...) __attribute__((__format__ (__printf__, 4, 5)));
+
 void VTLOGF(FILE *file, loglvl_t level, struct timespec *ts, const char *fmt,
-            va_list args);
+            va_list args) __attribute__((__format__ (__printf__, 4, 0)));
 
 /*!
  * Append to a log transaction
  * @param trans transaction to append to
  */
-void LOGT(struct log_trans *trans, const char *fmt, ...);
-void VLOGT(struct log_trans *trans, const char *fmt, va_list args);
+void LOGT(struct log_trans *trans, const char *fmt, ...)
+        __attribute__((__format__ (__printf__, 2, 3)));
+
+void VLOGT(struct log_trans *trans, const char *fmt, va_list args)
+        __attribute__((__format__ (__printf__, 2, 0)));
 
 /*
  * Transactional logging

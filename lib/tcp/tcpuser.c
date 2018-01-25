@@ -133,8 +133,8 @@ int tcp_user_send(struct tcp_sock *sock, void *data, size_t len) {
         }
         sent += ret;
     }
-    LOG(LDBUG, "[TCP] Sent %lu bytes", sent);
-    
+    LOG(LDBUG, "[TCP] Sent %i bytes", sent);
+
     return sent;
 }
 

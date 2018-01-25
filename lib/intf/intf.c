@@ -8,9 +8,16 @@
 #include <netstack/eth/ether.h>
 #include <netstack/ip/ipv4.h>
 
+
+// Private functions
+void _intf_send_thread(struct intf *intf);
+void _intf_recv_thread(struct intf *intf);
+
+
 int intf_dispatch(struct frame *frame) {
     // Ensure send() has a reference, keeping the frame alive
     frame_incref(frame);
+    frame_unlock(frame);
 
     // Push the frame into the queue
     queue_push(&frame->intf->sendq, frame);
@@ -56,30 +63,30 @@ void _intf_send_thread(struct intf *intf) {
 
         // Only attempt to send a non-null frame
         if (frame) {
+            frame_lock(frame, SHARED_RW);
+
             // Send the frame!
             int ret = (int) intf->send_frame(frame);
             if (ret < 0)
-                LOGSE(LINFO, "send_frame() returned %ld", ret, ret);
+                LOGSE(LINFO, "send_frame() returned %d", ret, ret);
 
             // Log outgoing packets
             struct pkt_log log = PKT_TRANS(LFRAME);
-            bool should_print = false;
+            struct frame *logframe = frame_clone(frame);
 
             switch (intf->proto) {
                 case PROTO_ETHER:
-                    should_print = ether_log(&log, frame);
+                    LOGT_OPT_COMMIT(ether_log(&log, logframe), &log.t);
                     break;
                 case PROTO_IP:
                 case PROTO_IPV4:
-                    should_print = ipv4_log(&log, frame);
+                    LOGT_OPT_COMMIT(ipv4_log(&log, logframe), &log.t);
                     break;
                 default:
                     break;
             }
-            if (should_print)
-                LOGT_COMMIT(&log.t);
-            else
-                LOGT_DISPOSE(&log.t);
+
+            frame_decref(logframe);
 
             // Frame sent, disown it
             frame_decref(frame);
@@ -107,6 +114,10 @@ void _intf_recv_thread(struct intf *intf) {
         struct pkt_log log = PKT_TRANS(LFRAME);
         memcpy(&log.t.time, &rawframe->time, sizeof(struct timespec));
 
+        // Release write lock: *_recv functions are read-only
+        frame_unlock(rawframe);
+        frame_lock(rawframe, SHARED_RD);
+
         // TODO: Conditionally print debugging information
         // Push received data into the stack
         switch (intf->proto) {
@@ -124,12 +135,7 @@ void _intf_recv_thread(struct intf *intf) {
                 break;
         }
 
-        // TODO: Use same frame stack instead of cloning across threads
-        // Call frame_free() to ensure cloned frames are destroyed.
-        // frame_decref() won't free cloned frames here because the buffer is
-        // still referenced in rawframe.
         frame_decref(logframe);
-        frame_free(logframe);
 
         // Allocate a new frame
         frame_decref(rawframe);

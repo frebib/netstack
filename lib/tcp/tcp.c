@@ -29,13 +29,46 @@ bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum) {
     char sflags[9];
     LOGT(trans, "flags [%s] ", fmt_tcp_flags(hdr, sflags));
 
-    LOGT(trans, "seq %zu ", ntohl(hdr->seqn));
+    LOGT(trans, "seq %u ", ntohl(hdr->seqn));
     if (hdr->flags.ack)
-        LOGT(trans, "ack %zu ", ntohl(hdr->ackn));
+        LOGT(trans, "ack %u ", ntohl(hdr->ackn));
 
     LOGT(trans, "wind %hu ", ntohs(hdr->wind));
 
     return true;
+}
+
+void tcp_ipv4_recv(struct frame *frame, struct ipv4_hdr *hdr) {
+    struct tcp_hdr *tcp_hdr = tcp_hdr(frame);
+    uint16_t sport = htons(tcp_hdr->sport);
+    uint16_t dport = htons(tcp_hdr->dport);
+    addr_t saddr = {.proto = PROTO_IPV4, .ipv4 = ntohl(hdr->saddr)};
+    addr_t daddr = {.proto = PROTO_IPV4, .ipv4 = ntohl(hdr->daddr)};
+    struct tcp_sock *sock = tcp_sock_lookup(&saddr, &daddr, sport, dport);
+
+    // https://blog.cloudflare.com/syn-packet-handling-in-the-wild
+
+    // No (part/complete) established connection was found
+    if (sock == NULL) {
+        LOG(LWARN, "[IPv4] Unrecognised incoming TCP connection");
+        // Allocate a new socket to provide address to tcp_send_rst()
+        sock = malloc(sizeof(struct tcp_sock));
+        sock->state = TCP_CLOSED;
+        sock->inet = (struct inet_sock) {
+                .remaddr = saddr,
+                .remport = sport,
+                .locaddr = daddr,
+                .locport = dport,
+        };
+        llist_append(&tcp_sockets, sock);
+    } else if (sock->state == TCP_LISTEN) {
+        sock->inet.remaddr = saddr;
+        sock->inet.remport = sport;
+        sock->inet.locaddr = daddr;
+    }
+
+    /* Pass initial network csum as TCP packet csum seed */
+    tcp_recv(frame, sock, inet_ipv4_csum(hdr));
 }
 
 void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {

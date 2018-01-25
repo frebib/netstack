@@ -183,7 +183,7 @@ void LOGT_COMMIT(struct log_trans *trans) {
     struct timespec *t = (trans->time.tv_sec == 0 &&
                             trans->time.tv_nsec == 0)
                              ? NULL : &trans->time;
-    TLOG(trans->level, t, trans->str);
+    TLOG(trans->level, t, "%s", trans->str);
     LOGT_DISPOSE(trans);
 }
 

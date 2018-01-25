@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
             case SIGHUP:
             case SIGQUIT:
                 // Cleanup TCP states
-                LOG(LNTCE, "Cleaning up %hu TCP sockets", tcp_sockets.length);
+                LOG(LNTCE, "Cleaning up %zu TCP sockets", tcp_sockets.length);
                 llist_iter(&tcp_sockets, tcp_sock_cleanup);
                 llist_clear(&tcp_sockets);
 

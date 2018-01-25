@@ -24,7 +24,7 @@ struct eth_hdr_vlan {
     eth_addr_t daddr;   /* Destination address */
     eth_addr_t saddr;   /* Source address */
     uint16_t tpid;      /* Value of ETH_P_VLAN */
-    uint16_t vlan;      /* 802.11Q VLAN tag*/
+    uint16_t vlan;      /* 802.1Q VLAN tag*/
     uint16_t ethertype;   /* Frame payload type, see ethertype.h */
 }__attribute((packed));
 

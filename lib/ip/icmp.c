@@ -21,16 +21,16 @@ bool icmp_log(struct pkt_log *log, struct frame *frame) {
         LOGT(trans, " (invalid 0x%04x)", ntohs(calc_csum));
     LOGT(trans, ", ");
 
-    struct frame *ctrl = frame_child_copy(frame);
+    frame->head = frame->data;
     switch (hdr->type) {
         case ICMP_T_ECHORPLY: {
-            struct icmp_echo *echo = (struct icmp_echo *) ctrl->head;
+            struct icmp_echo *echo = (struct icmp_echo *) frame->head;
             LOGT(trans, "echoreply id %d, seq %d ", ntohs(echo->id),
                    ntohs(echo->seq));
             break;
         }
         case ICMP_T_ECHOREQ: {
-            struct icmp_echo *echo = (struct icmp_echo *) ctrl->head;
+            struct icmp_echo *echo = (struct icmp_echo *) frame->head;
             LOGT(trans, "echoreq id %d, seq %d ", ntohs(echo->id),
                  ntohs(echo->seq));
             break;
@@ -54,20 +54,22 @@ void icmp_recv(struct frame *frame) {
         return;
     }
 
-    struct frame *ctrl = frame_child_copy(frame);
+    // Push ICMP into protocol stack
+    frame_layer_push(frame, PROTO_ICMP);
+
+    frame->head = frame->data;
     switch (hdr->type) {
         case ICMP_T_ECHORPLY: {
-            struct icmp_echo *echo = (struct icmp_echo *) ctrl->head;
-            ctrl->data += sizeof(struct icmp_echo);
             break;
         }
         case ICMP_T_ECHOREQ: {
-            struct icmp_echo *echo = (struct icmp_echo *) ctrl->head;
-            ctrl->data += sizeof(struct icmp_echo);
-            send_icmp_reply(ctrl);
+            frame->data += sizeof(struct icmp_echo);
+            frame_layer_push(frame, PROTO_ICMP_ECHO);
+            send_icmp_reply(frame);
             break;
         }
         case ICMP_T_DESTUNR:
+        default:
             break;
     }
 }
@@ -79,20 +81,33 @@ void icmp_recv(struct frame *frame) {
  *  Source: https://en.wikipedia.org/wiki/Ping_(networking_utility)#Echo_reply
  */
 int send_icmp_reply(struct frame *ctrl) {
+    // Go up 2 layers as the outer of this is the ICMP header
+    struct frame_layer *outer = frame_layer_outer(ctrl, 2);
+    if (outer == NULL) {
+        LOGFN(LERR, "ICMP echo layer has no parent!");
+        return -1;
+    }
     // TODO: Don't assume IPv4 parent
-    struct ipv4_hdr *ip = ipv4_hdr(ctrl->parent->parent);
+    struct ipv4_hdr *ip = (struct ipv4_hdr *) outer->hdr;
+    switch(outer->proto) {
+        case PROTO_IPV4:
+        case PROTO_IPV6:
+            // TODO: Find ICMP route
+        default:
+            LOGFN(LWARN, "ICMP echo parent isn't a recognised protocol (%u)",
+                 outer->proto);
+    }
     struct icmp_echo *ping = icmp_echo_hdr(ctrl);
 
     size_t size = intf_max_frame_size(ctrl->intf);
-    struct frame *reply_payld = intf_frame_new(ctrl->intf, size);
+    struct frame *reply = intf_frame_new(ctrl->intf, size);
     // TODO: Fix frame->data pointer head/tail difference
 
     // Mark and copy payload from request packet
-    uint8_t *payld = (reply_payld->data -= frame_data_len(ctrl));
+    uint8_t *payld = (reply->data -= frame_data_len(ctrl));
     memcpy(payld, ctrl->data, frame_data_len(ctrl));
 
-    struct icmp_echo *echo = frame_head_alloc(reply_payld, sizeof(struct icmp_echo));
-    struct frame *reply = frame_parent_copy(reply_payld);
+    struct icmp_echo *echo = frame_head_alloc(reply, sizeof(struct icmp_echo));
     struct icmp_hdr *hdr = frame_head_alloc(reply, sizeof(struct icmp_hdr));
     echo->id = ping->id;
     echo->seq = ping->seq;

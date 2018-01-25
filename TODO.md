@@ -19,22 +19,21 @@
   - Line 160: Fix endianness in tcp.h
 
 ## [lib/eth/arp.c](lib/eth/arp.c)
-  - Line 73: Check for queued outgoing packets that can
-  - Line 136: Use hashtable for ARP lookups on IPv4
-  - Line 142: This doesn't account for protocol addresses that change hw
-  - Line 184: Use hwtype to determine length and type of address
-  - Line 233: Add 'incomplete' entry to arp cache
-  - Line 239: Use hwtype to determine length and type of address
+  - Line 75: Check for queued outgoing packets that can
+  - Line 147: Use hashtable for ARP lookups on IPv4
+  - Line 153: This doesn't account for protocol addresses that change hw
+  - Line 195: Use hwtype to determine length and type of address
+  - Line 244: Add 'incomplete' entry to arp cache
+  - Line 250: Use hwtype to determine length and type of address
 
 ## [lib/inet.c](lib/inet.c)
   - Line 20: Use hashtbl instead of list to lookup sockets
 
 ## [lib/intf/intf.c](lib/intf/intf.c)
-  - Line 103: Implement rx 'software' timestamping
-  - Line 110: Conditionally print debugging information
-  - Line 127: Use same frame stack instead of cloning across threads
-  - Line 192: Check intf hwtype to calculate max frame size
-  - Line 218: Selectively choose an appropriate address from intf
+  - Line 110: Implement rx 'software' timestamping
+  - Line 121: Conditionally print debugging information
+  - Line 198: Check intf hwtype to calculate max frame size
+  - Line 224: Selectively choose an appropriate address from intf
 
 ## [lib/intf/rawsock.c](lib/intf/rawsock.c)
   - Line 39: This is hacky, assuiming lo is loopback
@@ -44,33 +43,35 @@
   - Line 170: Find an appropriate size for the control buffer
 
 ## [lib/ip/icmp.c](lib/ip/icmp.c)
-  - Line 82: Don't assume IPv4 parent
-  - Line 88: Fix frame->data pointer head/tail difference
+  - Line 90: Don't assume IPv4 parent
+  - Line 95: Find ICMP route
+  - Line 104: Fix frame->data pointer head/tail difference
 
 ## [lib/ip/ipv4.c](lib/ip/ipv4.c)
-  - Line 33: Change to `if (!ipv4_should_accept(frame))` to accept other packets
-  - Line 88: Keep track of invalid packets
-  - Line 100: Take options into account here
-  - Line 107: Other integrity checks
-  - Line 109: Change to `if (!ipv4_should_accept(frame))` to accept other packets
-  - Line 162: Take source address into route calculation
-  - Line 171: Perform correct route/hardware address lookups when appropriate
-  - Line 214: Implement ARP cache locking
-  - Line 223: Rate limit ARP requests to prevent flooding
-  - Line 238: Make this user-configurable
+  - Line 34: Change to `if (!ipv4_should_accept(frame))` to accept other packets
+  - Line 89: Keep track of invalid packets
+  - Line 101: Take options into account here
+  - Line 108: Other integrity checks
+  - Line 110: Change to `if (!ipv4_should_accept(frame))` to accept other packets
+  - Line 137: Take source address into route calculation
+  - Line 146: Perform correct route/hardware address lookups when appropriate
+  - Line 185: Implement ARP cache locking
+  - Line 194: Rate limit ARP requests to prevent flooding
+  - Line 202: Dynamically allocate IPv4 header space
+  - Line 210: Make this user-configurable
 
 ## [lib/ip/route.c](lib/ip/route.c)
   - Line 16: Define how routes with the same metric should behave?
 
 ## [lib/tcp/tcp.c](lib/tcp/tcp.c)
   - Line 20: Work out why sometimes this is 0x0200 too small (in netwk byte-ord)
-  - Line 58: Check for TSO and GRO and account for it, somehow..
-  - Line 64: Other integrity checks
-  - Line 73: Perform queued actions when reaching certain states
-  - Line 74: Lock sock->state
-  - Line 113: Interrupt waiting send()/recv() calls with ECONNABORTED
-  - Line 143: Choose a random unused outgoing port
-  - Line 148: Choose a secure initial sequence number
+  - Line 91: Check for TSO and GRO and account for it, somehow..
+  - Line 97: Other integrity checks
+  - Line 106: Perform queued actions when reaching certain states
+  - Line 107: Lock sock->state
+  - Line 146: Interrupt waiting send()/recv() calls with ECONNABORTED
+  - Line 176: Choose a random unused outgoing port
+  - Line 181: Choose a secure initial sequence number
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
   - Line 16: * TODO: Treat all seq and ack number arithmetic modulo UINT32_MAX
@@ -109,13 +110,13 @@
   - Line 18: Vary hdr->wind in tcp_send()
   - Line 25: Don't assume IPv4 L3, choose based on sock->saddr
   - Line 35: Don't assume IPv4 pseudo-header for checksumming
-  - Line 41: Implement functionality to specify IP flags (different for IP4/6?)
-  - Line 49: Work out route interface before allocating buffer
-  - Line 56: Allocate space for TCP options
-  - Line 66: Work out route interface before allocating buffer
-  - Line 74: Implement MSS variability. Default MSS is quite small
-  - Line 81: Allocate space for TCP options
-  - Line 89: Start the retransmission timeout
+  - Line 42: Implement functionality to specify IP flags (different for IP4/6?)
+  - Line 50: Work out route interface before allocating buffer
+  - Line 57: Allocate space for TCP options
+  - Line 67: Work out route interface before allocating buffer
+  - Line 75: Implement MSS variability. Default MSS is quite small
+  - Line 82: Allocate space for TCP options
+  - Line 90: Start the retransmission timeout
 
 ## [lib/tcp/tcpuser.c](lib/tcp/tcpuser.c)
   - Line 54: Fill out 'user timeout' information

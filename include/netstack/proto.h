@@ -21,6 +21,9 @@ typedef enum proto {
     PROTO_UDP       = 0x42,
     PROTO_ICMP      = 0x43,
 
+    /* ICMP control types */
+    PROTO_ICMP_ECHO = 0x50,
+
 } proto_t;
 
 

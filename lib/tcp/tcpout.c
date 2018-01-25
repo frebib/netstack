@@ -38,6 +38,7 @@ int tcp_send(struct tcp_sock *sock, struct frame *frame) {
 
     uint32_t daddr = inet->remaddr.ipv4;
     uint32_t saddr = inet->locaddr.ipv4;
+
     // TODO: Implement functionality to specify IP flags (different for IP4/6?)
     int ret = ipv4_send(frame, IP_P_TCP, 0, daddr, saddr);
     frame_decref(frame);
@@ -51,7 +52,7 @@ int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
 
     size_t size = intf_max_frame_size(rt->intf);
     struct frame *seg = intf_frame_new(rt->intf, size);
-    seg->data = seg->tail;
+    seg->head = seg->data;
 
     // TODO: Allocate space for TCP options
     struct tcp_hdr *hdr = frame_head_alloc(seg, sizeof(struct tcp_hdr));
@@ -68,13 +69,13 @@ int tcp_send_data(struct tcp_sock *sock, uint8_t flags) {
 
     size_t size = intf_max_frame_size(rt->intf);
     struct frame *seg = intf_frame_new(rt->intf, size);
-    seg->data = seg->tail;
+    seg->head = seg->data;
 
     // https://tools.ietf.org/html/rfc793#section-3.7
     // TODO: Implement MSS variability. Default MSS is quite small
     // Calculate data size to send, limited by MSS
     size_t count = MIN(rbuf_count(&sock->sndbuf), TCP_DEF_MSS);
-    void* data = frame_alloc(seg, count);
+    void* data = frame_data_alloc(seg, count);
     // rbuf_read already does a count upper-bounds check to prevent over-reading
     rbuf_read(&sock->sndbuf, data, count);
 
