@@ -52,7 +52,7 @@ void tcp_ipv4_recv(struct frame *frame, struct ipv4_hdr *hdr) {
     if (sock == NULL) {
         LOG(LWARN, "[IPv4] Unrecognised incoming TCP connection");
         // Allocate a new socket to provide address to tcp_send_rst()
-        sock = malloc(sizeof(struct tcp_sock));
+        sock = tcp_sock_init(malloc(sizeof(struct tcp_sock)));
         sock->state = TCP_CLOSED;
         sock->inet = (struct inet_sock) {
                 .remaddr = saddr,
@@ -60,15 +60,21 @@ void tcp_ipv4_recv(struct frame *frame, struct ipv4_hdr *hdr) {
                 .locaddr = daddr,
                 .locport = dport,
         };
+        tcp_sock_lock(sock);
         llist_append(&tcp_sockets, sock);
     } else if (sock->state == TCP_LISTEN) {
+        tcp_sock_lock(sock);
         sock->inet.remaddr = saddr;
         sock->inet.remport = sport;
         sock->inet.locaddr = daddr;
     }
+    tcp_sock_incref(sock);
 
     /* Pass initial network csum as TCP packet csum seed */
     tcp_recv(frame, sock, inet_ipv4_csum(hdr));
+
+    // Decrement sock refcount and unlock
+    tcp_sock_decref(sock);
 }
 
 void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {
@@ -94,6 +100,9 @@ void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {
         goto drop_pkt;
     }
 
+    // Push TCP into protocol stack
+    frame_layer_push(frame, PROTO_TCP);
+
     // TODO: Other integrity checks
 
     tcp_seg_arr(frame, sock);
@@ -104,7 +113,6 @@ void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {
 
 void tcp_setstate(struct tcp_sock *sock, enum tcp_state state) {
     // TODO: Perform queued actions when reaching certain states
-    // TODO: Lock sock->state
     sock->state = state;
     LOG(LDBUG, "[TCP] %s state reached", tcp_strstate(state));
 }
@@ -118,7 +126,18 @@ void tcp_established(struct tcp_sock *sock, struct tcp_hdr *seg) {
         sock->tcb.snd.wnd, sock->tcb.rcv.wnd);
 }
 
-inline void tcp_free_sock(struct tcp_sock *sock) {
+struct tcp_sock *tcp_sock_init(struct tcp_sock *sock) {
+    memset(sock, 0, sizeof(struct tcp_sock));
+    sock->state = TCP_CLOSED;
+    atomic_init(&sock->refcount, 1);
+    pthread_mutex_init(&sock->lock, NULL);
+    retlock_init(&sock->openwait);
+    retlock_init(&sock->sendwait);
+    retlock_init(&sock->recvwait);
+    return sock;
+}
+
+inline void tcp_sock_free(struct tcp_sock *sock) {
     // Cancel all running timers
     tcp_timewait_cancel(sock);
 
@@ -128,24 +147,24 @@ inline void tcp_free_sock(struct tcp_sock *sock) {
     if (sock->sndbuf.size > 0)
         rbuf_destroy(&sock->sndbuf);
 
+    tcp_sock_unlock(sock);
+
     free(sock);
 }
 
-inline void tcp_destroy_sock(struct tcp_sock *sock) {
-    tcp_untrack_sock(sock);
-    tcp_free_sock(sock);
+inline void tcp_sock_destroy(struct tcp_sock *sock) {
+    tcp_sock_untrack(sock);
+    tcp_sock_free(sock);
 }
 
 void tcp_sock_cleanup(struct tcp_sock *sock) {
 
-    pthread_mutex_lock(&sock->openlock);
-    sock->openret = -ECONNABORTED;
-    pthread_mutex_unlock(&sock->openlock);
-    pthread_cond_broadcast(&sock->openwait);
+    // Set the open() return value and wake it up
+    retlock_broadcast(&sock->openwait, -ECONNABORTED);
+    retlock_broadcast(&sock->sendwait, -ECONNABORTED);
+    retlock_broadcast(&sock->recvwait, -ECONNABORTED);
 
-    // TODO: Interrupt waiting send()/recv() calls with ECONNABORTED
-
-    switch(sock->state) {
+    switch (sock->state) {
         case TCP_SYN_SENT:
         case TCP_SYN_RECEIVED:
         case TCP_ESTABLISHED:
@@ -164,9 +183,25 @@ void tcp_sock_cleanup(struct tcp_sock *sock) {
     }
 
     // Deallocate socket memory
-    tcp_destroy_sock(sock);
+    tcp_sock_destroy(sock);
 }
 
+uint tcp_sock_incref(struct tcp_sock *sock) {
+    return atomic_fetch_add(&sock->refcount, 1);
+}
+
+uint tcp_sock_decref(struct tcp_sock *sock) {
+    // Subtract and destroy socket if no more refs held
+    uint refcnt;
+    if ((refcnt = atomic_fetch_sub(&sock->refcount, 1)) == 1) {
+        LOG(LDBUG, "dereferencing sock %p", sock);
+        tcp_sock_unlock(sock);
+        tcp_sock_destroy(sock);
+    } else {
+        tcp_sock_unlock(sock);
+    }
+    return refcnt;
+}
 
 /*
  * TCP Internet functions
@@ -174,11 +209,11 @@ void tcp_sock_cleanup(struct tcp_sock *sock) {
 
 uint16_t tcp_randomport() {
     // TODO: Choose a random unused outgoing port
-    return (uint16_t) rand();
+    return (uint16_t) (rand() * time(NULL));
 }
 
 uint32_t tcp_seqnum() {
     // TODO: Choose a secure initial sequence number
-    return (uint32_t) rand();
+    return (uint32_t) (rand() * time(NULL));
 }
 

@@ -41,6 +41,9 @@ typedef struct llist {
  */
 #define llist_elem_data() ((elem)->data)
 
+#define llist_head(list) (list)->head == NULL ? NULL : (list)->head->data
+
+#define llist_tail(list) (list)->tail == NULL ? NULL : (list)->tail->data
 
 /* Add queue compatibility */
 #define queue_push llist_append
@@ -76,6 +79,12 @@ void *llist_pop(llist_t *list);
  * @return data from the last element of the list
  */
 void *llist_pop_last(llist_t *list);
+
+/*!
+ * Fetch the first element from the list, without removing it
+ * @return data from the first element of the list
+ */
+void *llist_peek(llist_t *list);
 
 /*!
  * Checks if a list contains an data element

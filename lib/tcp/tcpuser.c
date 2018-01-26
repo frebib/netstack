@@ -1,12 +1,16 @@
 #include <stdlib.h>
 #include <errno.h>
+#include <netinet/in.h>
 
 #include <netstack/tcp/tcp.h>
+#include <netstack/lock/retlock.h>
 
 /*
  * As defined in RFC 793: Functional Specification (pg 54 - 64)
  * https://tools.ietf.org/html/rfc793#page-54
  */
+
+// TODO: Handle sending SIGPIPE for dead connections to calling process
 
 /*
  * Follows OPEN Call: CLOSED STATE
@@ -34,6 +38,10 @@ int tcp_user_open(struct tcp_sock *sock) {
         return -ENOTSOCK;
     }
 
+    // Ensure socket cannot be free'd until this lock is released
+    tcp_sock_lock(sock);
+    tcp_sock_incref(sock);
+
     switch (sock->state) {
         case TCP_ESTABLISHED:
         case TCP_FIN_WAIT_1:
@@ -41,9 +49,13 @@ int tcp_user_open(struct tcp_sock *sock) {
         case TCP_LAST_ACK:
         case TCP_CLOSING:
         case TCP_CLOSE_WAIT:
+            LOGFN(LNTCE, "tcp_sock_decref() because EISCONN");
+            tcp_sock_decref(sock);
             return -EISCONN;
         case TCP_SYN_SENT:
         case TCP_SYN_RECEIVED:
+            LOGFN(LNTCE, "tcp_sock_decref() because EALREADY");
+            tcp_sock_decref(sock);
             return -EALREADY;
         default:
             break;
@@ -61,47 +73,65 @@ int tcp_user_open(struct tcp_sock *sock) {
 
     int ret;
     if ((ret = tcp_send_syn(sock)) < 0) {
+        LOGFN(LNTCE, "tcp_sock_decref() because tcp_send_syn() err");
+        tcp_sock_decref(sock);
         return ret;
     }
 
     tcp_setstate(sock, TCP_SYN_SENT);
 
-    // Wait indefinitely for the connection to be established
+    // Wait for the connection to be established
     while (sock->state != TCP_ESTABLISHED && ret >= 0) {
+
+        // Take reference to openwait before releasing lock
+        // Hopefully this does not incur a race condition :/
+        retlock_t *wait = &sock->openwait;
+        // Unlock before going to sleep
+        tcp_sock_unlock(sock);
+
         // TODO: Check for O_NONBLOCK
         if (false) {
+            // TODO: Obtain timespec value for timedwait
             struct timespec t = {.tv_sec = 5, .tv_nsec = 0};
-            int e = pthread_cond_timedwait(&sock->openwait, &sock->openlock, &t);
-            if (e == ETIMEDOUT) {
-                tcp_destroy_sock(sock);
+            retlock_timedwait(wait, &t, &ret);
+            if (ret == ETIMEDOUT) {
+                LOGFN(LNTCE, "tcp_sock_decref() because ETIMEDOUT");
+                tcp_sock_decref(sock);
                 return -ETIMEDOUT;
             }
         } else {
-            pthread_cond_wait(&sock->openwait, &sock->openlock);
+            // Wait indefinitely until we are woken
+            retlock_wait(wait, &ret);
         }
-        ret = sock->openret;
-        pthread_mutex_unlock(&sock->openlock);
+        tcp_sock_lock(sock);
     }
 
+    tcp_sock_decref(sock);
     return ret;
 }
 
-int tcp_user_send(struct tcp_sock *sock, void *data, size_t len) {
+int tcp_user_send(struct tcp_sock *sock, void *data, size_t len, int flags) {
     if (sock == NULL) {
         return -ENOTSOCK;
     }
+
+    // Ensure socket cannot be free'd until this lock is released
+    tcp_sock_lock(sock);
+    tcp_sock_incref(sock);
 
     int sent = 0;
     bool send = true;
     switch (sock->state) {
         case TCP_CLOSED:
         case TCP_LISTEN:
+            tcp_sock_decref(sock);
             return -ENOTCONN;
         case TCP_FIN_WAIT_1:
         case TCP_FIN_WAIT_2:
         case TCP_CLOSING:
         case TCP_LAST_ACK:
         case TCP_TIME_WAIT:
+            tcp_sock_decref(sock);
             return -ESHUTDOWN;
         case TCP_SYN_SENT:
         case TCP_SYN_RECEIVED:
@@ -113,14 +143,18 @@ int tcp_user_send(struct tcp_sock *sock, void *data, size_t len) {
 
     // TODO: Wait on send() for something? (Buffer is full, wait for space?)
 
-    if (len >= rbuf_free(&sock->sndbuf))
+    if (len >= rbuf_free(&sock->sndbuf)) {
+        tcp_sock_decref(sock);
         return -ENOSPC;
+    }
 
     // TODO: Write to sndbuf and output directly at the same time
     rbuf_write(&sock->sndbuf, data, len);
 
-    if (send != true)
+    if (send != true) {
+        tcp_sock_decref(sock);
         return sent;
+    }
 
     // TODO: Signal sending thread and offload segmentation/transmission
     // TODO: Check for MSG_MORE flag and don't trigger for a short while
@@ -135,12 +169,33 @@ int tcp_user_send(struct tcp_sock *sock, void *data, size_t len) {
     }
     LOG(LDBUG, "[TCP] Sent %i bytes", sent);
 
+    tcp_sock_decref(sock);
     return sent;
+}
+
+int tcp_user_recv(struct tcp_sock *sock, void* data, size_t len, int flags) {
+    if (!sock)
+        return -ENOTSOCK;
+
+    // Ensure socket cannot be free'd until this lock is released
+    tcp_sock_lock(sock);
+    tcp_sock_incref(sock);
+
+    // recv things
+
+    // Decrement refcount and release sock->lock
+    tcp_sock_decref(sock);
+
+    return 0;
 }
 
 int tcp_user_close(struct tcp_sock *sock) {
     if (!sock)
         return -ENOTSOCK;
+
+    // Ensure socket cannot be free'd until this lock is released
+    tcp_sock_lock(sock);
+    tcp_sock_incref(sock);
 
     // TODO: tcp_close() request until all send() calls have completed
     switch (sock->state) {
@@ -170,11 +225,17 @@ int tcp_user_close(struct tcp_sock *sock) {
         case TCP_LAST_ACK:
         case TCP_TIME_WAIT:
             // Connection already closing
+            tcp_sock_decref(sock);
+            tcp_sock_unlock(sock);
             return -EALREADY;
         case TCP_CLOSED:
+            tcp_sock_decref(sock);
+            tcp_sock_unlock(sock);
             return -ENOTCONN;
         default:
             break;
     }
+
+    tcp_sock_decref(sock);
     return 0;
 }

@@ -111,6 +111,17 @@ void *llist_pop_last(llist_t *list) {
     return ret;
 }
 
+void *llist_peek(llist_t *list) {
+    if (!list)
+        return NULL;
+    void *data = NULL;
+    pthread_mutex_lock(&list->lock);
+    if (list->head)
+        data = list->head->data;
+    pthread_mutex_unlock(&list->lock);
+    return data;
+}
+
 ssize_t llist_contains(llist_t *list, void *data) {
     if (list == NULL || data == NULL)
         return -EINVAL;

@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdatomic.h>
 
 // Ring buffer library
 #include <rbuf.h>
@@ -13,6 +14,7 @@
 #include <netstack/inet.h>
 #include <netstack/ip/ipv4.h>
 #include <netstack/intf/intf.h>
+#include <netstack/lock/retlock.h>
 
 // Global TCP states list
 extern llist_t tcp_sockets;
@@ -140,7 +142,7 @@ static const char *tcp_strstate(enum tcp_state state) {
 struct tcp_sock {
     struct inet_sock inet;
     enum tcp_state state;
-    bool opentype;      // Either TCP_ACTIVE_OPEN or TCP_PASSIVE_OPEN
+    bool opentype;              // Either TCP_ACTIVE_OPEN or TCP_PASSIVE_OPEN
     struct tcb tcb;
 
     // Data buffers
@@ -150,10 +152,14 @@ struct tcp_sock {
     // TCP timers
     timeout_t timewait;
 
+    // Reference counting & shared-locking
+    atomic_uint refcount;
+    pthread_mutex_t lock;
+
     // Thread wait locks
-    pthread_cond_t openwait;
-    pthread_mutex_t openlock;
-    size_t openret;
+    retlock_t openwait;
+    retlock_t sendwait;
+    retlock_t recvwait;
 };
 
 
@@ -258,19 +264,27 @@ static inline struct tcp_sock *tcp_sock_lookup(addr_t *remaddr, addr_t *locaddr,
  * Removes a socket from the global socket list
  * Should be called before tcp_free_sock() to avoid race conditions
  */
-#define tcp_untrack_sock(sock) llist_remove(&tcp_sockets, (sock))
+#define tcp_sock_untrack(sock) llist_remove(&tcp_sockets, (sock))
+
+/*!
+ * Initialises tcp_sock variables
+ * @param sock sock to initialise
+ * @return pointer to sock, initialised
+ */
+struct tcp_sock *tcp_sock_init(struct tcp_sock *sock);
 
 /*!
  * Removes a TCP socket from the global socket list and deallocates it
+ * The sock->lock should be held for writing before calling this
  * @param sock socket to free
  */
-void tcp_free_sock(struct tcp_sock *sock);
+void tcp_sock_free(struct tcp_sock *sock);
 
 /*!
  * Deallocates a socket. Does NOT remove it from the global socket list
  * @param sock socket to free
  */
-void tcp_destroy_sock(struct tcp_sock *sock);
+void tcp_sock_destroy(struct tcp_sock *sock);
 
 /*!
  * Cleans up incomplete operations such as still-open connections, waiting
@@ -278,6 +292,24 @@ void tcp_destroy_sock(struct tcp_sock *sock);
  * @param sock
  */
 void tcp_sock_cleanup(struct tcp_sock *sock);
+
+/*!
+ * Holds a reference to the tcp socket. Every reference obtained should be
+ * released. Unreleased references prevent the socket memory being released.
+ * Note: There is no requirement to hold sock->lock as this operation is atomic
+ */
+uint tcp_sock_incref(struct tcp_sock *sock);
+
+/*!
+ * Releases the socket reference. When the refcount hits 0, the socket is
+ * free'd. This function should be called with the sock->lock held.
+ * Note: The shared lock sock->lock is released by this function
+ */
+uint tcp_sock_decref(struct tcp_sock *sock);
+
+#define tcp_sock_lock(sock) pthread_mutex_lock(&(sock)->lock)
+
+#define tcp_sock_unlock(sock) pthread_mutex_unlock(&(sock)->lock)
 
 
 /*
@@ -318,6 +350,7 @@ void tcp_update_wnd(struct tcb *tcb, struct tcp_hdr *seg);
  * @param sock
  */
 void tcp_restore_listen(struct tcp_sock *sock);
+
 
 /*
  * TCP Output
@@ -389,8 +422,8 @@ int tcp_send_data(struct tcp_sock *sock, uint8_t flags);
  */
 int tcp_user_open(struct tcp_sock *sock);
 int tcp_user_accept(struct tcp_sock *sock);
-int tcp_user_send(struct tcp_sock *sock, void *data, size_t len);
-int tcp_user_recv();
+int tcp_user_send(struct tcp_sock *sock, void *data, size_t len, int flags);
+int tcp_user_recv(struct tcp_sock *sock, void* data, size_t len, int flags);
 int tcp_user_close(struct tcp_sock *sock);
 int tcp_user_abort();
 int tcp_user_status();
