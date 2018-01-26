@@ -99,6 +99,7 @@ int send_icmp_reply(struct frame *ctrl) {
     }
     struct icmp_echo *ping = icmp_echo_hdr(ctrl);
 
+    // Allocate and lock new frame
     size_t size = intf_max_frame_size(ctrl->intf);
     struct frame *reply = intf_frame_new(ctrl->intf, size);
     // TODO: Fix frame->data pointer head/tail difference
@@ -121,6 +122,6 @@ int send_icmp_reply(struct frame *ctrl) {
                         ntohl(ip->saddr), ntohl(ip->daddr));
     // Reply frame is no longer our responsibility. Ensure it is cleaned up
     // in the case that it wasn't actually sent
-    frame_decref(reply);
+    frame_decref_unlock(reply);
     return ret;
 }

@@ -17,7 +17,6 @@ void _intf_recv_thread(struct intf *intf);
 int intf_dispatch(struct frame *frame) {
     // Ensure send() has a reference, keeping the frame alive
     frame_incref(frame);
-    frame_unlock(frame);
 
     // Push the frame into the queue
     queue_push(&frame->intf->sendq, frame);
@@ -86,10 +85,10 @@ void _intf_send_thread(struct intf *intf) {
                     break;
             }
 
-            frame_decref(logframe);
+            frame_decref_unlock(logframe);
 
-            // Frame sent, disown it
-            frame_decref(frame);
+            // Frame sent, disown it (incremented in intf_dispatch)
+            frame_decref_unlock(frame);
         }
 
         pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
@@ -135,10 +134,11 @@ void _intf_recv_thread(struct intf *intf) {
                 break;
         }
 
-        frame_decref(logframe);
+        // Decref and unlock logframe
+        frame_decref_unlock(logframe);
 
-        // Allocate a new frame
-        frame_decref(rawframe);
+        // Decrement frame refcount and unlock it regardless
+        frame_decref_unlock(rawframe);
         rawframe = NULL;
 
         // Check if the thread should exit
@@ -146,6 +146,7 @@ void _intf_recv_thread(struct intf *intf) {
         pthread_testcancel();
         pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
 
+        // Allocate a new frame
         rawframe = intf_frame_new(intf, 0);
     }
 

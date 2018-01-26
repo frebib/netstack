@@ -26,8 +26,6 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     // Ensure we always hold the frame as long as we need it
     frame_incref(frame);
 
-    tcp_sock_lock(sock);
-
     struct tcb *tcb = &sock->tcb;
     struct inet_sock *inet = &sock->inet;
     struct tcp_hdr *seg = tcp_hdr(frame);
@@ -80,7 +78,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         */
             if (seg->flags.rst == 1) {
                 tcp_restore_listen(sock);
-                goto unlock;
+                goto drop_pkt;
             }
         /*
           second check for an ACK
@@ -98,7 +96,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                 LOG(LDBUG, "[TCP] Sending RST from %s:%d", __FILE__, __LINE__);
                 ret = tcp_send_rst(sock, seg_ack);
                 tcp_restore_listen(sock);
-                goto unlock;
+                goto drop_pkt;
             }
         /*
           third check for a SYN
@@ -112,7 +110,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         */
             if (seg->flags.syn != 1) {
                 tcp_restore_listen(sock);
-                goto unlock;
+                goto drop_pkt;
             }
 
 
@@ -161,7 +159,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             // Send SYN/ACK and drop incoming segment
             LOG(LDBUG, "[TCP] Sending SYN/ACK from %s:%d", __FILE__, __LINE__);
             ret = tcp_send_synack(sock);
-            goto unlock;
+            goto drop_pkt;
 
         /*
           fourth other text or control
@@ -173,7 +171,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             incarnation of the connection.  So you are unlikely to get here,
             but if you do, drop the segment, and return.
          */
-            goto unlock;
+            goto drop_pkt;
 
             // If the state is SYN-SENT then
         case TCP_SYN_SENT:
@@ -200,7 +198,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                          LOG(LDBUG, "[TCP] Sending RST from %s:%d", __FILE__, __LINE__);
                          ret = tcp_send_rst(sock, seg_ack);
                      }
-                    goto unlock;
+                    goto drop_pkt;
                 }
             }
         /*
@@ -218,7 +216,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                     tcp_setstate(sock, TCP_CLOSED);
                     retlock_signal(&sock->openwait, -ECONNRESET);
                 }
-                goto unlock;
+                goto drop_pkt;
             }
 
         // TODO: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
@@ -309,7 +307,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                         LOGERR("pthread_cond_signal");
                     }
 
-                    goto unlock;
+                    goto drop_pkt;
                 }
             }
         /*
@@ -409,7 +407,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             LOG(LDBUG, "[TCP] Sending ACK from %s:%d", __FILE__, __LINE__);
             ret = tcp_send_ack(sock);
         }
-        goto unlock;
+        goto drop_pkt;
     }
     /*
         In the following it is assumed that the segment is the idealized
@@ -580,7 +578,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
       if the ACK bit is off drop the segment and return
     */
     if (seg->flags.ack != 1)
-        goto unlock;
+        goto drop_pkt;
     /*
      
       if the ACK bit is on
@@ -655,7 +653,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                 LOG(LDBUG, "[TCP] ACK received for something not yet sent");
                 LOG(LDBUG, "[TCP] Sending ACK from %s:%d", __FILE__, __LINE__);
                 ret = tcp_send_ack(sock);
-                goto unlock;
+                goto drop_pkt;
             }
         default:
             break;
@@ -704,7 +702,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             case TCP_LAST_ACK:
                 tcp_setstate(sock, TCP_CLOSED);
                 tcp_sock_destroy(sock);
-                goto unlock;
+                goto drop_pkt;
     /*
         TIME-WAIT STATE
 
@@ -822,7 +820,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             case TCP_CLOSED:
             case TCP_LISTEN:
             case TCP_SYN_SENT:
-                goto unlock;
+                goto drop_pkt;
             default:
                 break;
         }
@@ -830,7 +828,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         if (seg_seq != tcb->rcv.nxt) {
             LOG(LWARN, "[TCP] Recv'd out-of-order FIN. Dropping");
             LOG(LWARN, "[TCP] SEQ %u, RCV.NXT %u", seg_seq, tcb->rcv.nxt);
-            goto unlock;
+            goto drop_pkt;
         }
     /*
       If the FIN bit is set, signal the user "connection closing" and
@@ -911,9 +909,6 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                 break;
         }
     }
-
-unlock:
-    tcp_sock_unlock(sock);
 
 drop_pkt:
     frame_decref(frame);

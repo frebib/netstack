@@ -41,7 +41,7 @@ int tcp_send(struct tcp_sock *sock, struct frame *frame) {
 
     // TODO: Implement functionality to specify IP flags (different for IP4/6?)
     int ret = ipv4_send(frame, IP_P_TCP, 0, daddr, saddr);
-    frame_decref(frame);
+    frame_decref_unlock(frame);
     return ret;
 }
 

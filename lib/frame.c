@@ -71,8 +71,26 @@ void frame_decref(struct frame *frame) {
         // That thread needs to be holding a reference to prevent deallocation
         free(frame);
     }
-    else {
-        // Just unlock if not free'ing
+}
+
+// TODO: Deduplicate frame_decref_unlock() code
+void frame_decref_unlock(struct frame *frame) {
+    if (frame == NULL)
+        return;
+
+    // Subtract and check old value
+    if (atomic_fetch_sub(&frame->refcount, 1) == 1) {
+        // refcount hit 0. Deallocate frame memory
+        if (frame->buffer != NULL)
+            frame->intf->free_buffer(frame->intf, frame->buffer);
+        alist_free(&frame->layer);
+        // Unlock before free'ing
+        frame_unlock(frame);
+        // If another thread gains access here, after unlocking, it is a bug
+        // That thread needs to be holding a reference to prevent deallocation
+        free(frame);
+    } else {
+        // Unlock anyway
         frame_unlock(frame);
     }
 }
