@@ -21,7 +21,7 @@ struct frame *frame_init(struct intf *intf, void *buffer, size_t buf_size) {
     return frame;
 }
 
-struct frame *frame_clone(struct frame *orig) {
+struct frame *frame_clone(struct frame *orig, enum shared_mode mode) {
     if (orig == NULL) {
         return NULL;
     }
@@ -42,7 +42,7 @@ struct frame *frame_clone(struct frame *orig) {
     atomic_init(&clone->refcount, 1);
 
     pthread_rwlock_init(&clone->lock, NULL);
-    frame_lock(clone, SHARED_RW);
+    frame_lock(clone, mode);
 
     return clone;
 }

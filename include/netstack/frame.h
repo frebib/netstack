@@ -128,7 +128,7 @@ void frame_decref_unlock(struct frame *frame);
  *    A copied frame-stack (independent from original frame)
  * @param orig frame to clone
  */
-struct frame *frame_clone(struct frame *orig);
+struct frame *frame_clone(struct frame *orig, enum shared_mode mode);
 
 /*!
  * Obtains the frame mutex lock to prevent simultaneous access

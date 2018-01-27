@@ -71,7 +71,7 @@ void _intf_send_thread(struct intf *intf) {
 
             // Log outgoing packets
             struct pkt_log log = PKT_TRANS(LFRAME);
-            struct frame *logframe = frame_clone(frame);
+            struct frame *logframe = frame_clone(frame, SHARED_RD);
 
             switch (intf->proto) {
                 case PROTO_ETHER:
@@ -109,7 +109,7 @@ void _intf_recv_thread(struct intf *intf) {
         // TODO: Implement rx 'software' timestamping
 
         // Use transactional logging for packet logs
-        struct frame *logframe = frame_clone(rawframe);
+        struct frame *logframe = frame_clone(rawframe, SHARED_RD);
         struct pkt_log log = PKT_TRANS(LFRAME);
         memcpy(&log.t.time, &rawframe->time, sizeof(struct timespec));
 
