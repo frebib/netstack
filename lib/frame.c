@@ -113,11 +113,11 @@ int frame_layer_push_ptr(struct frame *f, proto_t prot, void *hdr, void *data) {
 
 struct frame_layer *frame_layer_outer(struct frame *frame, uint8_t rel) {
     // Ensure relative position is within the bounds of the elements in the arr
-    if ((int8_t) (frame->layer.count - rel) < 0)
+    if (((int8_t) frame->layer.count - rel) < 0)
         return NULL;
 
     // Index the layer array for a relative frame from the end
     // This assumes there are no gaps in the array elements
-    struct frame_layer *layer = &frame->layer.arr[rel];
+    struct frame_layer *layer = &frame->layer.arr[frame->layer.count - 1 - rel];
     return (layer->proto == 0) ? NULL : layer;
 }

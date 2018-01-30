@@ -55,7 +55,7 @@ int alist_add(void *lst, void **newelem) {
     }
 
     // Increment list count and get the elem at count
-    *newelem = alist_elem(list, ++list->count);
+    *newelem = alist_elem(list, list->count++);
     alist_unlock(list);
     return 0;
 }
