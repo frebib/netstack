@@ -6,10 +6,11 @@
 #include <netstack/ip/route.h>
 #include <netstack/ip/ipv4.h>
 #include <netstack/ip/neigh.h>
+#include <netstack/timer.h>
 
 
 int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags,
-               addr_t *daddr, addr_t *saddr, bool wait) {
+               uint16_t sock_flags, addr_t *daddr, addr_t *saddr) {
 
     // TODO: Take source address into route calculation
 
@@ -92,6 +93,7 @@ int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags,
             pending->nexthop = *nexthop;
             pending->proto = proto;
             pending->flags = flags;
+            pending->sock_flags = sock_flags;
 
             // Lock retlock atomically with respect to 'pending'
             retlock_lock(&pending->retwait);
@@ -104,36 +106,38 @@ int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags,
             // TODO: Rate limit ARP requests to prevent flooding
 
             // Convert proto_t value to ARP_HW_* for transmission
-            int err = arp_send_req(intf, arp_proto_hw(intf->proto), saddr,nexthop);
+            int err = arp_send_req(intf, arp_proto_hw(intf->proto), saddr,
+                                   nexthop);
             if (err) {
                 LOGE(LNTCE, "arp_send_req");
                 return err;
             }
 
-            // TODO: Wait if set as socket option
+            // TODO: Use inet_socket for passing options to neighbour
             // TODO: Remove entry from list on a timer if not waiting
 
             int ret = 0;
-            struct timespec to = { .tv_sec = ARP_WAIT_TIMEOUT };
+            struct timespec to = {.tv_sec = ARP_WAIT_TIMEOUT};
 
-            if (wait) {
-
+            // If NONBLOCK flag is set, don't wait, just set the expiry timer
+            if (sock_flags & O_NONBLOCK) {
+                // Set the timeout to destroy the
+                void *fn = (void (*)(void *)) neigh_queue_expire;
+                timeout_set(&pending->timeout, fn, pending, to.tv_sec,
+                            to.tv_nsec);
+                retlock_unlock(&pending->retwait);
+            } else {
                 // Wait for packet to be sent, or timeout to occur
-                LOGFN(LINFO, "Waiting for hwaddr to resolve %s", straddr(nexthop));
+                LOGFN(LINFO, "Waiting for hwaddr to resolve %s",
+                      straddr(nexthop));
                 err = retlock_timedwait_nolock(&pending->retwait, &to, &ret);
 
                 // Handle timeout
                 if (err == ETIMEDOUT)
                     ret = -EHOSTUNREACH;
-                // Handle other generic errors
+                    // Handle other generic errors
                 else if (err)
                     ret = -err;
-
-                // Deallocate dynamic memory
-                free(pending);
-            } else {
-                // TODO: Set a timer to remove after a certain amount of time
-                retlock_unlock(&pending->retwait);
             }
 
             return ret;
@@ -158,6 +162,12 @@ void neigh_update_hwaddr(struct intf *intf, addr_t *daddr, addr_t *hwaddr) {
         // Found entry to update and send
         if (addreq(&tosend->nexthop, daddr)) {
 
+            // Cancel the timeout (asap) if one is pending
+            if (tosend->sock_flags & O_NONBLOCK) {
+                LOG(LDBUG, "Clearing neigh_queue_expire timeout");
+                timeout_clear(&tosend->timeout);
+            }
+
             struct log_trans trans = LOG_TRANS(LDBUG);
             LOGT(&trans, "Sending queued packet to %s",
                  straddr(&tosend->nexthop));
@@ -170,10 +180,14 @@ void neigh_update_hwaddr(struct intf *intf, addr_t *daddr, addr_t *hwaddr) {
 
             // Send the queued frame!
             int ret = ipv4_send(tosend->frame, tosend->proto, tosend->flags,
-                             tosend->daddr.ipv4, tosend->saddr.ipv4, hwaddr);
+                                tosend->daddr.ipv4, tosend->saddr.ipv4, hwaddr);
 
             // Signal any waiting threads with the return value
             retlock_signal_nolock(&tosend->retwait, ret);
+
+            // Deallocate dynamic memory
+            free(tosend);
+
             return;
         }
         // Unlock regardless and continue
@@ -181,4 +195,23 @@ void neigh_update_hwaddr(struct intf *intf, addr_t *daddr, addr_t *hwaddr) {
     }
 
     pthread_mutex_unlock(&intf->neigh_outqueue.lock);
+}
+
+void neigh_queue_expire(struct queued_pkt *pending) {
+    // Obtain the lock before attempting to clear any values
+    retlock_lock(&pending->retwait);
+
+    LOG(LNTCE, "Queued packet for %s expired. Destroying it",
+        straddr(&pending->daddr));
+
+    // Remove pending frame from queue
+    struct intf *intf = pending->frame->intf;
+    llist_remove(&intf->neigh_outqueue, pending);
+    frame_decref(pending->frame);
+
+    retlock_unlock(&pending->retwait);
+    // Tough doo-doo if you manage to lock the queued packet now, sorry
+
+    // Deallocate memory
+    free(pending);
 }

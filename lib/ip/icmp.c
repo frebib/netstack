@@ -124,7 +124,7 @@ int send_icmp_reply(struct frame *ctrl) {
     // Swap source/dest IP addresses
     addr_t saddr = { .proto = PROTO_IPV4, .ipv4 = ntohl(ip->saddr) };
     addr_t daddr = { .proto = PROTO_IPV4, .ipv4 = ntohl(ip->daddr) };
-    int ret = neigh_send(reply, IP_P_ICMP, IP_DF, &saddr, &daddr, false);
+    int ret = neigh_send(reply, IP_P_ICMP, IP_DF, O_NONBLOCK, &saddr, &daddr);
     // Reply frame is no longer our responsibility. Ensure it is cleaned up
     // in the case that it wasn't actually sent
     frame_decref_unlock(reply);

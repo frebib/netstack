@@ -1,7 +1,10 @@
 #ifndef NETSTACK_NEIGH_H
 #define NETSTACK_NEIGH_H
 
+#include <fcntl.h>
+
 #include <netstack/addr.h>
+#include <netstack/timer.h>
 #include <netstack/col/llist.h>
 #include <netstack/lock/retlock.h>
 
@@ -18,12 +21,14 @@
 
 struct queued_pkt {
     retlock_t retwait;
+    timeout_t timeout;
     struct frame *frame;
     addr_t saddr;
     addr_t daddr;
     addr_t nexthop;
     uint8_t proto;
     uint16_t flags;
+    uint16_t sock_flags;
 };
 
 /*!
@@ -37,12 +42,10 @@ struct queued_pkt {
  * @param flags IP flags
  * @param daddr IP destination address
  * @param saddr IP source address (should belong to frame->intf
- * @param wait  set true if should wait until the packet is sent or if this
- *              call should return immediately
  * @return 0 on success, otherwise if error
  */
 int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags,
-               addr_t *daddr, addr_t *saddr, bool wait);
+               uint16_t sock_flags, addr_t *daddr, addr_t *saddr);
 
 /*!
  * Updates the neighbour processing of a hardware address update that can be
@@ -52,5 +55,11 @@ int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags,
  * @param hwaddr the hwaddr that has updated
  */
 void neigh_update_hwaddr(struct intf *intf, addr_t *daddr, addr_t *hwaddr);
+
+/*!
+ * Timeout handler function for cleaning up expired queued packets.
+ * @param pending pending packet to cleanup and deallocate
+ */
+void neigh_queue_expire(struct queued_pkt *pending);
 
 #endif //NETSTACK_NEIGH_H
