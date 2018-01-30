@@ -48,13 +48,13 @@
   - Line 112: Fix frame->data pointer head/tail difference
 
 ## [lib/ip/ipv4.c](lib/ip/ipv4.c)
-  - Line 34: Change to `if (!ipv4_should_accept(frame))` to accept other packets
-  - Line 89: Keep track of invalid packets
-  - Line 101: Take options into account here
-  - Line 108: Other integrity checks
-  - Line 110: Change to `if (!ipv4_should_accept(frame))` to accept other packets
-  - Line 138: Dynamically allocate IPv4 header space
-  - Line 146: Make this user-configurable
+  - Line 45: Change to `if (!ipv4_should_accept(frame))` to accept other packets
+  - Line 100: Keep track of invalid packets
+  - Line 112: Take options into account here
+  - Line 119: Other integrity checks
+  - Line 121: Change to `if (!ipv4_should_accept(frame))` to accept other packets
+  - Line 149: Dynamically allocate IPv4 header space
+  - Line 157: Make this user-configurable
 
 ## [lib/ip/neigh.c](lib/ip/neigh.c)
   - Line 14: Take source address into route calculation

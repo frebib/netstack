@@ -31,6 +31,17 @@ bool ipv4_log(struct pkt_log *log, struct frame *frame) {
         LOGT(trans, " (invalid 0x%04x)", ntohs(calc_csum));
     LOGT(trans, ", ");
 
+    // Print flags if any are present
+    uint16_t flags = ntohs(hdr->frag_ofs);
+    if (flags != 0) {
+        LOGT(trans, "flags [");
+
+        if (flags & IP_DF)
+            LOGT(trans, "DF");
+
+        LOGT(trans, "] ");
+    }
+
     // TODO: Change to `if (!ipv4_should_accept(frame))` to accept other packets
     // Only log IPv4 packets sent by/destined for us
     addr_t sip = {.proto = PROTO_IPV4, .ipv4 = ntohl(hdr->saddr)};
