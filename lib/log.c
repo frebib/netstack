@@ -126,11 +126,11 @@ void VTLOGF(FILE *file, loglvl_t level, struct timespec *t, const char *fmt,
 #ifdef _GNU_SOURCE
     char name[32] = {0};
     pthread_getname_np(pthread_self(), name, 32);
-    prelen += snprintf(pre + prelen, maxlen, "[%s] ", name);
+    prelen += snprintf(pre + prelen, maxlen, "[%s]\t", name);
 #endif
 
     // Append log level to pre
-    prelen += snprintf(pre + prelen, maxlen, "[%s] ", logconf.lvlstr[level]);
+    prelen += snprintf(pre + prelen, maxlen, "[%s]\t", logconf.lvlstr[level]);
 
     // Produce formatted string
     int len = vsnprintf(NULL, 0, fmt, args) + 1;
@@ -144,6 +144,7 @@ void VTLOGF(FILE *file, loglvl_t level, struct timespec *t, const char *fmt,
     // Print line-by-line using \n as delimiter
     while ((line = strtok_r(NULL, "\n", &tmp)) != NULL)
         fprintf(file, "%s%s\n", pre, line);
+    fflush(file);
 
     pthread_mutex_unlock(&logconf.lock);
 }
