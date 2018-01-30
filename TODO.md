@@ -11,9 +11,6 @@
 ## [include/netstack/ip/ipv4.h](include/netstack/ip/ipv4.h)
   - Line 30: Take endianness into account in ipv4_hdr
 
-## [include/netstack/ip/route.h](include/netstack/ip/route.h)
-  - Line 25: Change addr type from uint32_t to generic inet_addr_t for ipv4/6
-
 ## [include/netstack/tcp/tcp.h](include/netstack/tcp/tcp.h)
   - Line 47: Take endianness into account in tcp_hdr
   - Line 166: Fix endianness in tcp.h
@@ -57,14 +54,14 @@
   - Line 108: Other integrity checks
   - Line 110: Change to `if (!ipv4_should_accept(frame))` to accept other packets
   - Line 137: Take source address into route calculation
-  - Line 146: Perform correct route/hardware address lookups when appropriate
-  - Line 185: Implement ARP cache locking
+  - Line 147: Perform correct route/hardware address lookups when appropriate
+  - Line 186: Implement ARP cache locking
   - Line 194: Rate limit ARP requests to prevent flooding
   - Line 202: Dynamically allocate IPv4 header space
   - Line 210: Make this user-configurable
 
 ## [lib/ip/route.c](lib/ip/route.c)
-  - Line 16: Define how routes with the same metric should behave?
+  - Line 30: Define how routes with the same metric should behave?
 
 ## [lib/tcp/tcp.c](lib/tcp/tcp.c)
   - Line 20: Work out why sometimes this is 0x0200 too small (in netwk byte-ord)

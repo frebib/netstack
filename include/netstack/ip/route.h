@@ -7,7 +7,6 @@
 
 /* Global route table, for all interfaces */
 extern llist_t route_tbl;
-extern pthread_mutex_t route_lck;
 
 /*
  *  IP Routing Table entry
@@ -22,11 +21,10 @@ extern pthread_mutex_t route_lck;
  *      intf    -> (ptr to) eth0        (required)
  */
 
-// TODO: Change addr type from uint32_t to generic inet_addr_t for ipv4/6
 struct route_entry {
-    uint32_t    daddr;      /* Address of route (host addr) */
-    uint32_t    gwaddr;     /* Address of route gateway */
-    uint32_t    netmask;    /* Mask (CIDR) denoting route span */
+    addr_t      daddr;      /* Address of route (host addr) */
+    addr_t      gwaddr;     /* Address of route gateway */
+    addr_t      netmask;    /* Mask (CIDR) denoting route span */
     uint32_t    metric;     /* Route priority*/
     uint8_t     flags;
     struct intf *intf;      /* Corresponding route interface */
@@ -41,6 +39,6 @@ struct route_entry {
  * @param addr  packet destination address to find routing address for
  * @return      destination of the next routable hop for addr
  */
-struct route_entry *route_lookup(uint32_t addr);
+struct route_entry *route_lookup(addr_t *addr);
 
 #endif //NETSTACK_ROUTE_H

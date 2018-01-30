@@ -1,29 +1,44 @@
 #include <stdio.h>
 #include <netstack/ip/route.h>
-#include <netstack/ip/ipv4.h>
 
 llist_t route_tbl = LLIST_INITIALISER;
 
-struct route_entry *route_lookup(uint32_t addr) {
+inline static uint8_t *bitwise_and(uint8_t *out, const uint8_t *a,
+                                   const uint8_t *b, const size_t len) {
+    for (uint16_t i = 0; i < len; ++i)
+        out[i] = a[i] & b[i];
+    return out;
+}
+
+struct route_entry *route_lookup(addr_t *addr) {
     struct route_entry *bestrt = NULL;
+
+    pthread_mutex_lock(&route_tbl.lock);
 
     for_each_llist(&route_tbl) {
         struct route_entry *rt = llist_elem_data();
 
+        // Get length of address for comparison
+        size_t len = addrlen(addr->proto);
+        uint8_t addrnet[len], daddrnet[len];
+        // Bitwise AND (addr & rt->netmask) and (addr & rt->daddr)
+        bitwise_and(addrnet, &addr->address, &rt->netmask.address, len);
+        bitwise_and(daddrnet, &rt->daddr.address, &rt->netmask.address, len);
+
         // Check for route matching 'addr'
-        if ((addr & rt->netmask) == (rt->daddr & rt->netmask)) {
-            // Ensure the route is first or lowest metric
+        if (memcmp(addrnet, daddrnet, len) == 0) {
             // TODO: Define how routes with the same metric should behave?
-            if (bestrt == NULL || (rt->metric < bestrt->metric)) {
+            // Ensure the route is first or lowest metric
+            if (bestrt == NULL || (rt->metric < bestrt->metric))
                 bestrt = rt;
-            }
-            continue;
         }
     }
 
     // Return a route if one is found
-    if (bestrt != NULL)
+    if (bestrt != NULL) {
+        pthread_mutex_unlock(&route_tbl.lock);
         return bestrt;
+    }
 
     // Look instead for default routes
     for_each_llist(&route_tbl) {
@@ -36,5 +51,7 @@ struct route_entry *route_lookup(uint32_t addr) {
             }
         }
     }
+    pthread_mutex_unlock(&route_tbl.lock);
+
     return bestrt;
 }

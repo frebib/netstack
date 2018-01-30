@@ -132,14 +132,15 @@ void ipv4_recv(struct frame *frame) {
 }
 
 int ipv4_send(struct frame *frame, uint8_t proto, uint16_t flags,
-              ip4_addr_t daddr, ip4_addr_t saddr) {
+              ip4_addr_t dip4, ip4_addr_t sip4) {
 
     // TODO: Take source address into route calculation
 
-    struct route_entry *rt = route_lookup(daddr);
+    addr_t daddr = {.proto = PROTO_IPV4, .ipv4 = dip4 };
+    struct route_entry *rt = route_lookup(&daddr);
     if (!rt) {
         // If no route found, return DESTUNREACHABLE error
-        LOG(LNTCE, "No route to %s found", fmtip4(daddr));
+        LOG(LNTCE, "No route to %s found", fmtip4(dip4));
         return -EHOSTUNREACH;
     }
 
@@ -152,13 +153,13 @@ int ipv4_send(struct frame *frame, uint8_t proto, uint16_t flags,
     // Set frame interface now it is known from route
     frame->intf = rt->intf;
 
-    ip4_addr_t nexthop = (rt->flags & RT_GATEWAY) ? rt->gwaddr : daddr;
+    addr_t *nexthop = (rt->flags & RT_GATEWAY) ? &rt->gwaddr : &daddr;
 
-    if (saddr) {
-        addr_t req_saddr = { .proto = PROTO_IPV4, .ipv4 = saddr };
+    if (sip4) {
+        addr_t req_saddr = { .proto = PROTO_IPV4, .ipv4 = sip4 };
         if (!intf_has_addr(rt->intf, &req_saddr)) {
             LOG(LERR, "The requested address %s is invalid for "
-                    "interface %s", fmtip4(saddr), rt->intf->name);
+                    "interface %s", fmtip4(sip4), rt->intf->name);
 
             return -EADDRNOTAVAIL;
         }
@@ -179,21 +180,20 @@ int ipv4_send(struct frame *frame, uint8_t proto, uint16_t flags,
         }
 
         // Set source-address to address obtained from rt->intf
-        saddr = def_addr.ipv4;
+        sip4 = def_addr.ipv4;
     }
 
     // TODO: Implement ARP cache locking
-    addr_t nexthop_ip4 = { .proto = PROTO_IPV4, .ipv4 = nexthop };
-    addr_t *dmac = arp_get_hwaddr(rt->intf, PROTO_ETHER, &nexthop_ip4);
+    addr_t *dmac = arp_get_hwaddr(rt->intf, PROTO_ETHER, nexthop);
 
     if (dmac == NULL) {
         struct log_trans trans = LOG_TRANS(LTRCE);
-        LOGT(&trans, "call arp_request(%s, %s", rt->intf->name, fmtip4(saddr));
-        LOGT(&trans, ", %s);", fmtip4(nexthop));
+        LOGT(&trans, "call arp_request(%s, %s", rt->intf->name, fmtip4(sip4));
+        LOGT(&trans, ", %s);", straddr(nexthop));
         LOGT_COMMIT(&trans);
         // TODO: Rate limit ARP requests to prevent flooding
         // Convert proto_t value to ARP_HW_* for transmission
-        arp_send_req(rt->intf, arp_proto_hw(PROTO_ETHER), saddr, nexthop);
+        arp_send_req(rt->intf, arp_proto_hw(PROTO_ETHER), sip4, nexthop->ipv4);
 
         return -EHOSTUNREACH;
     }
@@ -210,8 +210,8 @@ int ipv4_send(struct frame *frame, uint8_t proto, uint16_t flags,
     // TODO: Make this user-configurable
     hdr->ttl = IPV4_DEF_TTL;
     hdr->proto = proto;
-    hdr->saddr = htonl(saddr);
-    hdr->daddr = htonl(daddr);
+    hdr->saddr = htonl(sip4);
+    hdr->daddr = htonl(dip4);
     hdr->csum = 0;
     hdr->csum = in_csum(hdr, (size_t) sizeof(struct ipv4_hdr), 0);
 

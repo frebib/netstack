@@ -48,7 +48,7 @@ int tcp_send(struct tcp_sock *sock, struct frame *frame) {
 int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
                    uint8_t flags) {
     // TODO: Work out route interface before allocating buffer
-    struct route_entry *rt = route_lookup(sock->inet.remaddr.ipv4);
+    struct route_entry *rt = route_lookup(&sock->inet.remaddr);
 
     size_t size = intf_max_frame_size(rt->intf);
     struct frame *seg = intf_frame_new(rt->intf, size);
@@ -65,7 +65,7 @@ int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
 
 int tcp_send_data(struct tcp_sock *sock, uint8_t flags) {
     // TODO: Work out route interface before allocating buffer
-    struct route_entry *rt = route_lookup(sock->inet.remaddr.ipv4);
+    struct route_entry *rt = route_lookup(&sock->inet.remaddr);
 
     size_t size = intf_max_frame_size(rt->intf);
     struct frame *seg = intf_frame_new(rt->intf, size);
