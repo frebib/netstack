@@ -45,7 +45,7 @@ typedef struct alist {
 #define alist_lock(list)   pthread_mutex_lock(&(list)->lock)
 #define alist_unlock(list) pthread_mutex_unlock(&(list)->lock)
 
-#define alist_elem(list, n) ((list)->arr + ((list)->type_sz + n))
+#define alist_elem(list, n) ((list)->arr + ((list)->type_sz * (n)))
 
 #define alist_init(list, size) _alist_init((list), sizeof(*(list)->arr), (size))
 
