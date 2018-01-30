@@ -73,13 +73,14 @@ void ipv4_recv(struct frame *frame);
  * @param frame IP payload to send
  * @param proto inner IP protocol (IP_P_*)
  * @param flags optionally, any IP flags such as IP_DF, otherwise 0
- * @param dip4 destination IP address to send packet to
- * @param sip4 optionally, the source address to send on the packet
+ * @param daddr destination IP address to send packet to
+ * @param saddr optionally, the source address to send on the packet
  *              if not specified, the default interface address will be used
+ * @param hwaddr hardware address, matching hwaddr->proto and intf->hwtype
  * @return 0 on success or negative for errors (see errno(3))
  */
-int ipv4_send(struct frame *child, uint8_t proto, uint16_t flags,
-              ip4_addr_t dip4, ip4_addr_t sip4);
+int ipv4_send(struct frame *frame, uint8_t proto, uint16_t flags,
+              ip4_addr_t daddr, ip4_addr_t saddr, addr_t *hwaddr);
 
 
 // Converts 4 bytes to a uint32_t IPv4 address

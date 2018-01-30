@@ -4,10 +4,6 @@
 
 #include <netstack/col/llist.h>
 
-// Private
-void *llist_pop_nolock(llist_t *list);
-void *llist_pop_last_nolock(llist_t *list);
-
 
 void llist_clear(llist_t *list) {
     if (list == NULL)
@@ -29,7 +25,11 @@ void llist_clear(llist_t *list) {
 
 void llist_append(llist_t *list, void *data) {
     pthread_mutex_lock(&list->lock);
+    llist_append_nolock(list, data);
+    pthread_mutex_unlock(&list->lock);
+}
 
+void llist_append_nolock(llist_t *list, void *data) {
     struct llist_elem *last = malloc(sizeof(struct llist_elem));
     last->data = data;
     last->next = NULL;
@@ -40,8 +40,6 @@ void llist_append(llist_t *list, void *data) {
         list->head = last;
     list->tail = last;
     list->length++;
-
-    pthread_mutex_unlock(&list->lock);
 }
 
 void llist_push(llist_t *list, void *data) {
@@ -141,11 +139,9 @@ ssize_t llist_contains(llist_t *list, void *data) {
     return -ENODATA;
 }
 
-ssize_t llist_remove(llist_t *list, void *data) {
-    if (list == NULL || data == NULL)
+ssize_t llist_remove_nolock(llist_t *list, void *data) {
+    if (data == NULL)
         return -EINVAL;
-
-    pthread_mutex_lock(&list->lock);
 
     for_each_llist(list) {
         if (llist_elem_data() != data)
@@ -154,7 +150,7 @@ ssize_t llist_remove(llist_t *list, void *data) {
         // If no prev, must be head
         if (!elem->prev)
             llist_pop_nolock(list);
-        // If no next, must be tail
+            // If no next, must be tail
         else if (!elem->next)
             llist_pop_last_nolock(list);
         else {
@@ -164,11 +160,17 @@ ssize_t llist_remove(llist_t *list, void *data) {
             list->length--;
             free(elem);
         }
-
-        pthread_mutex_unlock(&list->lock);
         return 0;
     }
-
-    pthread_mutex_unlock(&list->lock);
     return -ENODATA;
+}
+
+ssize_t llist_remove(llist_t *list, void *data) {
+    if (list == NULL)
+        return -EINVAL;
+
+    pthread_mutex_lock(&list->lock);
+    ssize_t ret = llist_remove(list, data);
+    pthread_mutex_unlock(&list->lock);
+    return ret;
 }

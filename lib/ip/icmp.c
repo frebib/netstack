@@ -4,6 +4,7 @@
 #include <netstack/checksum.h>
 #include <netstack/ip/icmp.h>
 #include <netstack/ip/ipv4.h>
+#include <netstack/ip/neigh.h>
 
 
 bool icmp_log(struct pkt_log *log, struct frame *frame) {
@@ -93,8 +94,9 @@ int send_icmp_reply(struct frame *ctrl) {
         case PROTO_IPV4:
         case PROTO_IPV6:
             // TODO: Find ICMP route
+            break;
         default:
-            LOGFN(LWARN, "ICMP echo parent isn't a recognised protocol (%u)",
+            LOGFN(LWARN, "ICMP echo parent isn't a recognised protocol (%x)",
                  outer->proto);
     }
     struct icmp_echo *ping = icmp_echo_hdr(ctrl);
@@ -102,11 +104,13 @@ int send_icmp_reply(struct frame *ctrl) {
     // Allocate and lock new frame
     size_t size = intf_max_frame_size(ctrl->intf);
     struct frame *reply = intf_frame_new(ctrl->intf, size);
-    // TODO: Fix frame->data pointer head/tail difference
 
     // Mark and copy payload from request packet
-    uint8_t *payld = (reply->data -= frame_data_len(ctrl));
-    memcpy(payld, ctrl->data, frame_data_len(ctrl));
+    uint16_t datalen = frame_data_len(ctrl);
+    uint8_t *payld = (reply->data -= datalen);
+    memcpy(payld, ctrl->data, datalen);
+    // TODO: Fix frame->data pointer head/tail difference
+    reply->head = reply->data;
 
     struct icmp_echo *echo = frame_head_alloc(reply, sizeof(struct icmp_echo));
     struct icmp_hdr *hdr = frame_head_alloc(reply, sizeof(struct icmp_hdr));
@@ -118,8 +122,9 @@ int send_icmp_reply(struct frame *ctrl) {
     hdr->csum = in_csum(hdr, frame_pkt_len(reply), 0);
 
     // Swap source/dest IP addresses
-    int ret = ipv4_send(reply, IP_P_ICMP, IP_DF,
-                        ntohl(ip->saddr), ntohl(ip->daddr));
+    addr_t saddr = { .proto = PROTO_IPV4, .ipv4 = ntohl(ip->saddr) };
+    addr_t daddr = { .proto = PROTO_IPV4, .ipv4 = ntohl(ip->daddr) };
+    int ret = neigh_send(reply, IP_P_ICMP, IP_DF, &saddr, &daddr, false);
     // Reply frame is no longer our responsibility. Ensure it is cleaned up
     // in the case that it wasn't actually sent
     frame_decref_unlock(reply);

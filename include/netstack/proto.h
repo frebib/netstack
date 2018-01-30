@@ -7,6 +7,9 @@
  */
 
 typedef enum proto {
+
+    PROTO_NULL      = 0,
+
     /* Hardware protocols (layer 2) */
     PROTO_ETHER     = 0x20,         /* Ethernet */
     PROTO_ETHER_VL  = 0x21,         /* Ethernet with 802.1q VLANs */
@@ -25,6 +28,32 @@ typedef enum proto {
     PROTO_ICMP_ECHO = 0x50,
 
 } proto_t;
+
+
+static inline char *strproto(proto_t proto) {
+    switch (proto) {
+
+        /* Hardware protocols (layer 2) */
+        case PROTO_ETHER:       return "ether";
+        case PROTO_ETHER_VL:    return "ether VLAN";
+
+        /* Network protocols  (layer 3) */
+        case PROTO_IP:          return "IP";
+        case PROTO_IPV4:        return "IPv4";
+        case PROTO_IPV6:        return "IPv6";
+
+        /* Transport protocols (layer 4) */
+        case PROTO_TCP:         return "TCP";
+        case PROTO_UDP:         return "UDP";
+        case PROTO_ICMP:        return "ICMP";
+
+        /* ICMP control types */
+        case PROTO_ICMP_ECHO:   return "ICMP Echo";
+
+        case PROTO_NULL:
+        default:                return NULL;
+    }
+}
 
 
 #endif //NETSTACK_PROTO_H

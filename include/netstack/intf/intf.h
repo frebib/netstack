@@ -41,6 +41,9 @@ struct intf {
     // TODO: Move arptbl into an 'ethernet' hardware struct into `void *ll`
     llist_t arptbl;
 
+    // Outbound queue for packets to neighbouring hosts (see neigh.c)
+    llist_t neigh_outqueue;
+
     // Concurrency locking for send queue
     sem_t sendctr;
     llist_t sendq;

@@ -6,6 +6,8 @@
 
 #include <netstack/log.h>
 #include <netstack/eth/ether.h>
+#include <netstack/lock/retlock.h>
+
 
 #define ARP_HDR_LEN sizeof(struct arp_hdr)
 
@@ -49,25 +51,50 @@ struct arp_ipv4 {
     uint32_t dipv4;
 }__attribute((packed));
 
-/* Returns a struct arp_hdr from the frame->head */
+/*!
+ * Returns a struct arp_hdr from the frame->head
+ */
 #define arp_hdr(frame) ((struct arp_hdr *) (frame)->head)
 
 bool arp_log(struct pkt_log *log, struct frame *frame);
 
-/* Receives an arp frame for processing in the network stack */
+/*!
+ * Receives an arp frame for processing in the network stack
+ * @param frame
+ */
 void arp_recv(struct frame *frame);
 
 // TODO: reduce redundant arguments passed to arp_send_req/reply
 // TODO: infer interface and hwtype based on routing rules
+/*!
+ * Sends an ARP request for an IPv4 address
+ * @param intf interface to send request through
+ * @param hwtype ARP_HW_* hardware type
+ * @param saddr our IPv4 address (from intf)
+ * @param daddr address requesting hwaddr for
+ * @return 0 on success, various error values otherwise
+ */
 int arp_send_req(struct intf *intf, uint16_t hwtype,
-                 uint32_t saddr, uint32_t daddr);
+                 addr_t *saddr, addr_t *daddr);
 
-int arp_send_reply(struct intf *intf, uint8_t hwtype, uint32_t sip,
-                   uint32_t dip, uint8_t *daddr);
+/*!
+ * Sends a reply to an incoming ARP request
+ * @param intf interface to send reply through (should the same as request)
+ * @param hwtype ARP_HW_* hardware type (must match request)
+ * @param sip our IPv4 address (from intf)
+ * @param dip address requesting our hwaddr
+ * @param daddr our hwaddr (from intf)
+ * @return 0 on success, various error values otherwise
+ */
+int arp_send_reply(struct intf *intf, uint16_t hwtype, ip4_addr_t sip,
+                   ip4_addr_t dip, eth_addr_t daddr);
 
-/* Retrieve a hwaddress from ARP cache, or NULL of no cache hit */
-/* Does NOT send ARP requests for cache misses.. */
-addr_t *arp_get_hwaddr(struct intf *intf, proto_t hwtype, addr_t *protoaddr);
+/*!
+ * Retrieves an arp_entry from the arp_table matching the hwtype and protoaddr
+ * @return An entry, if found, otherwise NULL
+ */
+struct arp_entry *arp_get_entry(llist_t *arptbl, proto_t hwtype,
+                                 addr_t *protoaddr);
 
 /*!
  * Converts a PROTO_* value to a ARP_HW_*
@@ -85,17 +112,21 @@ uint16_t arp_proto_hw(proto_t proto);
 
 static inline char const *fmt_arp_state(uint8_t state) {
     switch (state) {
-        case ARP_UNKNOWN:  return "Unknown";
-        case ARP_PENDING:  return "Pending";
-        case ARP_RESOLVED: return "Resolved";
-        default:           return "?";
+        case ARP_UNKNOWN:   return "Unknown";
+        case ARP_PENDING:   return "Pending";
+        case ARP_RESOLVED:  return "Resolved";
+        case ARP_PERMANENT: return "Permanent";
+        default:            return "?";
     }
 }
+
+#define ARP_WAIT_TIMEOUT       10   /* seconds */
 
 struct arp_entry {
     uint8_t state;
     addr_t  protoaddr;
     addr_t  hwaddr;
+    pthread_mutex_t lock;
 };
 
 /*!

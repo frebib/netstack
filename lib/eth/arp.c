@@ -6,6 +6,7 @@
 #include <netinet/in.h>
 
 #include <netstack/eth/arp.h>
+#include <netstack/ip/neigh.h>
 
 
 bool arp_log(struct pkt_log *log, struct frame *frame) {
@@ -36,7 +37,7 @@ bool arp_log(struct pkt_log *log, struct frame *frame) {
             LOGT(trans, "unrecognised proto %d", ntohs(msg->proto));
             break;
     };
-    
+
     return true;
 }
 
@@ -63,17 +64,19 @@ void arp_recv(struct frame *frame) {
             addr_t ether = {.proto = PROTO_ETHER, .ether = eth_arr(req->saddr)};
             addr_t ipv4 = {.proto = PROTO_IPV4, .ipv4 = ntohl(req->sipv4)};
 
+            // Try to update an existing ARP entry
             bool updated = arp_update_entry(frame->intf, &ether, &ipv4);
 
             // Only cache ARP entry if it was sent to us
-            if (!updated && intf_has_addr(frame->intf, &ipv4))
-                arp_cache_entry(frame->intf, &ether, &ipv4);
+            if (intf_has_addr(frame->intf, &ipv4)) {
 
-            if (updated && frame->intf->arptbl.length > 0)
+                // If the entry wasn't an update, it must be new
+                if (!updated)
+                    arp_cache_entry(frame->intf, &ether, &ipv4);
+
+                // Print the newly-updated/inserted ARP table
                 arp_log_tbl(frame->intf, LINFO);
-
-            // TODO: Check for queued outgoing packets that can
-            //       now be sent with the ARP information recv'd
+            }
 
             switch (ntohs(msg->op)) {
                 case ARP_OP_REQUEST: {
@@ -111,24 +114,34 @@ void arp_log_tbl(struct intf *intf, loglvl_t level) {
 }
 
 /* Retrieves IPv4 address from table, otherwise NULL */
-addr_t *arp_get_hwaddr(struct intf *intf, proto_t hwtype, addr_t *protoaddr) {
+struct arp_entry *arp_get_entry(llist_t *arptbl, proto_t hwtype,
+                                 addr_t *protoaddr) {
 
-    for_each_llist(&intf->arptbl) {
+    // Lock the table
+    pthread_mutex_lock(&arptbl->lock);
+
+    for_each_llist(arptbl) {
         struct arp_entry *entry = llist_elem_data();
 
         if (entry == NULL) {
             LOG(LERR, "arp_entry_ipv4 is null?\t");
-            return NULL;
+            continue;
         }
+
+        pthread_mutex_lock(&entry->lock);
         // Check matching protocols
-        if (addreq(&entry->protoaddr, protoaddr)) {
-            // Ignore entry if it doesn't have ARP_RESOLVED
-            if (!(entry->state & ARP_RESOLVED))
-                continue;
-            if (entry->hwaddr.proto == hwtype)
-                return &entry->hwaddr;
+        if (addreq(&entry->protoaddr, protoaddr)
+             && entry->hwaddr.proto == hwtype) {
+
+            // Release the locks and return found entry
+            pthread_mutex_unlock(&entry->lock);
+            pthread_mutex_unlock(&arptbl->lock);
+            return entry;
         }
+        pthread_mutex_unlock(&entry->lock);
     }
+
+    pthread_mutex_unlock(&arptbl->lock);
 
     return NULL;
 }
@@ -146,12 +159,18 @@ bool arp_update_entry(struct intf *intf, addr_t *hwaddr, addr_t *protoaddr) {
 
     // TODO: Use hashtable for ARP lookups on IPv4
 
+    // Lock the table
+    pthread_mutex_lock(&intf->arptbl.lock);
+
     for_each_llist(&intf->arptbl) {
         struct arp_entry *entry = llist_elem_data();
 
+        pthread_mutex_lock(&entry->lock);
+
         // If existing IP match, update it
-        // TODO: This doesn't account for protocol addresses that change hw
+        // TODO: ARP doesn't account for protocol addresses that change hw
         if (addreq(&entry->protoaddr, protoaddr)) {
+
             // Only update hwaddr if it has actually changed
             if (!addreq(&entry->hwaddr, hwaddr)) {
                 LOG(LINFO, "ARP cache entry %s changed", straddr(protoaddr));
@@ -159,24 +178,40 @@ bool arp_update_entry(struct intf *intf, addr_t *hwaddr, addr_t *protoaddr) {
                 // Update hwaddr for IP
                 memcpy(&entry->hwaddr, hwaddr, sizeof(addr_t));
             }
+
             // Remove PENDING and add RESOLVED
             entry->state &= ~ARP_PENDING;
             entry->state |= ARP_RESOLVED;
 
+            // Release all locks
+            pthread_mutex_unlock(&entry->lock);
+            pthread_mutex_unlock(&intf->arptbl.lock);
+
+            // Send any queued packets waiting for a hwaddr
+            neigh_update_hwaddr(intf, protoaddr, hwaddr);
+
             // An entry was updated
             return true;
         }
+
+        // Unlock entry lock
+        pthread_mutex_unlock(&entry->lock);
     }
+
+    // Unlock the ARP table
+    pthread_mutex_unlock(&intf->arptbl.lock);
+
     // Nothing was updated
     return false;
 }
 
 bool arp_cache_entry(struct intf *intf, addr_t *hwaddr, addr_t *protoaddr) {
 
-    LOG(LDBUG, "Storing new ARP entry for %s\n", straddr(protoaddr));
+    LOG(LINFO, "Storing new ARP entry for %s\n", straddr(protoaddr));
 
     struct arp_entry *entry = malloc(sizeof(struct arp_entry));
     entry->state = ARP_RESOLVED;
+    entry->lock = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
     memcpy(&entry->hwaddr, hwaddr, sizeof(addr_t));
     memcpy(&entry->protoaddr, protoaddr, sizeof(addr_t));
 
@@ -186,17 +221,23 @@ bool arp_cache_entry(struct intf *intf, addr_t *hwaddr, addr_t *protoaddr) {
 }
 
 int arp_send_req(struct intf *intf, uint16_t hwtype,
-                 uint32_t saddr, uint32_t daddr) {
+                 addr_t *saddr, addr_t *daddr) {
+
+    struct log_trans trans = LOG_TRANS(LVERB);
+    LOGT(&trans, "arp_request(%s, %s", intf->name, straddr(saddr));
+    LOGT(&trans, ", %s);", straddr(daddr));
+    LOGT_COMMIT(&trans);
 
     struct frame *frame = intf_frame_new(intf, intf_max_frame_size(intf));
     struct arp_ipv4 *req = frame_data_alloc(frame, sizeof(struct arp_ipv4));
     struct arp_hdr *hdr = frame_data_alloc(frame, sizeof(struct arp_hdr));
 
     // TODO: Use hwtype to determine length and type of address
+    // TODO: Change arp_send_req to handle other address types
     memcpy(&req->saddr, intf->ll_addr, ETH_ADDR_LEN);
     memcpy(&req->daddr, ETH_BRD_ADDR, ETH_ADDR_LEN);
-    req->sipv4 = htonl(saddr);
-    req->dipv4 = htonl(daddr);
+    req->sipv4 = htonl(saddr->ipv4);
+    req->dipv4 = htonl(daddr->ipv4);
     hdr->hwtype = htons(hwtype);
     hdr->proto = htons(ETH_P_IP);
     hdr->hlen = ETH_ADDR_LEN;
@@ -210,40 +251,60 @@ int arp_send_req(struct intf *intf, uint16_t hwtype,
     frame_decref_unlock(frame);
 
     // Sending ARP request was successful, add incomplete cache entry
+    struct arp_entry *entry = NULL;
     if (!ret) {
+
+        // Lock arptbl before sending to prevent race condition where reply
+        // arrives before we wait on it, deadlocking waiting on the reply that
+        // has already arrived.
+        pthread_mutex_lock(&intf->arptbl.lock);
+
         // Check if partial entry already exists, so to not add multiple
-        addr_t protoaddr = {.proto = PROTO_IPV4, .ipv4 = daddr};
-        bool entry_exist = false;
         for_each_llist(&intf->arptbl) {
-            struct arp_entry *entry = llist_elem_data();
+            entry = llist_elem_data();
             if (entry == NULL)
                 continue;
-            if (addreq(&entry->protoaddr, &protoaddr)) {
-                entry_exist = true;
+
+            pthread_mutex_lock(&entry->lock);
+            if (addreq(&entry->protoaddr, daddr))
                 break;
-            }
+
+            // Not the entry we want. Unlock it and put it back
+            pthread_mutex_unlock(&entry->lock);
         }
+
         // Don't add another partial entry if one is there already
-        if (entry_exist)
-            return ret;
+        if (entry == NULL) {
+            entry = malloc(sizeof(struct arp_entry));
+            *entry = (struct arp_entry) {
+                .state = ARP_PENDING,
+                .hwaddr = {.proto = PROTO_ETHER, .ether = eth_arr(ETH_NUL_ADDR)},
+                .protoaddr = *daddr,
+                .lock = PTHREAD_MUTEX_INITIALIZER
+            };
+            pthread_mutex_lock(&entry->lock);
+            llist_append_nolock(&intf->arptbl, entry);
 
-        struct arp_entry *entry = malloc(sizeof(struct arp_entry));
-        *entry = (struct arp_entry) {
-            .state = ARP_PENDING,
-            .hwaddr = {.proto = PROTO_ETHER, .ether = eth_arr(ETH_NUL_ADDR)},
-            .protoaddr = {.proto = PROTO_IPV4, .ipv4 = daddr}
-        };
-        llist_append(&intf->arptbl, entry);
-
-        arp_log_tbl(intf, LINFO);
+            arp_log_tbl(intf, LINFO);
+        }
+    } else {
+        // There was an error, return error-code immediately
+        return ret;
     }
+
+    // At this point we have an arp_entry that is locked with entry->lock
+    pthread_mutex_unlock(&intf->arptbl.lock);
+
+    // Unlock the entry
+    pthread_mutex_unlock(&entry->lock);
 
     return ret;
 }
 
-int arp_send_reply(struct intf *intf, uint8_t hwtype, uint32_t sip,
-                   uint32_t dip, uint8_t *daddr) {
-    // TODO: Add 'incomplete' entry to arp cache
+int arp_send_reply(struct intf *intf, uint16_t hwtype, ip4_addr_t sip,
+                   ip4_addr_t dip, eth_addr_t daddr) {
+
+    // TODO: Change arp_send_reply to handle other address types
 
     struct frame *frame = intf_frame_new(intf, intf_max_frame_size(intf));
     struct arp_ipv4 *req = frame_data_alloc(frame, sizeof(struct arp_ipv4));
@@ -260,7 +321,7 @@ int arp_send_reply(struct intf *intf, uint8_t hwtype, uint32_t sip,
     hdr->plen = (uint8_t) addrlen(PROTO_IPV4);
     hdr->op = htons(ARP_OP_REPLY);
 
-    int ret = ether_send(frame, ETH_P_ARP, ETH_BRD_ADDR);
+    int ret = ether_send(frame, ETH_P_ARP, daddr);
     // Ensure frame is free'd if it was never actually sent
     frame_decref_unlock(frame);
     return ret;

@@ -55,7 +55,8 @@ struct pkt_log {
 #define LNTCE 0x80
 #define LINFO 0x60
 #define LDBUG 0x40
-#define LTRCE 0x20
+#define LVERB 0x20
+#define LTRCE 0x10
 #define LNULL 0x00
 
 
@@ -138,6 +139,9 @@ void LOGT(struct log_trans *trans, const char *fmt, ...)
 void VLOGT(struct log_trans *trans, const char *fmt, va_list args)
         __attribute__((__format__ (__printf__, 2, 0)));
 
+#define LOGTFN(t, fmt, ...) \
+    LOGT((t), fmt ": %s:%u<%s>", ##__VA_ARGS__, __FILE__, __LINE__, __func__)
+
 /*
  * Transactional logging
  */
@@ -155,6 +159,12 @@ void VLOGT(struct log_trans *trans, const char *fmt, va_list args)
  * @param trans transaction to commit
  */
 void LOGT_COMMIT(struct log_trans *trans);
+
+#define LOGT_COMMITFN(t) \
+    do { \
+        LOGT((t), ": %s:%u<%s>", __FILE__, __LINE__, __func__); \
+        LOGT_COMMIT(t); \
+    } while (0)
 
 /*!
  * Commit log transaction to a specific file

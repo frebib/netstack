@@ -102,6 +102,13 @@ ssize_t llist_contains(llist_t *list, void *data);
  */
 ssize_t llist_remove(llist_t *list, void *data);
 
+/*
+ * Non-locking llist functions
+ */
+void llist_append_nolock(llist_t *list, void *data);
+void *llist_pop_nolock(llist_t *list);
+void *llist_pop_last_nolock(llist_t *list);
+ssize_t llist_remove_nolock(llist_t *list, void *data);
 
 #endif //NETSTACK_LLIST_H
 

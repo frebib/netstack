@@ -19,6 +19,7 @@ struct log_config logconf = {
                 [LNTCE] = "NOTICE",
                 [LINFO] = "INFO",
                 [LDBUG] = "DEBUG",
+                [LVERB] = "VRBSE",
                 [LTRCE] = "TRACE",
         },
         .lock = PTHREAD_MUTEX_INITIALIZER

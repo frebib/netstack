@@ -2,7 +2,7 @@
 #define NETSTACK_H
 
 // Frame log level for packet dumps
-#define LFRAME  0x10
+#define LFRAME  0x0A
 
 
 int netstack_init(void);

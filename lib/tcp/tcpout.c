@@ -4,6 +4,7 @@
 #include <netstack/checksum.h>
 #include <netstack/ip/route.h>
 #include <netstack/tcp/tcp.h>
+#include <netstack/ip/neigh.h>
 
 int tcp_send(struct tcp_sock *sock, struct frame *frame) {
     struct inet_sock *inet = &sock->inet;
@@ -36,11 +37,8 @@ int tcp_send(struct tcp_sock *sock, struct frame *frame) {
     uint16_t ph_csum = in_csum(&phdr, sizeof(phdr), 0);
     hdr->csum = in_csum(hdr, frame_pkt_len(frame), ~ph_csum);
 
-    uint32_t daddr = inet->remaddr.ipv4;
-    uint32_t saddr = inet->locaddr.ipv4;
-
     // TODO: Implement functionality to specify IP flags (different for IP4/6?)
-    int ret = ipv4_send(frame, IP_P_TCP, 0, daddr, saddr);
+    int ret = neigh_send(frame, IP_P_TCP, 0, &inet->remaddr, &inet->locaddr, true);
     frame_decref_unlock(frame);
     return ret;
 }
