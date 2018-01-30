@@ -36,7 +36,7 @@
   - Line 109: Implement rx 'software' timestamping
   - Line 120: Conditionally print debugging information
   - Line 199: Check intf hwtype to calculate max frame size
-  - Line 225: Selectively choose an appropriate address from intf
+  - Line 229: Selectively choose an appropriate address from intf
 
 ## [lib/intf/rawsock.c](lib/intf/rawsock.c)
   - Line 39: This is hacky, assuiming lo is loopback

@@ -206,11 +206,15 @@ bool intf_has_addr(struct intf *intf, addr_t *addr) {
         return false;
     }
 
+    pthread_mutex_lock(&intf->inet.lock);
     for_each_llist(&intf->inet) {
         addr_t *intf_addr = llist_elem_data();
-        if (addreq(intf_addr, addr))
+        if (addreq(intf_addr, addr)) {
+            pthread_mutex_unlock(&intf->inet.lock);
             return true;
+        }
     }
+    pthread_mutex_unlock(&intf->inet.lock);
     return false;
 }
 
