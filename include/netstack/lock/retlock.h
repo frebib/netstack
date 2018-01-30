@@ -1,6 +1,7 @@
 #ifndef NETSTACK_RETLOCK_H
 #define NETSTACK_RETLOCK_H
 
+#include <errno.h>
 #include <pthread.h>
 
 #define RETLOCK_INITIALISER { \
@@ -48,19 +49,48 @@ int retlock_wait(retlock_t *lock, int *value);
 
 /*!
  * Waits for the lock to be signalled from another thread
- * If no signal is caught within the timeout t, it returns -ETIMEDOUT
+ * Note: Does not lock the mutex before waiting. It is required for the user
+ * to call retlock_lock before calling this function.
+ * @param value pointer to write the returned value when the lock releases
+ * @return see pthread_cond_wait(3P)
+ */
+int retlock_wait_nolock(retlock_t *lock, int *value);
+
+/*!
+ * Waits for the lock to be signalled from another thread
+ * If no signal is caught within the timeout t, it returns ETIMEDOUT
  * @param value pointer to write the returned value when the lock releases
  * @return see pthread_cond_timedwait(3P)
  */
 int retlock_timedwait(retlock_t *lock, struct timespec *t, int *value);
 
 /*!
+ * Waits for the lock to be signalled from another thread
+ * If no signal is caught within the timeout t, it returns ETIMEDOUT
+ * Note: Does not lock the mutex before waiting. It is required for the user
+ * to call retlock_lock before calling this function.
+ * @param value pointer to write the returned value when the lock releases
+ * @return see pthread_cond_timedwait(3P)
+ */
+int retlock_timedwait_nolock(retlock_t *lock, struct timespec *t, int *value);
+
+/*!
  * Signals one waiting thread with a value
- * Always unlocks the lock after broadcast
+ * Always locks and unlocks the lock before and after signalling the condition
  * @param value return value to send to waiting thread
  * @return see pthread_cond_signal(3P)
  */
 int retlock_signal(retlock_t *lock, int value);
+
+/*!
+ * Signals one waiting thread with a value
+ * Unlocks the mutex after signalling the condition
+ * Note: Does not lock the mutex before waiting. It is required for the user
+ * to call retlock_lock before calling this function.
+ * @param value return value to send to waiting thread
+ * @return see pthread_cond_signal(3P)
+ */
+int retlock_signal_nolock(retlock_t *lock, int value);
 
 /*!
  * Broadcasts to any waiting threads with a value
@@ -69,5 +99,9 @@ int retlock_signal(retlock_t *lock, int value);
  * @return see pthread_mutex_broadcast(3P)
  */
 int retlock_broadcast(retlock_t *lock, int value);
+
+int pthread_cond_reltimedwait(pthread_cond_t *__restrict cond,
+                              pthread_mutex_t *__restrict mutex,
+                              const struct timespec *__restrict reltime);
 
 #endif //NETSTACK_RETLOCK_H
