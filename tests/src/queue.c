@@ -1,7 +1,7 @@
 #include <check.h>
 #include <stdlib.h>
 
-#include <netstack/llist.h>
+#include <netstack/col/llist.h>
 
 START_TEST (empty_llist)
     {

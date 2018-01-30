@@ -9,7 +9,7 @@
 #include <rbuf.h>
 
 #include <netstack/log.h>
-#include <netstack/llist.h>
+#include <netstack/col/llist.h>
 #include <netstack/timer.h>
 #include <netstack/inet.h>
 #include <netstack/ip/ipv4.h>

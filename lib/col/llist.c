@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <errno.h>
 
-#include <netstack/llist.h>
+#include <netstack/col/llist.h>
 
 // Private
 void *llist_pop_nolock(llist_t *list);

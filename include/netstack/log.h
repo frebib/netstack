@@ -7,7 +7,7 @@
 #include <stdbool.h>
 #include <time.h>
 
-#include <netstack/llist.h>
+#include <netstack/col/llist.h>
 
 #define LOG_TRANS_INIT_BUFFER   64      /* Initial log_trans buffer size */
 

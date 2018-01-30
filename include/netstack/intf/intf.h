@@ -9,7 +9,7 @@
 #include <netstack.h>
 #include <netstack/addr.h>
 #include <netstack/frame.h>
-#include <netstack/llist.h>
+#include <netstack/col/llist.h>
 
 // Fix circular include issue
 struct frame;
