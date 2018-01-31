@@ -82,7 +82,10 @@ int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags,
             }
 
             // No existing ARP entry found. Request one
+            // Unlock the frame but increase the refcount so other threads
+            // can use it
             frame_incref(frame);
+            frame_unlock(frame);
 
             // Enqueue the outgoing packet and request the hardware address
             struct queued_pkt *pending = malloc(sizeof(struct queued_pkt));
@@ -178,9 +181,13 @@ void neigh_update_hwaddr(struct intf *intf, addr_t *daddr, addr_t *hwaddr) {
             llist_remove_nolock(&intf->neigh_outqueue, tosend);
             pthread_mutex_unlock(&intf->neigh_outqueue.lock);
 
+            frame_lock(tosend->frame, SHARED_RW);
+
             // Send the queued frame!
             int ret = ipv4_send(tosend->frame, tosend->proto, tosend->flags,
                                 tosend->daddr.ipv4, tosend->saddr.ipv4, hwaddr);
+
+            frame_unlock(tosend->frame);
 
             // Signal any waiting threads with the return value
             retlock_signal_nolock(&tosend->retwait, ret);
