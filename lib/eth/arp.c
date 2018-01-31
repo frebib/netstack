@@ -73,10 +73,11 @@ void arp_recv(struct frame *frame) {
                 // If the entry wasn't an update, it must be new
                 if (!updated)
                     arp_cache_entry(frame->intf, &ether, &ipv4);
-
-                // Print the newly-updated/inserted ARP table
-                arp_log_tbl(frame->intf, LINFO);
             }
+
+            // Print the newly-updated/inserted ARP table
+            if (updated)
+                arp_log_tbl(frame->intf, LINFO);
 
             switch (ntohs(msg->op)) {
                 case ARP_OP_REQUEST: {
@@ -170,6 +171,7 @@ bool arp_update_entry(struct intf *intf, addr_t *hwaddr, addr_t *protoaddr) {
         // If existing IP match, update it
         // TODO: ARP doesn't account for protocol addresses that change hw
         if (addreq(&entry->protoaddr, protoaddr)) {
+            bool updated = false;
 
             // Only update hwaddr if it has actually changed
             if (!addreq(&entry->hwaddr, hwaddr)) {
@@ -177,6 +179,8 @@ bool arp_update_entry(struct intf *intf, addr_t *hwaddr, addr_t *protoaddr) {
 
                 // Update hwaddr for IP
                 memcpy(&entry->hwaddr, hwaddr, sizeof(addr_t));
+
+                updated = true;
             }
 
             // Remove PENDING and add RESOLVED
@@ -191,7 +195,7 @@ bool arp_update_entry(struct intf *intf, addr_t *hwaddr, addr_t *protoaddr) {
             neigh_update_hwaddr(intf, protoaddr, hwaddr);
 
             // An entry was updated
-            return true;
+            return updated;
         }
 
         // Unlock entry lock
