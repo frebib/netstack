@@ -76,9 +76,28 @@ int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags,
             entry = arp_get_entry(&intf->arptbl, intf->proto, nexthop);
 
             if (entry != NULL) {
-                // Route and hardware address obtained, send the packet and ret
-                return ipv4_send(frame, proto, flags, daddr->ipv4, saddr->ipv4,
-                                 &entry->hwaddr);
+                LOGFN(LTRCE, "ARP entry matching %s found", straddr(nexthop));
+
+                // Entry is resolved, send the frame!
+                if (entry->state & ARP_RESOLVED) {
+                    LOGFN(LTRCE, "ARP entry is resolved. Sending frame");
+
+                    // Take a copy of the hwaddr so we can release the lock
+                    addr_t hwaddr = entry->hwaddr;
+                    // Unlock entry after accessing it
+                    pthread_mutex_unlock(&entry->lock);
+
+                    // Route and hardware address obtained, send the packet and ret
+                    int ret = ipv4_send(frame, proto, flags, daddr->ipv4,
+                                     saddr->ipv4, &hwaddr);
+
+                    // Unlock frame and return
+                    frame_unlock(frame);
+                    return ret;
+                } else {
+                    // Unlock anyway
+                    pthread_mutex_unlock(&entry->lock);
+                }
             }
 
             // No existing ARP entry found. Request one

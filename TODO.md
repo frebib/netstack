@@ -16,12 +16,12 @@
   - Line 166: Fix endianness in tcp.h
 
 ## [lib/eth/arp.c](lib/eth/arp.c)
-  - Line 161: Use hashtable for ARP lookups on IPv4
-  - Line 172: ARP doesn't account for protocol addresses that change hw
-  - Line 239: Use hwtype to determine length and type of address
-  - Line 240: Change arp_send_req to handle other address types
-  - Line 311: Change arp_send_reply to handle other address types
-  - Line 317: Use hwtype to determine length and type of address
+  - Line 160: Use hashtable for ARP lookups on IPv4
+  - Line 171: ARP doesn't account for protocol addresses that change hw
+  - Line 238: Use hwtype to determine length and type of address
+  - Line 239: Change arp_send_req to handle other address types
+  - Line 310: Change arp_send_reply to handle other address types
+  - Line 316: Use hwtype to determine length and type of address
 
 ## [lib/frame.c](lib/frame.c)
   - Line 76: Deduplicate frame_decref_unlock() code
@@ -59,9 +59,9 @@
 ## [lib/ip/neigh.c](lib/ip/neigh.c)
   - Line 15: Take source address into route calculation
   - Line 31: Perform correct route/hardware address lookups when appropriate
-  - Line 109: Rate limit ARP requests to prevent flooding
-  - Line 119: Use inet_socket for passing options to neighbour
-  - Line 120: Remove entry from list on a timer if not waiting
+  - Line 128: Rate limit ARP requests to prevent flooding
+  - Line 138: Use inet_socket for passing options to neighbour
+  - Line 139: Remove entry from list on a timer if not waiting
 
 ## [lib/ip/route.c](lib/ip/route.c)
   - Line 30: Define how routes with the same metric should behave?

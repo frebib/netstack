@@ -135,7 +135,6 @@ struct arp_entry *arp_get_entry(llist_t *arptbl, proto_t hwtype,
              && entry->hwaddr.proto == hwtype) {
 
             // Release the locks and return found entry
-            pthread_mutex_unlock(&entry->lock);
             pthread_mutex_unlock(&arptbl->lock);
             return entry;
         }
