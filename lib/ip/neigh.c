@@ -142,6 +142,9 @@ int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags,
                 timeout_set(&pending->timeout, fn, pending, to.tv_sec, to.tv_nsec);
 
                 retlock_unlock(&pending->retwait);
+
+                // Indicate that the packet was queued
+                ret = -EWOULDBLOCK;
             } else {
                 LOGFN(LDBUG, "Requesting hwaddr for %s, (wait %lds)",
                       straddr(nexthop), to.tv_sec);
