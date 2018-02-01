@@ -99,10 +99,9 @@ int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags,
             }
 
             // No existing ARP entry found. Request one
-            // Unlock the frame but increase the refcount so other threads
-            // can use it
+            
+            // Increase the refcount so other threads can use frame
             frame_incref(frame);
-            frame_unlock(frame);
 
             // Enqueue the outgoing packet and request the hardware address
             struct queued_pkt *pending = malloc(sizeof(struct queued_pkt));
@@ -147,6 +146,9 @@ int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags,
                 LOGFN(LDBUG, "Requesting hwaddr for %s, (wait %lds)",
                       straddr(nexthop), to.tv_sec);
 
+                // Unlock the frame before pausing thread to prevent deadlock
+                frame_unlock(frame);
+
                 // Wait for packet to be sent, or timeout to occur
                 err = retlock_timedwait_nolock(&pending->retwait, &to, &ret);
 
@@ -161,6 +163,8 @@ int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags,
 
                 // Deallocate dynamic memory
                 free(pending);
+
+                frame_lock(frame, SHARED_RD);
             }
 
             return ret;

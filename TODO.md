@@ -59,8 +59,8 @@
 ## [lib/ip/neigh.c](lib/ip/neigh.c)
   - Line 15: Take source address into route calculation
   - Line 31: Perform correct route/hardware address lookups when appropriate
-  - Line 124: Rate limit ARP requests to prevent flooding
-  - Line 134: Use inet_socket for passing options to neighbour
+  - Line 123: Rate limit ARP requests to prevent flooding
+  - Line 133: Use inet_socket for passing options to neighbour
 
 ## [lib/ip/route.c](lib/ip/route.c)
   - Line 30: Define how routes with the same metric should behave?
