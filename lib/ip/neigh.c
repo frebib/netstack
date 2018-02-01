@@ -107,6 +107,7 @@ int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags,
             // Enqueue the outgoing packet and request the hardware address
             struct queued_pkt *pending = malloc(sizeof(struct queued_pkt));
             pending->retwait = (retlock_t) RETLOCK_INITIALISER;
+            pending->retwait.val = -1; // Start with initial error value
             pending->frame = frame;
             pending->saddr = *saddr;
             pending->daddr = *daddr;
@@ -117,24 +118,20 @@ int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags,
 
             // Lock retlock atomically with respect to 'pending'
             retlock_lock(&pending->retwait);
+            LOGFN(LDBUG, "Queuing packet for later sending");
             llist_append(&intf->neigh_outqueue, pending);
-
-            struct timespec timeout = {.tv_sec = ARP_WAIT_TIMEOUT};
-            LOGFN(LDBUG, "Requesting hwaddr for %s, (wait %lds)",
-                  straddr(nexthop), timeout.tv_sec);
 
             // TODO: Rate limit ARP requests to prevent flooding
 
             // Convert proto_t value to ARP_HW_* for transmission
-            int err = arp_send_req(intf, arp_proto_hw(intf->proto), saddr,
-                                   nexthop);
+            uint16_t arphw = arp_proto_hw(intf->proto);
+            int err = arp_send_req(intf, arphw, saddr, nexthop);
             if (err) {
                 LOGE(LNTCE, "arp_send_req");
                 return err;
             }
 
             // TODO: Use inet_socket for passing options to neighbour
-            // TODO: Remove entry from list on a timer if not waiting
 
             int ret = 0;
             struct timespec to = {.tv_sec = ARP_WAIT_TIMEOUT};
@@ -143,21 +140,27 @@ int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags,
             if (sock_flags & O_NONBLOCK) {
                 // Set the timeout to destroy the
                 void *fn = (void (*)(void *)) neigh_queue_expire;
-                timeout_set(&pending->timeout, fn, pending, to.tv_sec,
-                            to.tv_nsec);
+                timeout_set(&pending->timeout, fn, pending, to.tv_sec, to.tv_nsec);
+
                 retlock_unlock(&pending->retwait);
             } else {
+                LOGFN(LDBUG, "Requesting hwaddr for %s, (wait %lds)",
+                      straddr(nexthop), to.tv_sec);
+
                 // Wait for packet to be sent, or timeout to occur
-                LOGFN(LINFO, "Waiting for hwaddr to resolve %s",
-                      straddr(nexthop));
                 err = retlock_timedwait_nolock(&pending->retwait, &to, &ret);
+
+                LOG(LDBUG, "retlock_timed_wait returned %d", ret);
 
                 // Handle timeout
                 if (err == ETIMEDOUT)
                     ret = -EHOSTUNREACH;
-                    // Handle other generic errors
+                // Handle other generic errors
                 else if (err)
                     ret = -err;
+
+                // Deallocate dynamic memory
+                free(pending);
             }
 
             return ret;
@@ -170,8 +173,9 @@ int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags,
 void neigh_update_hwaddr(struct intf *intf, addr_t *daddr, addr_t *hwaddr) {
     pthread_mutex_lock(&intf->neigh_outqueue.lock);
 
-    LOG(LVERB, "Attempting to process %zu queued packets for %s",
-        intf->neigh_outqueue.length, intf->name);
+    if (intf->neigh_outqueue.length > 0)
+        LOG(LVERB, "Attempting to process %zu queued packets for %s",
+            intf->neigh_outqueue.length, intf->name);
 
     for_each_llist(&intf->neigh_outqueue) {
         struct queued_pkt *tosend = llist_elem_data();
@@ -198,18 +202,19 @@ void neigh_update_hwaddr(struct intf *intf, addr_t *daddr, addr_t *hwaddr) {
             llist_remove_nolock(&intf->neigh_outqueue, tosend);
             pthread_mutex_unlock(&intf->neigh_outqueue.lock);
 
+            // Lock the frame for writing so it can be written to
             frame_lock(tosend->frame, SHARED_RW);
 
             // Send the queued frame!
             int ret = ipv4_send(tosend->frame, tosend->proto, tosend->flags,
                                 tosend->daddr.ipv4, tosend->saddr.ipv4, hwaddr);
 
+            LOG(LDBUG, "Queued packet sent to %s", straddr(&tosend->nexthop));
 
-            // Signal any waiting threads with the return value
-            retlock_signal_nolock(&tosend->retwait, ret);
-
-            // Deallocate dynamic memory
-            free(tosend);
+            // Signal all waiting threads with the return value
+            int err;
+            if ((err = retlock_broadcast_nolock(&tosend->retwait, ret)))
+                LOGSE(LERR, "retlock_broadcast_nolock", -err);
 
             return;
         }

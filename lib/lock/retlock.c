@@ -73,6 +73,11 @@ int retlock_broadcast(retlock_t *lock, int value) {
     int ret;
     if ((ret = retlock_lock(lock)))
         return ret;
+    return retlock_broadcast_nolock(lock, value);
+}
+
+int retlock_broadcast_nolock(retlock_t *lock, int value) {
+    int ret;
     lock->val = value;
     if ((ret = pthread_cond_broadcast(&lock->wait)))
         return -ret;
@@ -88,6 +93,11 @@ int pthread_cond_reltimedwait(pthread_cond_t *__restrict cond,
     clock_gettime(CLOCK_REALTIME, &abs);
     abs.tv_sec += reltime->tv_sec;
     abs.tv_nsec += reltime->tv_nsec;
+    // Prevent nanoseconds being >= 1 billion
+    if (abs.tv_nsec >= 1000000000) {
+        abs.tv_nsec -= 1000000000;
+        abs.tv_sec++;
+    }
 
     return pthread_cond_timedwait(cond, mutex, &abs);
 }
