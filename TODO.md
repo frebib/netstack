@@ -20,8 +20,8 @@
   - Line 171: ARP doesn't account for protocol addresses that change hw
   - Line 238: Use hwtype to determine length and type of address
   - Line 239: Change arp_send_req to handle other address types
-  - Line 310: Change arp_send_reply to handle other address types
-  - Line 316: Use hwtype to determine length and type of address
+  - Line 311: Change arp_send_reply to handle other address types
+  - Line 317: Use hwtype to determine length and type of address
 
 ## [lib/frame.c](lib/frame.c)
   - Line 76: Deduplicate frame_decref_unlock() code
@@ -30,10 +30,10 @@
   - Line 20: Use hashtbl instead of list to lookup sockets
 
 ## [lib/intf/intf.c](lib/intf/intf.c)
-  - Line 109: Implement rx 'software' timestamping
-  - Line 120: Conditionally print debugging information
-  - Line 199: Check intf hwtype to calculate max frame size
-  - Line 229: Selectively choose an appropriate address from intf
+  - Line 110: Implement rx 'software' timestamping
+  - Line 121: Conditionally print debugging information
+  - Line 200: Check intf hwtype to calculate max frame size
+  - Line 230: Selectively choose an appropriate address from intf
 
 ## [lib/intf/rawsock.c](lib/intf/rawsock.c)
   - Line 39: This is hacky, assuiming lo is loopback
@@ -59,9 +59,9 @@
 ## [lib/ip/neigh.c](lib/ip/neigh.c)
   - Line 15: Take source address into route calculation
   - Line 31: Perform correct route/hardware address lookups when appropriate
-  - Line 128: Rate limit ARP requests to prevent flooding
-  - Line 138: Use inet_socket for passing options to neighbour
-  - Line 139: Remove entry from list on a timer if not waiting
+  - Line 126: Rate limit ARP requests to prevent flooding
+  - Line 136: Use inet_socket for passing options to neighbour
+  - Line 137: Remove entry from list on a timer if not waiting
 
 ## [lib/ip/route.c](lib/ip/route.c)
   - Line 30: Define how routes with the same metric should behave?
@@ -111,12 +111,12 @@
   - Line 26: Don't assume IPv4 L3, choose based on sock->saddr
   - Line 36: Don't assume IPv4 pseudo-header for checksumming
   - Line 40: Implement functionality to specify IP flags (different for IP4/6?)
-  - Line 48: Work out route interface before allocating buffer
-  - Line 55: Allocate space for TCP options
-  - Line 65: Work out route interface before allocating buffer
-  - Line 73: Implement MSS variability. Default MSS is quite small
-  - Line 80: Allocate space for TCP options
-  - Line 88: Start the retransmission timeout
+  - Line 46: Work out route interface before allocating buffer
+  - Line 53: Allocate space for TCP options
+  - Line 68: Work out route interface before allocating buffer
+  - Line 76: Implement MSS variability. Default MSS is quite small
+  - Line 83: Allocate space for TCP options
+  - Line 91: Start the retransmission timeout
 
 ## [lib/tcp/tcpuser.c](lib/tcp/tcpuser.c)
   - Line 13: Handle sending SIGPIPE for dead connections to calling process

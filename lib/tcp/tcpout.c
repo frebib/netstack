@@ -38,9 +38,7 @@ int tcp_send(struct tcp_sock *sock, struct frame *frame) {
     hdr->csum = in_csum(hdr, frame_pkt_len(frame), ~ph_csum);
 
     // TODO: Implement functionality to specify IP flags (different for IP4/6?)
-    int ret = neigh_send(frame, IP_P_TCP, 0, 0, &inet->remaddr, &inet->locaddr);
-    frame_decref_unlock(frame);
-    return ret;
+    return neigh_send(frame, IP_P_TCP, 0, 0, &inet->remaddr, &inet->locaddr);
 }
 
 int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
@@ -58,7 +56,12 @@ int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
     hdr->ackn = htonl(ackn);
     hdr->flagval = flags;
 
-    return tcp_send(sock, seg);
+    int ret = tcp_send(sock, seg);
+    // We created the frame so ensure it's unlocked if it never sent
+    if (ret)
+        frame_unlock(seg);
+
+    return ret;
 }
 
 int tcp_send_data(struct tcp_sock *sock, uint8_t flags) {
@@ -88,5 +91,9 @@ int tcp_send_data(struct tcp_sock *sock, uint8_t flags) {
     // TODO: Start the retransmission timeout
 
     int ret = tcp_send(sock, seg);
+    // We created the frame so ensure it's unlocked if it never sent
+    if (ret)
+        frame_unlock(seg);
+
     return (ret < 0 ? ret : (int) count);
 }

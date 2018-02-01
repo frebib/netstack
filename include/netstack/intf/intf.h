@@ -69,9 +69,10 @@ struct intf {
 };
 
 /*!
- *
- * @param frame
- * @return
+ * Pushes a frame into the interface dispatch queue
+ * Increases the frame reference count to prevent it being deallocated
+ * Note: Frames must be locked for reading/writing by the calling thread
+ * @return 0 on success, otherwise on error
  */
 int intf_dispatch(struct frame *frame);
 

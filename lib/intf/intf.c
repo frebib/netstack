@@ -17,6 +17,7 @@ void _intf_recv_thread(struct intf *intf);
 int intf_dispatch(struct frame *frame) {
     // Ensure send() has a reference, keeping the frame alive
     frame_incref(frame);
+    frame_unlock(frame);
 
     // Push the frame into the queue
     queue_push(&frame->intf->sendq, frame);
@@ -62,7 +63,7 @@ void _intf_send_thread(struct intf *intf) {
 
         // Only attempt to send a non-null frame
         if (frame) {
-            frame_lock(frame, SHARED_RW);
+            frame_lock(frame, SHARED_RD);
 
             // Send the frame!
             int ret = (int) intf->send_frame(frame);

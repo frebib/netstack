@@ -251,12 +251,16 @@ int arp_send_req(struct intf *intf, uint16_t hwtype,
     int ret = ether_send(frame, ETH_P_ARP, ETH_BRD_ADDR);
 
     // Ensure frame is free'd if it was never actually sent
-    frame_decref_unlock(frame);
+    frame_decref(frame);
 
     // Sending ARP request was successful, add incomplete cache entry
     struct arp_entry *entry = NULL;
-    if (!ret) {
-
+    if (ret) {
+        // Frame was never sent so ensure it is unlocked
+        frame_unlock(frame);
+        // There was an error, return error-code immediately
+        return ret;
+    } else {
         // Lock arptbl before sending to prevent race condition where reply
         // arrives before we wait on it, deadlocking waiting on the reply that
         // has already arrived.
@@ -290,9 +294,6 @@ int arp_send_req(struct intf *intf, uint16_t hwtype,
 
             arp_log_tbl(intf, LINFO);
         }
-    } else {
-        // There was an error, return error-code immediately
-        return ret;
     }
 
     // At this point we have an arp_entry that is locked with entry->lock
@@ -325,7 +326,9 @@ int arp_send_reply(struct intf *intf, uint16_t hwtype, ip4_addr_t sip,
     hdr->op = htons(ARP_OP_REPLY);
 
     int ret = ether_send(frame, ETH_P_ARP, daddr);
-    // Ensure frame is free'd if it was never actually sent
-    frame_decref_unlock(frame);
+    // We created the frame so ensure it's unlocked if it never sent
+    if (ret)
+        frame_unlock(frame);
+    frame_decref(frame);
     return ret;
 }

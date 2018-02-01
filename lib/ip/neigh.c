@@ -91,8 +91,6 @@ int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags,
                     int ret = ipv4_send(frame, proto, flags, daddr->ipv4,
                                      saddr->ipv4, &hwaddr);
 
-                    // Unlock frame and return
-                    frame_unlock(frame);
                     return ret;
                 } else {
                     // Unlock anyway
@@ -206,7 +204,6 @@ void neigh_update_hwaddr(struct intf *intf, addr_t *daddr, addr_t *hwaddr) {
             int ret = ipv4_send(tosend->frame, tosend->proto, tosend->flags,
                                 tosend->daddr.ipv4, tosend->saddr.ipv4, hwaddr);
 
-            frame_unlock(tosend->frame);
 
             // Signal any waiting threads with the return value
             retlock_signal_nolock(&tosend->retwait, ret);
