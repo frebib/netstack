@@ -241,5 +241,6 @@ void neigh_queue_expire(struct queued_pkt *pending) {
     // Tough doo-doo if you manage to lock the queued packet now, sorry
 
     // Deallocate memory
+    timeout_clear(&pending->timeout);
     free(pending);
 }
