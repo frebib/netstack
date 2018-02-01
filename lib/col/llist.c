@@ -170,7 +170,7 @@ ssize_t llist_remove(llist_t *list, void *data) {
         return -EINVAL;
 
     pthread_mutex_lock(&list->lock);
-    ssize_t ret = llist_remove(list, data);
+    ssize_t ret = llist_remove_nolock(list, data);
     pthread_mutex_unlock(&list->lock);
     return ret;
 }
