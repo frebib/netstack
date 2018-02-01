@@ -6,13 +6,15 @@
 #include <netstack/ip/route.h>
 #include <netstack/ip/ipv4.h>
 #include <netstack/ip/neigh.h>
-#include <netstack/timer.h>
+#include <netstack/inet.h>
 
 
-int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags,
-               uint16_t sock_flags, addr_t *daddr, addr_t *saddr) {
+int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags) {
 
     // TODO: Take source address into route calculation
+
+    addr_t *daddr = &frame->sock->remaddr;
+    addr_t *saddr = &frame->sock->locaddr;
 
     LOGFN(LVERB, "Finding route to %s", straddr(daddr));
     struct route_entry *rt = route_lookup(daddr);
@@ -88,8 +90,8 @@ int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags,
                     pthread_mutex_unlock(&entry->lock);
 
                     // Route and hardware address obtained, send the packet and ret
-                    int ret = ipv4_send(frame, proto, flags, daddr->ipv4,
-                                     saddr->ipv4, &hwaddr);
+                    int ret = ipv4_send(frame, proto, flags,
+                                        daddr->ipv4, saddr->ipv4, &hwaddr);
 
                     return ret;
                 } else {
@@ -108,12 +110,9 @@ int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags,
             pending->retwait = (retlock_t) RETLOCK_INITIALISER;
             pending->retwait.val = -1; // Start with initial error value
             pending->frame = frame;
-            pending->saddr = *saddr;
-            pending->daddr = *daddr;
             pending->nexthop = *nexthop;
             pending->proto = proto;
             pending->flags = flags;
-            pending->sock_flags = sock_flags;
 
             // Lock retlock atomically with respect to 'pending'
             retlock_lock(&pending->retwait);
@@ -136,7 +135,7 @@ int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags,
             struct timespec to = {.tv_sec = ARP_WAIT_TIMEOUT};
 
             // If NONBLOCK flag is set, don't wait, just set the expiry timer
-            if (sock_flags & O_NONBLOCK) {
+            if (frame->sock->flags & O_NONBLOCK) {
                 // Set the timeout to destroy the
                 void *fn = (void (*)(void *)) neigh_queue_expire;
                 timeout_set(&pending->timeout, fn, pending, to.tv_sec, to.tv_nsec);
@@ -193,8 +192,10 @@ void neigh_update_hwaddr(struct intf *intf, addr_t *daddr, addr_t *hwaddr) {
         // Found entry to update and send
         if (addreq(&tosend->nexthop, daddr)) {
 
+            struct inet_sock *sock = tosend->frame->sock;
+
             // Cancel the timeout (asap) if one is pending
-            if (tosend->sock_flags & O_NONBLOCK) {
+            if (sock->flags & O_NONBLOCK) {
                 LOG(LDBUG, "Clearing neigh_queue_expire timeout");
                 timeout_clear(&tosend->timeout);
             }
@@ -214,7 +215,7 @@ void neigh_update_hwaddr(struct intf *intf, addr_t *daddr, addr_t *hwaddr) {
 
             // Send the queued frame!
             int ret = ipv4_send(tosend->frame, tosend->proto, tosend->flags,
-                                tosend->daddr.ipv4, tosend->saddr.ipv4, hwaddr);
+                                sock->remaddr.ipv4, sock->locaddr.ipv4, hwaddr);
 
             // Now that the frame has been dispatched, we can deref it
             frame_decref(tosend->frame);
@@ -240,7 +241,7 @@ void neigh_queue_expire(struct queued_pkt *pending) {
     retlock_lock(&pending->retwait);
 
     LOG(LNTCE, "Queued packet for %s expired. Destroying it",
-        straddr(&pending->daddr));
+        straddr(&pending->frame->sock->remaddr));
 
     // Remove pending frame from queue
     struct intf *intf = pending->frame->intf;

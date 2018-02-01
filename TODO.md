@@ -13,7 +13,7 @@
 
 ## [include/netstack/tcp/tcp.h](include/netstack/tcp/tcp.h)
   - Line 47: Take endianness into account in tcp_hdr
-  - Line 166: Fix endianness in tcp.h
+  - Line 162: Fix endianness in tcp.h
 
 ## [lib/eth/arp.c](lib/eth/arp.c)
   - Line 160: Use hashtable for ARP lookups on IPv4
@@ -24,10 +24,10 @@
   - Line 321: Use hwtype to determine length and type of address
 
 ## [lib/frame.c](lib/frame.c)
-  - Line 76: Deduplicate frame_decref_unlock() code
+  - Line 80: Deduplicate frame_decref_unlock() code
 
 ## [lib/inet.c](lib/inet.c)
-  - Line 20: Use hashtbl instead of list to lookup sockets
+  - Line 26: Use hashtbl instead of list to lookup sockets
 
 ## [lib/intf/intf.c](lib/intf/intf.c)
   - Line 110: Implement rx 'software' timestamping
@@ -43,9 +43,10 @@
   - Line 170: Find an appropriate size for the control buffer
 
 ## [lib/ip/icmp.c](lib/ip/icmp.c)
-  - Line 91: Don't assume IPv4 parent
-  - Line 96: Find ICMP route
-  - Line 112: Fix frame->data pointer head/tail difference
+  - Line 92: Don't assume IPv4 parent
+  - Line 97: Find ICMP route
+  - Line 113: Fix frame->data pointer head/tail difference
+  - Line 132: Track and deallocate unused inet_sock objects in frames
 
 ## [lib/ip/ipv4.c](lib/ip/ipv4.c)
   - Line 45: Change to `if (!ipv4_should_accept(frame))` to accept other packets
@@ -57,10 +58,10 @@
   - Line 157: Make this user-configurable
 
 ## [lib/ip/neigh.c](lib/ip/neigh.c)
-  - Line 15: Take source address into route calculation
-  - Line 31: Perform correct route/hardware address lookups when appropriate
-  - Line 123: Rate limit ARP requests to prevent flooding
-  - Line 133: Use inet_socket for passing options to neighbour
+  - Line 14: Take source address into route calculation
+  - Line 33: Perform correct route/hardware address lookups when appropriate
+  - Line 122: Rate limit ARP requests to prevent flooding
+  - Line 132: Use inet_socket for passing options to neighbour
 
 ## [lib/ip/route.c](lib/ip/route.c)
   - Line 30: Define how routes with the same metric should behave?
@@ -70,8 +71,8 @@
   - Line 97: Check for TSO and GRO and account for it, somehow..
   - Line 106: Other integrity checks
   - Line 115: Perform queued actions when reaching certain states
-  - Line 211: Choose a random unused outgoing port
-  - Line 216: Choose a secure initial sequence number
+  - Line 210: Choose a random unused outgoing port
+  - Line 215: Choose a secure initial sequence number
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
   - Line 16: * TODO: Treat all seq and ack number arithmetic modulo UINT32_MAX
@@ -111,23 +112,22 @@
   - Line 36: Don't assume IPv4 pseudo-header for checksumming
   - Line 40: Implement functionality to specify IP flags (different for IP4/6?)
   - Line 46: Work out route interface before allocating buffer
-  - Line 53: Allocate space for TCP options
-  - Line 69: Work out route interface before allocating buffer
-  - Line 77: Implement MSS variability. Default MSS is quite small
-  - Line 84: Allocate space for TCP options
-  - Line 92: Start the retransmission timeout
+  - Line 54: Allocate space for TCP options
+  - Line 70: Work out route interface before allocating buffer
+  - Line 79: Implement MSS variability. Default MSS is quite small
+  - Line 86: Allocate space for TCP options
+  - Line 94: Start the retransmission timeout
 
 ## [lib/tcp/tcpuser.c](lib/tcp/tcpuser.c)
   - Line 13: Handle sending SIGPIPE for dead connections to calling process
   - Line 66: Fill out 'user timeout' information
-  - Line 92: Check for O_NONBLOCK
-  - Line 94: Obtain timespec value for timedwait
-  - Line 144: Wait on send() for something? (Buffer is full, wait for space?)
-  - Line 151: Write to sndbuf and output directly at the same time
-  - Line 159: Signal sending thread and offload segmentation/transmission
-  - Line 160: Check for MSG_MORE flag and don't trigger for a short while
-  - Line 200: tcp_close() request until all send() calls have completed
-  - Line 214: Check for pending send() calls
+  - Line 93: Obtain timespec value for timedwait
+  - Line 143: Wait on send() for something? (Buffer is full, wait for space?)
+  - Line 150: Write to sndbuf and output directly at the same time
+  - Line 158: Signal sending thread and offload segmentation/transmission
+  - Line 159: Check for MSG_MORE flag and don't trigger for a short while
+  - Line 199: tcp_close() request until all send() calls have completed
+  - Line 213: Check for pending send() calls
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
   - Line 16: Add many configurable interfaces

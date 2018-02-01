@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <netinet/in.h>
 
 #include <netstack/checksum.h>
@@ -121,10 +122,16 @@ int send_icmp_reply(struct frame *ctrl) {
     hdr->csum = 0;
     hdr->csum = in_csum(hdr, frame_pkt_len(reply), 0);
 
+    // Allocate a socket for passing detail
+    reply->sock = inet_sock_init(malloc(sizeof(struct inet_sock)));
+    reply->sock->flags = O_NONBLOCK;
     // Swap source/dest IP addresses
-    addr_t saddr = { .proto = PROTO_IPV4, .ipv4 = ntohl(ip->saddr) };
-    addr_t daddr = { .proto = PROTO_IPV4, .ipv4 = ntohl(ip->daddr) };
-    int ret = neigh_send(reply, IP_P_ICMP, IP_DF, O_NONBLOCK, &saddr, &daddr);
+    reply->sock->locaddr = (addr_t) {.proto = PROTO_IPV4, .ipv4 = ntohl(ip->daddr)};
+    reply->sock->remaddr = (addr_t) {.proto = PROTO_IPV4, .ipv4 = ntohl(ip->saddr)};
+
+    // TODO: Track and deallocate unused inet_sock objects in frames
+
+    int ret = neigh_send(reply, IP_P_ICMP, IP_DF);
 
     // We created the frame so ensure it's unlocked if it never sent
     if (ret)

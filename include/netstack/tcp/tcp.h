@@ -152,10 +152,6 @@ struct tcp_sock {
     // TCP timers
     timeout_t timewait;
 
-    // Reference counting & shared-locking
-    atomic_uint refcount;
-    pthread_mutex_t lock;
-
     // Thread wait locks
     retlock_t openwait;
     retlock_t sendwait;
@@ -307,9 +303,9 @@ uint tcp_sock_incref(struct tcp_sock *sock);
  */
 uint tcp_sock_decref(struct tcp_sock *sock);
 
-#define tcp_sock_lock(sock) pthread_mutex_lock(&(sock)->lock)
+#define tcp_sock_lock(sock) pthread_mutex_lock(&(sock)->inet.lock)
 
-#define tcp_sock_unlock(sock) pthread_mutex_unlock(&(sock)->lock)
+#define tcp_sock_unlock(sock) pthread_mutex_unlock(&(sock)->inet.lock)
 
 
 /*

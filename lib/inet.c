@@ -14,6 +14,12 @@ uint16_t inet_ipv4_csum(struct ipv4_hdr *hdr) {
     return ~in_csum(&pseudo_hdr, sizeof(pseudo_hdr), 0);
 }
 
+struct inet_sock *inet_sock_init(struct inet_sock *sock) {
+    atomic_init(&sock->refcount, 1);
+    pthread_mutex_init(&sock->lock, NULL);
+    return sock;
+}
+
 struct inet_sock *inet_sock_lookup(llist_t *socks,
                                    addr_t *remaddr, addr_t *locaddr,
                                    uint16_t remport, uint16_t locport) {
@@ -25,7 +31,6 @@ struct inet_sock *inet_sock_lookup(llist_t *socks,
             LOG(LWARN, "tcp_sockets contains a NULL element!");
             continue;
         }
-
 
         // struct log_trans t = LOG_TRANS(LDBUG);
         // LOGT(&t, "remote: %s:%hu ", straddr(remaddr), remport);

@@ -32,6 +32,7 @@ ARRAYLIST_DEFINE(frame_stack, struct frame_layer);
 
 struct frame {
     struct intf *intf;      /* Always present for incoming packets */
+    struct inet_sock *sock;
     struct timespec time;   /* Send/recv time for frame */
     frame_stack_t layer;    /* Arraylist of protocol layers in frame, ordered */
     size_t buf_sz;

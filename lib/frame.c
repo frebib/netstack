@@ -3,6 +3,7 @@
 #include <errno.h>
 
 #include <netstack/log.h>
+#include <netstack/inet.h>
 #include <netstack/frame.h>
 
 struct frame *frame_init(struct intf *intf, void *buffer, size_t buf_size) {
@@ -64,9 +65,12 @@ void frame_decref(struct frame *frame) {
         // refcount hit 0. Deallocate frame memory
         if (frame->buffer != NULL)
             frame->intf->free_buffer(frame->intf, frame->buffer);
+
         alist_free(&frame->layer);
+
         // Unlock before free'ing
         frame_unlock(frame);
+
         // If another thread gains access here, after unlocking, it is a bug
         // That thread needs to be holding a reference to prevent deallocation
         free(frame);

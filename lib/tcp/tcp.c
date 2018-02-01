@@ -128,9 +128,8 @@ void tcp_established(struct tcp_sock *sock, struct tcp_hdr *seg) {
 
 struct tcp_sock *tcp_sock_init(struct tcp_sock *sock) {
     memset(sock, 0, sizeof(struct tcp_sock));
+    inet_sock_init(&sock->inet);
     sock->state = TCP_CLOSED;
-    atomic_init(&sock->refcount, 1);
-    pthread_mutex_init(&sock->lock, NULL);
     retlock_init(&sock->openwait);
     retlock_init(&sock->sendwait);
     retlock_init(&sock->recvwait);
@@ -187,13 +186,13 @@ void tcp_sock_cleanup(struct tcp_sock *sock) {
 }
 
 uint tcp_sock_incref(struct tcp_sock *sock) {
-    return atomic_fetch_add(&sock->refcount, 1);
+    return atomic_fetch_add(&sock->inet.refcount, 1);
 }
 
 uint tcp_sock_decref(struct tcp_sock *sock) {
     // Subtract and destroy socket if no more refs held
     uint refcnt;
-    if ((refcnt = atomic_fetch_sub(&sock->refcount, 1)) == 1) {
+    if ((refcnt = atomic_fetch_sub(&sock->inet.refcount, 1)) == 1) {
         LOG(LDBUG, "dereferencing sock %p", sock);
         tcp_sock_unlock(sock);
         tcp_sock_destroy(sock);

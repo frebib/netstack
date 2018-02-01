@@ -89,8 +89,7 @@ int tcp_user_open(struct tcp_sock *sock) {
         // Unlock before going to sleep
         tcp_sock_unlock(sock);
 
-        // TODO: Check for O_NONBLOCK
-        if (false) {
+        if (sock->inet.flags & O_NONBLOCK) {
             // TODO: Obtain timespec value for timedwait
             struct timespec t = {.tv_sec = 5, .tv_nsec = 0};
             retlock_timedwait(wait, &t, &ret);

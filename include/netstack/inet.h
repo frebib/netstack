@@ -2,6 +2,7 @@
 #define NETSTACK_INET_H
 
 #include <stdint.h>
+#include <fcntl.h>          /* For socket options like O_NONBLOCK */
 #include <netstack/addr.h>
 #include <netstack/ip/ipv4.h>
 
@@ -10,6 +11,11 @@ struct inet_sock {
     addr_t remaddr;
     uint16_t locport;
     uint16_t remport;
+    uint16_t flags;
+
+    // Reference counting & shared-locking
+    atomic_uint refcount;
+    pthread_mutex_t lock;
 };
 
 /*
@@ -35,6 +41,13 @@ struct inet_ipv4_phdr {
 
 
 uint16_t inet_ipv4_csum(struct ipv4_hdr *hdr);
+
+/*!
+ *
+ * @param sock
+ * @return
+ */
+struct inet_sock *inet_sock_init(struct inet_sock *sock);
 
 /*!
  * Finds a matching socket, including listening and closed sockets.

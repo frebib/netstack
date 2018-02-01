@@ -5,6 +5,7 @@
 
 #include <netstack/addr.h>
 #include <netstack/timer.h>
+#include <netstack/inet.h>
 #include <netstack/col/llist.h>
 #include <netstack/lock/retlock.h>
 
@@ -23,12 +24,9 @@ struct queued_pkt {
     retlock_t retwait;
     timeout_t timeout;
     struct frame *frame;
-    addr_t saddr;
-    addr_t daddr;
     addr_t nexthop;
     uint8_t proto;
     uint16_t flags;
-    uint16_t sock_flags;
 };
 
 /*!
@@ -44,8 +42,7 @@ struct queued_pkt {
  * @param saddr IP source address (should belong to frame->intf
  * @return 0 on success, otherwise if error
  */
-int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags,
-               uint16_t sock_flags, addr_t *daddr, addr_t *saddr);
+int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags);
 
 /*!
  * Updates the neighbour processing of a hardware address update that can be
