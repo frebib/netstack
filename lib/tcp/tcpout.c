@@ -60,6 +60,7 @@ int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
     // We created the frame so ensure it's unlocked if it never sent
     if (ret)
         frame_unlock(seg);
+    frame_decref(seg);
 
     return ret;
 }
@@ -94,6 +95,7 @@ int tcp_send_data(struct tcp_sock *sock, uint8_t flags) {
     // We created the frame so ensure it's unlocked if it never sent
     if (ret)
         frame_unlock(seg);
+    frame_decref(seg);
 
     return (ret < 0 ? ret : (int) count);
 }

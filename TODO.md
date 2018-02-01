@@ -112,10 +112,10 @@
   - Line 40: Implement functionality to specify IP flags (different for IP4/6?)
   - Line 46: Work out route interface before allocating buffer
   - Line 53: Allocate space for TCP options
-  - Line 68: Work out route interface before allocating buffer
-  - Line 76: Implement MSS variability. Default MSS is quite small
-  - Line 83: Allocate space for TCP options
-  - Line 91: Start the retransmission timeout
+  - Line 69: Work out route interface before allocating buffer
+  - Line 77: Implement MSS variability. Default MSS is quite small
+  - Line 84: Allocate space for TCP options
+  - Line 92: Start the retransmission timeout
 
 ## [lib/tcp/tcpuser.c](lib/tcp/tcpuser.c)
   - Line 13: Handle sending SIGPIPE for dead connections to calling process

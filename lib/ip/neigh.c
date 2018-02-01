@@ -209,6 +209,9 @@ void neigh_update_hwaddr(struct intf *intf, addr_t *daddr, addr_t *hwaddr) {
             int ret = ipv4_send(tosend->frame, tosend->proto, tosend->flags,
                                 tosend->daddr.ipv4, tosend->saddr.ipv4, hwaddr);
 
+            // Now that the frame has been dispatched, we can deref it
+            frame_decref(tosend->frame);
+
             LOG(LDBUG, "Queued packet sent to %s", straddr(&tosend->nexthop));
 
             // Signal all waiting threads with the return value
