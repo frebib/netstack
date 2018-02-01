@@ -20,8 +20,8 @@
   - Line 171: ARP doesn't account for protocol addresses that change hw
   - Line 238: Use hwtype to determine length and type of address
   - Line 239: Change arp_send_req to handle other address types
-  - Line 311: Change arp_send_reply to handle other address types
-  - Line 317: Use hwtype to determine length and type of address
+  - Line 315: Change arp_send_reply to handle other address types
+  - Line 321: Use hwtype to determine length and type of address
 
 ## [lib/frame.c](lib/frame.c)
   - Line 76: Deduplicate frame_decref_unlock() code

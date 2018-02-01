@@ -278,6 +278,10 @@ int arp_send_req(struct intf *intf, uint16_t hwtype,
 
             // Not the entry we want. Unlock it and put it back
             pthread_mutex_unlock(&entry->lock);
+
+            // Clear the entry to ensure the if below runs if we do not find
+            // and lock an entry within this loop.
+            entry = NULL;
         }
 
         // Don't add another partial entry if one is there already
