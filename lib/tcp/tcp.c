@@ -249,10 +249,6 @@ int tcp_seg_cmp(const struct frame *fa, const struct frame *fb) {
     struct tcp_hdr *a = tcp_hdr(fa);
     struct tcp_hdr *b = tcp_hdr(fb);
 
-    LOG(LTRCE, "[TCP] tcp_seg_cmp (a)%u - (b)%u (cmp %d)",
-        ntohl(a->seqn), ntohl(b->seqn),
-        ((int) ntohl(a->seqn) - ntohl(b->seqn)));
-
     return ntohl(a->seqn) - ntohl(b->seqn);
 }
 
@@ -265,14 +261,12 @@ uint32_t tcp_recvqueue_contigseq(struct tcp_sock *sock, uint32_t init) {
 
         uint32_t seg_seq = ntohl(hdr->seqn);
         uint16_t seg_len = frame_data_len(frame);
-        LOGFN(LVERB, "init %u, seg->seq %u, end %u",
-              init, seg_seq, seg_seq + seg_len);
-        if (init >= seg_seq && init <= (seg_seq + seg_len))
-            init = seg_seq + seg_len;
+        uint32_t seg_end = seg_seq + seg_len - 1;
+        if (init >= seg_seq && init <= seg_end)
+            init = seg_end + 1;
         else
             break;
     }
 
-    LOGFN(LTRCE, "recvqueue contiguous %u", init);
     return init;
 }

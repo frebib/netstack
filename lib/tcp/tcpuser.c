@@ -225,15 +225,16 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
         // First check if there is something to recv
         struct frame *seg = llist_peek(&sock->recvqueue);
 
+        uint32_t irs = sock->tcb.irs;
+
         // If there is a segment, ensure it is the next in sequence
         bool seg_has_recvptr = false;
         if (seg != NULL) {
             uint32_t seg_seq = ntohl(tcp_hdr(seg)->seqn);
             uint32_t seg_len = frame_data_len(seg);
-            uint32_t seg_end = seg_seq + seg_len;
+            uint32_t seg_end = seg_seq + seg_len - 1;
 
-            uint32_t irs = sock->tcb.irs;
-            LOG(LDBUG, "sock->recvptr %u, seg_seq %u, seg_end %u",
+            LOG(LNTCE, "sock->recvptr %u, seg_seq %u, seg_end %u",
                 sock->recvptr - irs, seg_seq - irs, seg_end - irs);
 
             // Check if the queued segment has already been passed
@@ -248,7 +249,7 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
             }
             else {
                 seg_has_recvptr = (sock->recvptr >= seg_seq) &&
-                                  (sock->recvptr < seg_end);
+                                  (sock->recvptr <= seg_end);
                 if (!seg_has_recvptr)
                     LOGFN(LERR, "sock->recvptr is outside seg_seq");
             }
@@ -317,6 +318,10 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
             // Copy partial frame and return
             memcpy(out + count, seg->data + seg_ofs, space_left);
             count += space_left;
+            LOGFN(LNTCE, "sock->recvptr (%u) += %lu -> %lu",
+                  sock->recvptr - irs, space_left,
+                  (sock->recvptr + space_left - irs));
+
             // Update last recv position in sock
             sock->recvptr += space_left;
             // Break from loop and return
@@ -329,12 +334,14 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
             count += seg_left;
             // Update last recv position in sock
             sock->recvptr += seg_left;
+            // Update RCV.WND size after removing consumed segment
+            sock->tcb.rcv.wnd += seg_len;
             // Remove completely consumed frame from the queue
             // TODO: Check for MSG_PEEK and conditionally don't do this
             // If seg isn't sock->recvqueue head, locking isn't working
             // Note: This operation holds it's own lock so a socket RW
             // lock isn't required here
-            // TODO: Update RCV.WND when removing a frame from the queue
+            // lock isn't required here
             llist_remove(&sock->recvqueue, seg);
             frame_decref(seg);
         }

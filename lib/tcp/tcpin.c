@@ -60,6 +60,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     uint32_t seg_seq = ntohl(seg->seqn);
     uint32_t seg_ack = ntohl(seg->ackn);
     uint16_t seg_len = frame_data_len(frame);
+    uint32_t seg_end = seg_seq + seg_len - 1;
 
     // A segment is "in-order" if the sequence number is
     // the next one we expect to receive
@@ -412,12 +413,12 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         valid = false;
         LOG(LINFO, "[TCP] data sent but RCV.WND is 0");
     }
-    if (seg_seq < tcb->rcv.nxt) {
+    if (seg_seq < tcb->rcv.nxt || seg_seq >= tcb->rcv.nxt + tcb->rcv.wnd) {
         valid = false;
         LOG(LINFO, "[TCP] Recv'd out-of-sequence segment: SEQ %u < RCV.NXT %u",
             seg_seq, tcb->rcv.nxt);
     }
-    if (seg_seq + seg_len - 1 > tcb->rcv.nxt + tcb->rcv.wnd) {
+    if (seg_end > tcb->rcv.nxt + tcb->rcv.wnd) {
         valid = false;
         LOG(LINFO, "[TCP] more data was sent than can fit in RCV.WND: "
                     "SEQ %u, LEN %hu, RCV.NXT %u, RCV.WND %hu",

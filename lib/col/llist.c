@@ -130,8 +130,6 @@ void llist_insert_sorted_nolock(llist_t *list, void *data,
     // Find the sorted location within the list and insert it
     for_each_llist(list) {
         int cmpval = cmp(data, llist_elem_data());
-        if (cmpval == 0)
-            LOG(LINFO, "[llist] cmp(%p, %p) == 0", data, llist_elem_data());
 
         if (cmpval < 0) {
             // Insert the element here!
