@@ -81,6 +81,15 @@ void *llist_pop(llist_t *list);
 void *llist_pop_last(llist_t *list);
 
 /*!
+ * Inserts an element into an already-sorted list at the correct sorted location
+ * @param list
+ * @param data
+ * @param cmp comparison function for determining list position
+ */
+void llist_insert_sorted(llist_t *list, void *data,
+                         int (*cmp)(void *, void *));
+
+/*!
  * Fetch the first element from the list, without removing it
  * @return data from the first element of the list
  */
@@ -106,8 +115,11 @@ ssize_t llist_remove(llist_t *list, void *data);
  * Non-locking llist functions
  */
 void llist_append_nolock(llist_t *list, void *data);
+void llist_push_nolock(llist_t *list, void *data);
 void *llist_pop_nolock(llist_t *list);
 void *llist_pop_last_nolock(llist_t *list);
+void llist_insert_sorted_nolock(llist_t *list, void *data,
+                                int (*cmp)(void *, void *));
 ssize_t llist_remove_nolock(llist_t *list, void *data);
 
 #endif //NETSTACK_LLIST_H

@@ -37,6 +37,8 @@ int tcp_send(struct tcp_sock *sock, struct frame *frame) {
     uint16_t ph_csum = in_csum(&phdr, sizeof(phdr), 0);
     hdr->csum = in_csum(hdr, frame_pkt_len(frame), ~ph_csum);
 
+    frame_unlock(frame);
+
     // TODO: Implement functionality to specify IP flags (different for IP4/6?)
     return neigh_send(frame, IP_P_TCP, 0, 0, &inet->remaddr, &inet->locaddr);
 }

@@ -67,6 +67,16 @@ void tcp_ipv4_recv(struct frame *frame, struct ipv4_hdr *hdr) {
         sock->inet.remaddr = saddr;
         sock->inet.remport = sport;
         sock->inet.locaddr = daddr;
+    } else {
+        // Always lock the socket
+        tcp_sock_lock(sock);
+
+        // Set peer addresses on LISTENing sockets
+        if (sock->state == TCP_LISTEN) {
+            sock->inet.remaddr = saddr;
+            sock->inet.remport = sport;
+            sock->inet.locaddr = daddr;
+        }
     }
     tcp_sock_incref(sock);
 
@@ -111,16 +121,30 @@ void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {
     return;
 }
 
-void tcp_setstate(struct tcp_sock *sock, enum tcp_state state) {
+void _tcp_setstate(struct tcp_sock *sock, enum tcp_state state) {
     // TODO: Perform queued actions when reaching certain states
     sock->state = state;
-    LOG(LDBUG, "[TCP] %s state reached", tcp_strstate(state));
+
+    switch (state) {
+        case TCP_CLOSING:
+            // Signal EOF to any waiting recv() calls
+            retlock_broadcast(&sock->recvwait, 0);
+            break;
+        default:
+            break;
+    }
 }
 
 void tcp_established(struct tcp_sock *sock, struct tcp_hdr *seg) {
 
+    tcp_setstate(sock, TCP_ESTABLISHED);
+
+    // Set the initial recv value to the first byte in stream
+    sock->recvptr = ntohl(seg->seqn) + 1;
+    LOG(LTRCE, "[TCP] set recvptr to %lu", sock->recvptr);
+
     // Allocate send/receive buffers
-    rbuf_init(&sock->rcvbuf, sock->tcb.rcv.wnd, BYTE);
+//    rbuf_init(&sock->rcvbuf, sock->tcb.rcv.wnd, BYTE);
     rbuf_init(&sock->sndbuf, sock->tcb.snd.wnd, BYTE);
     LOG(LDBUG, "[TCP] Allocated SND.WND %hu, RCV.WND %hu",
         sock->tcb.snd.wnd, sock->tcb.rcv.wnd);
@@ -142,8 +166,8 @@ inline void tcp_sock_free(struct tcp_sock *sock) {
     tcp_timewait_cancel(sock);
 
     // Deallocate dynamically allocated data buffers
-    if (sock->rcvbuf.size > 0)
-        rbuf_destroy(&sock->rcvbuf);
+//    if (sock->rcvbuf.size > 0)
+//        rbuf_destroy(&sock->rcvbuf);
     if (sock->sndbuf.size > 0)
         rbuf_destroy(&sock->sndbuf);
 
@@ -182,6 +206,9 @@ void tcp_sock_cleanup(struct tcp_sock *sock) {
             break;
     }
 
+    // Wait for all tracked socket operations to complete before free'ing sock
+//    refcount_wait(&sock->refcount);
+
     // Deallocate socket memory
     tcp_sock_destroy(sock);
 }
@@ -217,3 +244,35 @@ uint32_t tcp_seqnum() {
     return (uint32_t) (rand() * time(NULL));
 }
 
+int tcp_seg_cmp(const struct frame *fa, const struct frame *fb) {
+
+    struct tcp_hdr *a = tcp_hdr(fa);
+    struct tcp_hdr *b = tcp_hdr(fb);
+
+    LOG(LTRCE, "[TCP] tcp_seg_cmp (a)%u - (b)%u (cmp %d)",
+        ntohl(a->seqn), ntohl(b->seqn),
+        ((int) ntohl(a->seqn) - ntohl(b->seqn)));
+
+    return ntohl(a->seqn) - ntohl(b->seqn);
+}
+
+uint32_t tcp_recvqueue_contigseq(struct tcp_sock *sock, uint32_t init) {
+
+    // TODO: Ensure no off-by-one errors in tcp_recvqueue_contigseq
+    for_each_llist(&sock->recvqueue) {
+        struct frame *frame = llist_elem_data();
+        struct tcp_hdr *hdr = tcp_hdr(frame);
+
+        uint32_t seg_seq = ntohl(hdr->seqn);
+        uint16_t seg_len = frame_data_len(frame);
+        LOGFN(LVERB, "init %u, seg->seq %u, end %u",
+              init, seg_seq, seg_seq + seg_len);
+        if (init >= seg_seq && init <= (seg_seq + seg_len))
+            init = seg_seq + seg_len;
+        else
+            break;
+    }
+
+    LOGFN(LTRCE, "recvqueue contiguous %u", init);
+    return init;
+}
