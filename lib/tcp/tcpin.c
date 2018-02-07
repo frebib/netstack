@@ -820,52 +820,58 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             // Reorder segments
             frame_incref(frame);
             pthread_mutex_lock(&sock->recvqueue.lock);
+
             // Insert the segment into the queue, ordered
             llist_insert_sorted_nolock(&sock->recvqueue, frame,
                                 (int (*)(void *, void *)) &tcp_seg_cmp);
 
+            // Regardless of whether the segment was in-order, it takes up
+            // space in the recvqueue so adjust the window accordingly
+            tcb->rcv.wnd -= seg_len;
+
             // For debug purposes, print queued segments in recvqueue
             if (sock->recvqueue.length > 0) {
-                struct log_trans t = LOG_TRANS(LTRCE);
+                struct log_trans t = LOG_TRANS(LVERB);
                 uint i = 0;
+                uint32_t ctr = tcb->rcv.nxt;
                 for_each_llist(&sock->recvqueue) {
                     struct frame *qframe = llist_elem_data();
                     struct tcp_hdr *hdr = tcp_hdr(qframe);
-                    uint32_t relseq = ntohl(hdr->seqn) - sock->tcb.irs;
+                    uint32_t seqn = ntohl(hdr->seqn);
+                    uint32_t relseq = seqn - sock->tcb.irs;
+                    if (seqn > ctr)
+                        LOGT(&t, "[TCP] recvqueue    < GAP OF %u bytes>\n", seqn - ctr);
                     LOGT(&t, "[TCP] recvqueue[%u] seq %u-%u\n",
                          i++, relseq, relseq + frame_data_len(qframe) - 1);
+                    ctr = seqn + frame_data_len(qframe);
                 }
                 LOGT_COMMIT(&t);
             }
 
             // Before unlocking the recvqueue, count the amount of contiguous
             // bytes available locally in the queue from RCV.NXT
-            uint32_t contig = tcp_recvqueue_contigseq(sock, sock->recvptr);
+            tcb->rcv.nxt = tcp_recvqueue_contigseq(sock, tcb->rcv.nxt);
 
             pthread_mutex_unlock(&sock->recvqueue.lock);
 
-            char payld[(seg_len * 2) + 1];
-            expand_escapes(payld, (const char *) frame->data, seg_len);
-            LOG(LINFO, "[TCP] Received %hu bytes: '%s'", seg_len, payld);
+            LOG(LDBUG, "seg->seq %u, rcv.nxt %u", seg_seq - tcb->irs,
+                tcb->rcv.nxt - tcb->irs);
 
-            // Regardless of whether the segment was in-order, it takes up
-            // space in the recvqueue so adjust the window accordingly
-            tcb->rcv.wnd -= seg_len;
+            if (sock->recvptr > sock->tcb.rcv.nxt)
+                LOGFN(LERR, "You dun goofed: recvptr (%u) > RCV.NXT (%u)",
+                      sock->recvptr - tcb->irs, sock->tcb.rcv.nxt - tcb->irs);
 
             // Only send an acknowledgement for the segment if it is the next
             // contiguous data in the sequence space. If we send an ACK always
             // data will likely be lost as we claim to have recv'd it
             if (in_order) {
-                // We don't want to increment RCV.NXT for out-of-seq segments.
-                tcb->rcv.nxt = contig;
-
                 // Signal pending recv() calls with a >0 value to indicate data
-                retlock_signal(&sock->recvwait, frame_data_len(frame));
-
-                // Send an ACK for the largest contiguous segment we've queued.
-                LOGFN(LDBUG, "[TCP] Sending ACK");
-                ret = tcp_send_ack(sock);
+                retlock_broadcast(&sock->recvwait, frame_data_len(frame));
             }
+
+            // Always send an ACK for the largest contiguous segment we've queued.
+            LOGFN(LDBUG, "[TCP] Sending ACK");
+            ret = tcp_send_ack(sock);
 
             break;
         }

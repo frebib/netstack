@@ -121,44 +121,39 @@ void llist_insert_sorted(llist_t *list, void *data,
 
 void llist_insert_sorted_nolock(llist_t *list, void *data,
                                 int (*cmp)(void *, void *)) {
-    // If the list is empty, just stick it in and return
-    if (list->length < 1) {
+
+    // Find the sorted location within the list and insert it
+    struct llist_elem *elem;
+    for (elem = list->head; elem != NULL; elem = elem->next) {
+        // If elem->data > data
+        if (cmp(data, elem->data) > 0) {
+            // Insert the element here!
+            break;
+        }
+    }
+
+    // If no next element, we're at the end of list so append
+    if (elem == NULL) {
         llist_append_nolock(list, data);
         return;
     }
 
-    // Find the sorted location within the list and insert it
-    for_each_llist(list) {
-        int cmpval = cmp(data, llist_elem_data());
+    // Somewhere in the middle of the list. Insert before elem
+    struct llist_elem *insert = malloc(sizeof(struct llist_elem));
+    insert->data = data;
+    insert->next = elem;
+    insert->prev = elem->prev;
+    elem->prev = insert;
 
-        if (cmpval < 0) {
-            // Insert the element here!
+    // Increase list length
+    list->length++;
 
-            // If no next element, we're at the end of list so append
-            if (elem->next == NULL) {
-                llist_append_nolock(list, data);
-                return;
-            }
-
-            // If no prev element, we're at the start of list so prepend
-            if (elem->prev == NULL) {
-                llist_push_nolock(list, data);
-                return;
-            }
-
-            // Somewhere in the middle of the list. Insert between elements
-            struct llist_elem *insert = malloc(sizeof(struct llist_elem));
-            insert->data = data;
-            insert->next = elem;
-            insert->prev = elem->prev;
-            elem->prev = insert;
-            insert->prev->next = elem;
-            return;
-        }
-    }
-
-    // If we get to the end and still haven't inserted, just append the data
-    llist_append_nolock(list, data);
+    // If insert at list[0], set head pointer
+    if (insert->prev == NULL)
+        list->head = insert;
+    // Otherwise set previous next pointer
+    else
+        insert->prev->next = insert;
 }
 
 void *llist_peek(llist_t *list) {

@@ -5,8 +5,8 @@
   - Line 68: infer interface and hwtype based on routing rules
 
 ## [include/netstack/intf/intf.h](include/netstack/intf/intf.h)
-  - Line 27: Implement 'virtual' network interfaces
-  - Line 41: Move arptbl into an 'ethernet' hardware struct into `void *ll`
+  - Line 29: Implement 'virtual' network interfaces
+  - Line 43: Move arptbl into an 'ethernet' hardware struct into `void *ll`
 
 ## [include/netstack/ip/ipv4.h](include/netstack/ip/ipv4.h)
   - Line 30: Take endianness into account in ipv4_hdr
@@ -66,13 +66,13 @@
   - Line 30: Define how routes with the same metric should behave?
 
 ## [lib/tcp/tcp.c](lib/tcp/tcp.c)
-  - Line 20: Work out why sometimes this is 0x0200 too small (in netwk byte-ord)
-  - Line 107: Check for TSO and GRO and account for it, somehow..
-  - Line 116: Other integrity checks
-  - Line 125: Perform queued actions when reaching certain states
-  - Line 238: Choose a random unused outgoing port
-  - Line 243: Choose a secure initial sequence number
-  - Line 257: Ensure no off-by-one errors in tcp_recvqueue_contigseq
+  - Line 21: Work out why sometimes this is 0x0200 too small (in netwk byte-ord)
+  - Line 33: Use frame->sock for socket lookup
+  - Line 109: Check for TSO and GRO and account for it, somehow..
+  - Line 118: Other integrity checks
+  - Line 127: Perform queued actions when reaching certain states
+  - Line 240: Choose a random unused outgoing port
+  - Line 245: Choose a secure initial sequence number
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
   - Line 44: * TODO: Treat all seq and ack number arithmetic modulo UINT32_MAX
@@ -97,11 +97,11 @@
   - Line 684: Is sending an ACK here necessary?
   - Line 693: Work out if our FIN was ACK'ed
   - Line 714: Send success to waiting close() calls
-  - Line 941: Work out if 'our FIN has been ACKed'
-  - Line 945: stop other TCP timers in FIN-WAIT-2
-  - Line 959: stop other TCP timers in FIN-WAIT-2
-  - Line 1000: Implement locking
-  - Line 1001: Restore previous local address if it was set
+  - Line 947: Work out if 'our FIN has been ACKed'
+  - Line 951: stop other TCP timers in FIN-WAIT-2
+  - Line 965: stop other TCP timers in FIN-WAIT-2
+  - Line 1006: Implement locking
+  - Line 1007: Restore previous local address if it was set
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
   - Line 17: Allow for tcp_hdr->hlen options
@@ -121,19 +121,19 @@
   - Line 66: Fill out 'user timeout' information
   - Line 92: Check for O_NONBLOCK
   - Line 94: Obtain timespec value for timedwait
-  - Line 144: Wait on send() for something? (Buffer is full, wait for space?)
-  - Line 151: Write to sndbuf and output directly at the same time
-  - Line 159: Signal sending thread and offload segmentation/transmission
-  - Line 160: Check for MSG_MORE flag and don't trigger for a short while
-  - Line 193: Wait here until there is something to recv
-  - Line 199: Send ACKs for data passed to the user (if specified)
-  - Line 219: Check that frames are contiguous before recv'ing them
-  - Line 220: Don't return EOF until recv'd up to FIN seqn
-  - Line 340: Check for MSG_PEEK and conditionally don't do this
-  - Line 360: tcp_close() request until all send() calls have completed
-  - Line 374: Check for pending send() calls
+  - Line 151: Wait on send() for something? (Buffer is full, wait for space?)
+  - Line 158: Write to sndbuf and output directly at the same time
+  - Line 166: Signal sending thread and offload segmentation/transmission
+  - Line 167: Check for MSG_MORE flag and don't trigger for a short while
+  - Line 200: Wait here until there is something to recv
+  - Line 206: Send ACKs for data passed to the user (if specified)
+  - Line 226: Don't return EOF until recv'd up to FIN seqn
+  - Line 343: Check for MSG_PEEK and conditionally don't do this
+  - Line 363: tcp_close() request until all send() calls have completed
+  - Line 377: Check for pending send() calls
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
-  - Line 16: Add many configurable interfaces
-  - Line 17: Add loopback interface
-  - Line 30: Take interface etc. configuration from config file
+  - Line 17: Add many configurable interfaces
+  - Line 18: Add loopback interface
+  - Line 132: Take interface etc. configuration from config file
+  - Line 133: Parse arguments for -c or --config

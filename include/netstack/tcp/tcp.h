@@ -225,7 +225,8 @@ static inline char *fmt_tcp_flags(struct tcp_hdr *hdr, char *buffer) {
  * hdr->hlen is 1 byte, soo 4x is 1 word size */
 #define tcp_hdr_len(hdr) ((uint16_t) ((hdr)->hlen * 4))
 
-bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum);
+bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum,
+             addr_t addr1, addr_t addr2);
 
 /* Receives a tcp frame given an ipv4 parent */
 void tcp_ipv4_recv(struct frame *frame, struct ipv4_hdr *hdr);
@@ -345,9 +346,11 @@ uint32_t tcp_seqnum();
 int tcp_seg_cmp(const struct frame *a, const struct frame *b);
 
 /*!
- * @param init initial sequence number to count from (before first expected)
- * @return the highest contiguous sequence number from init that is held in
- *         sock->recvqueue
+ * Gets the next sequence number after the longest contiguous sequence of bytes
+ * stored in sock->recvqueue after the initial value given.
+ * @param init initial sequence number to count from (next byte expected)
+ * @return the next byte after the highest contiguous sequence number from
+ *         init that is held in sock->recvqueue
  */
 uint32_t tcp_recvqueue_contigseq(struct tcp_sock *sock, uint32_t init);
 

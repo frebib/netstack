@@ -9,7 +9,8 @@
 
 llist_t tcp_sockets = LLIST_INITIALISER;
 
-bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum) {
+bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum,
+             addr_t saddr, addr_t daddr) {
     struct tcp_hdr *hdr = tcp_hdr(frame);
     frame->data = frame->head + tcp_hdr_len(hdr);
     struct log_trans *trans = &log->t;
@@ -29,9 +30,16 @@ bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum) {
     char sflags[9];
     LOGT(trans, "flags [%s] ", fmt_tcp_flags(hdr, sflags));
 
-    LOGT(trans, "seq %u ", ntohl(hdr->seqn));
+    // TODO: Use frame->sock for socket lookup
+    uint16_t sport = htons(hdr->sport);
+    uint16_t dport = htons(hdr->dport);
+    struct tcp_sock *sock = tcp_sock_lookup(&saddr, &daddr, sport, dport);
+    uint32_t irs = (sock == NULL || hdr->flags.syn == 1) ? 0 : sock->tcb.irs;
+    uint32_t iss = (sock == NULL) ? 0 : sock->tcb.iss;
+
+    LOGT(trans, "seq %u ", ntohl(hdr->seqn) - irs);
     if (hdr->flags.ack)
-        LOGT(trans, "ack %u ", ntohl(hdr->ackn));
+        LOGT(trans, "ack %u ", ntohl(hdr->ackn) - iss);
 
     LOGT(trans, "wind %hu ", ntohs(hdr->wind));
 
@@ -62,17 +70,11 @@ void tcp_ipv4_recv(struct frame *frame, struct ipv4_hdr *hdr) {
         };
         tcp_sock_lock(sock);
         llist_append(&tcp_sockets, sock);
-    } else if (sock->state == TCP_LISTEN) {
-        tcp_sock_lock(sock);
-        sock->inet.remaddr = saddr;
-        sock->inet.remport = sport;
-        sock->inet.locaddr = daddr;
     } else {
         // Always lock the socket
         tcp_sock_lock(sock);
-
-        // Set peer addresses on LISTENing sockets
         if (sock->state == TCP_LISTEN) {
+            // Set peer addresses on LISTENing sockets
             sock->inet.remaddr = saddr;
             sock->inet.remport = sport;
             sock->inet.locaddr = daddr;
@@ -245,16 +247,11 @@ uint32_t tcp_seqnum() {
 }
 
 int tcp_seg_cmp(const struct frame *fa, const struct frame *fb) {
-
-    struct tcp_hdr *a = tcp_hdr(fa);
-    struct tcp_hdr *b = tcp_hdr(fb);
-
-    return ntohl(a->seqn) - ntohl(b->seqn);
+    return ntohl(tcp_hdr(fb)->seqn) - ntohl(tcp_hdr(fa)->seqn);
 }
 
 uint32_t tcp_recvqueue_contigseq(struct tcp_sock *sock, uint32_t init) {
 
-    // TODO: Ensure no off-by-one errors in tcp_recvqueue_contigseq
     for_each_llist(&sock->recvqueue) {
         struct frame *frame = llist_elem_data();
         struct tcp_hdr *hdr = tcp_hdr(frame);
@@ -262,8 +259,13 @@ uint32_t tcp_recvqueue_contigseq(struct tcp_sock *sock, uint32_t init) {
         uint32_t seg_seq = ntohl(hdr->seqn);
         uint16_t seg_len = frame_data_len(frame);
         uint32_t seg_end = seg_seq + seg_len - 1;
+        // If initial byte resides within the segment
         if (init >= seg_seq && init <= seg_end)
+            // jump to the next byte after the segment
             init = seg_end + 1;
+        else if (init > seg_end)
+            // account for duplicate segments
+            continue;
         else
             break;
     }
