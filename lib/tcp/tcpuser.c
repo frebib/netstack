@@ -173,6 +173,7 @@ int tcp_user_send(struct tcp_sock *sock, void *data, size_t len, int flags) {
     return sent;
 }
 
+int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len);
 int tcp_user_recv(struct tcp_sock *sock, void* data, size_t len, int flags) {
     if (!sock)
         return -ENOTSOCK;
@@ -183,10 +184,165 @@ int tcp_user_recv(struct tcp_sock *sock, void* data, size_t len, int flags) {
 
     // recv things
 
+    int ret = 0, err = 0;
+    // Last byte sent to the user/copied from sock->recvqueue
+    switch (sock->state) {
+        case TCP_LISTEN:
+        case TCP_SYN_SENT:
+        case TCP_SYN_RECEIVED:
+            // TODO: Wait here until there is something to recv
+            tcp_sock_unlock(sock);
+            retlock_wait(&sock->recvwait, &err);
+        case TCP_ESTABLISHED:
+        case TCP_FIN_WAIT_1:
+        case TCP_FIN_WAIT_2:
+            // TODO: Send ACKs for data passed to the user (if specified)
+            // Return value is # of bytes read
+            ret = _tcp_user_recv_data(sock, data, len);
+            break;
+        case TCP_CLOSE_WAIT:
+            ret = _tcp_user_recv_data(sock, data, len);
+        default:
+            break;
+    }
+
     // Decrement refcount and release sock->lock
     tcp_sock_decref(sock);
 
-    return 0;
+    return ret;
+}
+
+int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
+    int ret = 0, err = 0;
+    unsigned count = 0;     /* # of bytes already copied to out buffer */
+
+    // TODO: Don't return EOF until recv'd up to FIN seqn
+    while (count < len) {
+        // Assume frames in sock->recvqueue are ordered, but NOT
+        // necessarily contiguous. Segments may be missing!
+
+        // First check if there is something to recv
+        struct frame *seg = llist_peek(&sock->recvqueue);
+        uint32_t irs = sock->tcb.irs;
+
+        // If there is a segment, ensure it is the next in sequence
+        if (seg != NULL) {
+            uint32_t seg_seq = ntohl(tcp_hdr(seg)->seqn);
+            uint32_t seg_len = frame_data_len(seg);
+            uint32_t seg_end = seg_seq + seg_len - 1;
+
+            LOGFN(LTRCE, "sock->recvptr %u, seg_seq %u, seg_end %u",
+                sock->recvptr - irs, seg_seq - irs, seg_end - irs);
+
+            // Check if the queued segment has already been passed
+            if (sock->recvptr > seg_end) {
+                LOGFN(LWARN, "sock->recvptr is past seg_end. Skipping segment");
+
+                // Release and remove segment from the queue
+                sock->tcb.rcv.wnd += seg_len;
+                frame_unlock(seg);
+                llist_remove(&sock->recvqueue, seg);
+
+                // Loop back around to try again
+                continue;
+            }
+        }
+
+        if (sock->recvptr > sock->tcb.rcv.nxt)
+            LOGFN(LERR, "recvptr > rcv.nxt. This should never happen!");
+
+        // If the next segment isn't in the recvqueue, wait for it
+        if (seg == NULL || sock->recvptr >= sock->tcb.rcv.nxt) {
+            if (count > 0)
+                // We have already read some data and the queue is now empty
+                // Return back the data to the user
+                break;
+
+            if (sock->state == TCP_CLOSE_WAIT) {
+                // We have hit EOF. No more data to recv()
+                tcp_sock_unlock(sock);
+                // Zero signifies EOF
+                return 0;
+            }
+
+            // Release the lock whilst we wait to prevent deadlock
+            tcp_sock_unlock(sock);
+
+            // Wait for some data then continue when some arrives
+            LOGFN(LDBUG, "recvqueue has nothing ready. waiting to be woken up");
+            if ((ret = retlock_wait(&sock->recvwait, &err)))
+                LOGE(LERR, "retlock_wait %s: ", strerror((int) ret));
+
+            LOGFN(LDBUG, "tcp_user_recv woken with %d", err);
+
+            // err is <0 for error, 0 for EOF and >0 for data available
+            if (err <= 0)
+                // return error or EOF
+                return err;
+
+            // Obtain read lock again so we can read safely
+            tcp_sock_lock(sock);
+
+            // Return to start of loop to obtain next segment to recv
+            continue;
+        }
+        LOGFN(LDBUG, "recvqueue->length = %lu", sock->recvqueue.length);
+
+        size_t space_left = len - count;
+        frame_lock(seg, SHARED_RD);
+        uint32_t seg_seq = ntohl(tcp_hdr(seg)->seqn);
+        uint16_t seg_len = frame_data_len(seg);
+        // seg_ofs is the offset within the segment data to start at
+        size_t seg_ofs = sock->recvptr - seg_seq;
+        // seg_left is the amount of data left in the current seg to read
+        size_t seg_left = seg_len - seg_ofs;
+
+        // This shouldn't happen, but just to be sure
+        if ((sock->recvptr < seg_seq) ||
+            sock->recvptr > (seg_seq + seg_len)) {
+            LOGFN(LERR, "sock->recvptr is outside seg_seq");
+            continue;
+        }
+
+        LOGFN(LDBUG, "seg len %hu, ptr %lu, space %lu, seg left %lu",
+            seg_len, seg_ofs, space_left, seg_left);
+
+        // If there is more data in the segment than space in the buffer
+        // then only copy as much as will fit in the buffer
+        if (seg_left > space_left) {
+
+            // Copy partial frame and return
+            memcpy(out + count, seg->data + seg_ofs, space_left);
+            count += space_left;
+
+            // Update last recv position in sock
+            sock->recvptr += space_left;
+
+            // Break from loop and return
+            frame_unlock(seg);
+            break;
+        } else {
+
+            // Copy remainder of frame then dispose of it
+            memcpy(out + count, seg->data + seg_ofs, seg_left);
+            count += seg_left;
+
+            // Update last recv position in sock
+            sock->recvptr += seg_left;
+
+            // Update RCV.WND size after removing consumed segment
+            sock->tcb.rcv.wnd += seg_len;
+
+            // TODO: Check for MSG_PEEK and conditionally don't do this
+            // Remove completely consumed frame from the queue
+            // If seg isn't sock->recvqueue head, locking isn't working
+            // Note: This operation holds it's own lock so a socket RW
+            // lock isn't required here
+            llist_remove(&sock->recvqueue, seg);
+            frame_decref(seg);
+        }
+    }
+    return count;
 }
 
 int tcp_user_close(struct tcp_sock *sock) {

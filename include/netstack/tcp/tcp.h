@@ -147,7 +147,8 @@ struct tcp_sock {
 
     // Data buffers
     rbuf sndbuf;
-    rbuf rcvbuf;
+    llist_t recvqueue;          // llist<struct frame> of recv'd tcp frames
+    uint32_t recvptr;           // Pointer to next byte to be recv'd
 
     // TCP timers
     timeout_t timewait;
@@ -224,7 +225,8 @@ static inline char *fmt_tcp_flags(struct tcp_hdr *hdr, char *buffer) {
  * hdr->hlen is 1 byte, soo 4x is 1 word size */
 #define tcp_hdr_len(hdr) ((uint16_t) ((hdr)->hlen * 4))
 
-bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum);
+bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum,
+             addr_t addr1, addr_t addr2);
 
 /* Receives a tcp frame given an ipv4 parent */
 void tcp_ipv4_recv(struct frame *frame, struct ipv4_hdr *hdr);
@@ -238,7 +240,11 @@ void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum);
  * @param sock  socket to change state of
  * @param state state to set
  */
-void tcp_setstate(struct tcp_sock *sock, enum tcp_state state);
+#define tcp_setstate(sock, state) \
+        LOGFN(LDBUG, "[TCP] %s state reached", tcp_strstate(state)); \
+        _tcp_setstate(sock, state)
+
+void _tcp_setstate(struct tcp_sock *sock, enum tcp_state state);
 
 /*!
  * Called on a newly established connection. It allocates required buffers
@@ -330,12 +336,32 @@ uint32_t tcp_seqnum();
 
 
 /*
+ * TCP Utility functions
+ */
+
+/*!
+ * Compares two TCP headers by the sequence numbers, used for sorting segements
+ * into sequence order
+ */
+int tcp_seg_cmp(const struct frame *a, const struct frame *b);
+
+/*!
+ * Gets the next sequence number after the longest contiguous sequence of bytes
+ * stored in sock->recvqueue after the initial value given.
+ * @param init initial sequence number to count from (next byte expected)
+ * @return the next byte after the highest contiguous sequence number from
+ *         init that is held in sock->recvqueue
+ */
+uint32_t tcp_recvqueue_contigseq(struct tcp_sock *sock, uint32_t init);
+
+/*
  * TCP Input
  * See: tcpin.c
  */
 #define tcp_ack_acceptable(tcb, seg) (tcb)->snd.una <= ntohl((seg)->ackn) && \
                                         ntohl((seg)->ackn) <= (tcb)->snd.nxt
 
+void expand_escapes(char* dest, const char* src, size_t len);
 int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock);
 
 /*!

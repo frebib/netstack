@@ -9,7 +9,8 @@
 
 llist_t tcp_sockets = LLIST_INITIALISER;
 
-bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum) {
+bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum,
+             addr_t saddr, addr_t daddr) {
     struct tcp_hdr *hdr = tcp_hdr(frame);
     frame->data = frame->head + tcp_hdr_len(hdr);
     struct log_trans *trans = &log->t;
@@ -29,9 +30,16 @@ bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum) {
     char sflags[9];
     LOGT(trans, "flags [%s] ", fmt_tcp_flags(hdr, sflags));
 
-    LOGT(trans, "seq %u ", ntohl(hdr->seqn));
+    // TODO: Use frame->sock for socket lookup
+    uint16_t sport = htons(hdr->sport);
+    uint16_t dport = htons(hdr->dport);
+    struct tcp_sock *sock = tcp_sock_lookup(&saddr, &daddr, sport, dport);
+    uint32_t irs = (sock == NULL || hdr->flags.syn == 1) ? 0 : sock->tcb.irs;
+    uint32_t iss = (sock == NULL) ? 0 : sock->tcb.iss;
+
+    LOGT(trans, "seq %u ", ntohl(hdr->seqn) - irs);
     if (hdr->flags.ack)
-        LOGT(trans, "ack %u ", ntohl(hdr->ackn));
+        LOGT(trans, "ack %u ", ntohl(hdr->ackn) - iss);
 
     LOGT(trans, "wind %hu ", ntohs(hdr->wind));
 
@@ -62,11 +70,15 @@ void tcp_ipv4_recv(struct frame *frame, struct ipv4_hdr *hdr) {
         };
         tcp_sock_lock(sock);
         llist_append(&tcp_sockets, sock);
-    } else if (sock->state == TCP_LISTEN) {
+    } else {
+        // Always lock the socket
         tcp_sock_lock(sock);
-        sock->inet.remaddr = saddr;
-        sock->inet.remport = sport;
-        sock->inet.locaddr = daddr;
+        if (sock->state == TCP_LISTEN) {
+            // Set peer addresses on LISTENing sockets
+            sock->inet.remaddr = saddr;
+            sock->inet.remport = sport;
+            sock->inet.locaddr = daddr;
+        }
     }
     tcp_sock_incref(sock);
 
@@ -111,16 +123,30 @@ void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {
     return;
 }
 
-void tcp_setstate(struct tcp_sock *sock, enum tcp_state state) {
+void _tcp_setstate(struct tcp_sock *sock, enum tcp_state state) {
     // TODO: Perform queued actions when reaching certain states
     sock->state = state;
-    LOG(LDBUG, "[TCP] %s state reached", tcp_strstate(state));
+
+    switch (state) {
+        case TCP_CLOSING:
+            // Signal EOF to any waiting recv() calls
+            retlock_broadcast(&sock->recvwait, 0);
+            break;
+        default:
+            break;
+    }
 }
 
 void tcp_established(struct tcp_sock *sock, struct tcp_hdr *seg) {
 
+    tcp_setstate(sock, TCP_ESTABLISHED);
+
+    // Set the initial recv value to the first byte in stream
+    sock->recvptr = ntohl(seg->seqn) + 1;
+    LOG(LTRCE, "[TCP] set recvptr to %u", sock->recvptr);
+
     // Allocate send/receive buffers
-    rbuf_init(&sock->rcvbuf, sock->tcb.rcv.wnd, BYTE);
+//    rbuf_init(&sock->rcvbuf, sock->tcb.rcv.wnd, BYTE);
     rbuf_init(&sock->sndbuf, sock->tcb.snd.wnd, BYTE);
     LOG(LDBUG, "[TCP] Allocated SND.WND %hu, RCV.WND %hu",
         sock->tcb.snd.wnd, sock->tcb.rcv.wnd);
@@ -142,8 +168,8 @@ inline void tcp_sock_free(struct tcp_sock *sock) {
     tcp_timewait_cancel(sock);
 
     // Deallocate dynamically allocated data buffers
-    if (sock->rcvbuf.size > 0)
-        rbuf_destroy(&sock->rcvbuf);
+//    if (sock->rcvbuf.size > 0)
+//        rbuf_destroy(&sock->rcvbuf);
     if (sock->sndbuf.size > 0)
         rbuf_destroy(&sock->sndbuf);
 
@@ -182,6 +208,9 @@ void tcp_sock_cleanup(struct tcp_sock *sock) {
             break;
     }
 
+    // Wait for all tracked socket operations to complete before free'ing sock
+//    refcount_wait(&sock->refcount);
+
     // Deallocate socket memory
     tcp_sock_destroy(sock);
 }
@@ -217,3 +246,29 @@ uint32_t tcp_seqnum() {
     return (uint32_t) (rand() * time(NULL));
 }
 
+int tcp_seg_cmp(const struct frame *fa, const struct frame *fb) {
+    return ntohl(tcp_hdr(fb)->seqn) - ntohl(tcp_hdr(fa)->seqn);
+}
+
+uint32_t tcp_recvqueue_contigseq(struct tcp_sock *sock, uint32_t init) {
+
+    for_each_llist(&sock->recvqueue) {
+        struct frame *frame = llist_elem_data();
+        struct tcp_hdr *hdr = tcp_hdr(frame);
+
+        uint32_t seg_seq = ntohl(hdr->seqn);
+        uint16_t seg_len = frame_data_len(frame);
+        uint32_t seg_end = seg_seq + seg_len - 1;
+        // If initial byte resides within the segment
+        if (init >= seg_seq && init <= seg_end)
+            // jump to the next byte after the segment
+            init = seg_end + 1;
+        else if (init > seg_end)
+            // account for duplicate segments
+            continue;
+        else
+            break;
+    }
+
+    return init;
+}
