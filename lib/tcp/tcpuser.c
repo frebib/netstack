@@ -233,7 +233,7 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
             uint32_t seg_end = seg_seq + seg_len;
 
             uint32_t irs = sock->tcb.irs;
-            LOG(LDBUG, "sock->recvptr %lu, seg_seq %u, seg_end %u",
+            LOG(LDBUG, "sock->recvptr %u, seg_seq %u, seg_end %u",
                 sock->recvptr - irs, seg_seq - irs, seg_end - irs);
 
             // Check if the queued segment has already been passed

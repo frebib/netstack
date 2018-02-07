@@ -141,7 +141,7 @@ void tcp_established(struct tcp_sock *sock, struct tcp_hdr *seg) {
 
     // Set the initial recv value to the first byte in stream
     sock->recvptr = ntohl(seg->seqn) + 1;
-    LOG(LTRCE, "[TCP] set recvptr to %lu", sock->recvptr);
+    LOG(LTRCE, "[TCP] set recvptr to %u", sock->recvptr);
 
     // Allocate send/receive buffers
 //    rbuf_init(&sock->rcvbuf, sock->tcb.rcv.wnd, BYTE);

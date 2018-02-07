@@ -839,7 +839,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
 
             // Before unlocking the recvqueue, count the amount of contiguous
             // bytes available locally in the queue from RCV.NXT
-            uint32_t contig = tcp_recvqueue_contigseq(sock, tcb->rcv.nxt);
+            uint32_t contig = tcp_recvqueue_contigseq(sock, sock->recvptr);
 
             pthread_mutex_unlock(&sock->recvqueue.lock);
 

@@ -148,7 +148,7 @@ struct tcp_sock {
     // Data buffers
     rbuf sndbuf;
     llist_t recvqueue;          // llist<struct frame> of recv'd tcp frames
-    size_t recvptr;             // Pointer to next byte in recvqueue->head
+    uint32_t recvptr;             // Pointer to next byte in recvqueue->head
 
     // TCP timers
     timeout_t timewait;
