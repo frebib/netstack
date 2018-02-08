@@ -247,7 +247,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             if (seg->flags.rst == 1) {
                 if (tcp_ack_acceptable(tcb, seg)) {
                     tcp_setstate(sock, TCP_CLOSED);
-                    retlock_signal(&sock->openwait, -ECONNRESET);
+                    retlock_signal(&sock->openwait, -ECONNREFUSED);
                 }
                 goto drop_pkt;
             }
