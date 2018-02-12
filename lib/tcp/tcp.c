@@ -16,7 +16,8 @@ bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum,
     struct log_trans *trans = &log->t;
 
     // Print IPv4 payload size
-    LOGT(trans, "length %hu ", frame_data_len(frame));
+    uint16_t len = frame_data_len(frame);
+    LOGT(trans, "length %hu ", len);
 
     // TODO: Work out why sometimes this is 0x0200 too small (in netwk byte-ord)
     // Print and check checksum
@@ -36,10 +37,16 @@ bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum,
     struct tcp_sock *sock = tcp_sock_lookup(&saddr, &daddr, sport, dport);
     uint32_t irs = (sock == NULL || hdr->flags.syn == 1) ? 0 : sock->tcb.irs;
     uint32_t iss = (sock == NULL) ? 0 : sock->tcb.iss;
+    uint32_t seqn = ntohl(hdr->seqn) - irs;
+    uint32_t ackn = ntohl(hdr->ackn) - iss;
 
-    LOGT(trans, "seq %u ", ntohl(hdr->seqn) - irs);
+    if (len > 0)
+        LOGT(trans, "seq %u-%u ", seqn, seqn + len - 1);
+    else
+        LOGT(trans, "seq %u ", seqn);
+
     if (hdr->flags.ack)
-        LOGT(trans, "ack %u ", ntohl(hdr->ackn) - iss);
+        LOGT(trans, "ack %u ", ackn);
 
     LOGT(trans, "wind %hu ", ntohs(hdr->wind));
 

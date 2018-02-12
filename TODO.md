@@ -66,13 +66,13 @@
   - Line 30: Define how routes with the same metric should behave?
 
 ## [lib/tcp/tcp.c](lib/tcp/tcp.c)
-  - Line 21: Work out why sometimes this is 0x0200 too small (in netwk byte-ord)
-  - Line 33: Use frame->sock for socket lookup
-  - Line 109: Check for TSO and GRO and account for it, somehow..
-  - Line 118: Other integrity checks
-  - Line 127: Perform queued actions when reaching certain states
-  - Line 240: Choose a random unused outgoing port
-  - Line 245: Choose a secure initial sequence number
+  - Line 22: Work out why sometimes this is 0x0200 too small (in netwk byte-ord)
+  - Line 34: Use frame->sock for socket lookup
+  - Line 116: Check for TSO and GRO and account for it, somehow..
+  - Line 125: Other integrity checks
+  - Line 134: Perform queued actions when reaching certain states
+  - Line 247: Choose a random unused outgoing port
+  - Line 252: Choose a secure initial sequence number
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
   - Line 44: * TODO: Treat all seq and ack number arithmetic modulo UINT32_MAX
