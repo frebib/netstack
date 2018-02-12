@@ -66,8 +66,8 @@
   - Line 30: Define how routes with the same metric should behave?
 
 ## [lib/tcp/tcp.c](lib/tcp/tcp.c)
-  - Line 22: Work out why sometimes this is 0x0200 too small (in netwk byte-ord)
-  - Line 34: Use frame->sock for socket lookup
+  - Line 18: Work out why sometimes this is 0x0200 too small (in netwk byte-ord)
+  - Line 30: Use frame->sock for socket lookup
   - Line 116: Check for TSO and GRO and account for it, somehow..
   - Line 125: Other integrity checks
   - Line 134: Perform queued actions when reaching certain states
