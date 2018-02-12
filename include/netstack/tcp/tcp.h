@@ -354,13 +354,28 @@ int tcp_seg_cmp(const struct frame *a, const struct frame *b);
  */
 uint32_t tcp_recvqueue_contigseq(struct tcp_sock *sock, uint32_t init);
 
+
+/*
+ * TCP Sequence number arithmetic
+ */
+#define tcp_ack_acceptable(tcb, ackn) \
+    tcp_seq_leq((tcb)->snd.una, (ackn)) && tcp_seq_leq((ackn), (tcb)->snd.nxt)
+
+#define tcp_seq_lt(a, b) (((int32_t) (a)) - ((int32_t) (b)) < 0)
+#define tcp_seq_gt(a, b) (((int32_t) (a)) - ((int32_t) (b)) > 0)
+#define tcp_seq_leq(a, b) (((int32_t) (a)) - ((int32_t) (b)) <= 0)
+#define tcp_seq_geq(a, b) (((int32_t) (a)) - ((int32_t) (b)) >= 0)
+
+#define tcp_seq_inrange(seq, start, end) \
+    (((seq) - (start)) < ((end) - (start)))
+#define tcp_seq_inwnd(seq, start, size) \
+    tcp_seq_inrange(seq, start, (start) + (size))
+
+
 /*
  * TCP Input
  * See: tcpin.c
  */
-#define tcp_ack_acceptable(tcb, seg) (tcb)->snd.una <= ntohl((seg)->ackn) && \
-                                        ntohl((seg)->ackn) <= (tcb)->snd.nxt
-
 void expand_escapes(char* dest, const char* src, size_t len);
 int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock);
 

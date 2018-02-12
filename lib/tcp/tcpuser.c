@@ -235,7 +235,7 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
                 sock->recvptr - irs, seg_seq - irs, seg_end - irs);
 
             // Check if the queued segment has already been passed
-            if (sock->recvptr > seg_end) {
+            if (tcp_seq_gt(sock->recvptr, seg_end)) {
                 LOGFN(LWARN, "sock->recvptr is past seg_end. Skipping segment");
 
                 // Release and remove segment from the queue
@@ -248,11 +248,11 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
             }
         }
 
-        if (sock->recvptr > sock->tcb.rcv.nxt)
+        if (tcp_seq_gt(sock->recvptr, sock->tcb.rcv.nxt))
             LOGFN(LERR, "recvptr > rcv.nxt. This should never happen!");
 
         // If the next segment isn't in the recvqueue, wait for it
-        if (seg == NULL || sock->recvptr >= sock->tcb.rcv.nxt) {
+        if (seg == NULL || tcp_seq_geq(sock->recvptr, sock->tcb.rcv.nxt)) {
             if (count > 0)
                 // We have already read some data and the queue is now empty
                 // Return back the data to the user
@@ -298,8 +298,7 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
         size_t seg_left = seg_len - seg_ofs;
 
         // This shouldn't happen, but just to be sure
-        if ((sock->recvptr < seg_seq) ||
-            sock->recvptr > (seg_seq + seg_len)) {
+        if (!tcp_seq_inwnd(sock->recvptr, seg_seq, seg_len)) {
             LOGFN(LERR, "sock->recvptr is outside seg_seq");
             continue;
         }

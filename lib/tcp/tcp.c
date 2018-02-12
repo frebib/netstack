@@ -254,7 +254,7 @@ uint32_t tcp_seqnum() {
 }
 
 int tcp_seg_cmp(const struct frame *fa, const struct frame *fb) {
-    return ntohl(tcp_hdr(fb)->seqn) - ntohl(tcp_hdr(fa)->seqn);
+    return tcp_seq_gt(ntohl(tcp_hdr(fb)->seqn), ntohl(tcp_hdr(fa)->seqn));
 }
 
 uint32_t tcp_recvqueue_contigseq(struct tcp_sock *sock, uint32_t init) {
@@ -267,10 +267,10 @@ uint32_t tcp_recvqueue_contigseq(struct tcp_sock *sock, uint32_t init) {
         uint16_t seg_len = frame_data_len(frame);
         uint32_t seg_end = seg_seq + seg_len - 1;
         // If initial byte resides within the segment
-        if (init >= seg_seq && init <= seg_end)
+        if (tcp_seq_geq(init, seg_seq) && tcp_seq_leq(init, seg_end))
             // jump to the next byte after the segment
             init = seg_end + 1;
-        else if (init > seg_end)
+        else if (tcp_seq_gt(init, seg_end))
             // account for duplicate segments
             continue;
         else

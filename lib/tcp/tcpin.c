@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <errno.h>
+#include <sys/param.h>
 
 #include <netinet/in.h>
 
@@ -41,7 +42,6 @@ void expand_escapes(char* dest, const char* src, size_t len) {
  * https://tools.ietf.org/html/rfc793#page-65
  * https://github.com/romain-jacotin/quic/blob/master/doc/TCP.md#-segment-arrives
  *
- * TODO: Treat all seq and ack number arithmetic modulo UINT32_MAX
  * See RFC793, bottom of page 52: https://tools.ietf.org/html/rfc793#page-52
  */
 int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
@@ -60,7 +60,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     uint32_t seg_seq = ntohl(seg->seqn);
     uint32_t seg_ack = ntohl(seg->ackn);
     uint16_t seg_len = frame_data_len(frame);
-    uint32_t seg_end = seg_seq + seg_len - 1;
+    uint32_t seg_end = seg_seq + MAX(seg_len - 1, 0);
 
     // A segment is "in-order" if the sequence number is
     // the next one we expect to receive
@@ -225,8 +225,8 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
               If SND.UNA =< SEG.ACK =< SND.NXT then the ACK is acceptable.
         */
             if (seg->flags.ack == 1) {
-                if (seg_ack < tcb->iss ||
-                    seg_ack > tcb->snd.nxt) {
+                if (tcp_seq_lt(seg_ack, tcb->iss) ||
+                    tcp_seq_gt(seg_ack, tcb->snd.nxt)) {
                      if (seg->flags.rst != 1) {
                          LOGFN(LDBUG, "[TCP] Sending RST");
                          ret = tcp_send_rst(sock, seg_ack);
@@ -245,7 +245,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
 
         */
             if (seg->flags.rst == 1) {
-                if (tcp_ack_acceptable(tcb, seg)) {
+                if (tcp_ack_acceptable(tcb, seg_ack)) {
                     tcp_setstate(sock, TCP_CLOSED);
                     retlock_signal(&sock->openwait, -ECONNREFUSED);
                 }
@@ -304,7 +304,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             if (seg->flags.syn == 1) {
                 tcb->rcv.nxt = seg_seq + 1;
                 tcb->irs = seg_seq;
-                if (tcp_ack_acceptable(tcb, seg))
+                if (tcp_ack_acceptable(tcb, seg_ack))
                     tcb->snd.una = seg_ack;
 
              // TODO: Remove acknowledged segments from the retransmission queue
@@ -413,16 +413,17 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         valid = false;
         LOG(LINFO, "[TCP] data sent but RCV.WND is 0");
     }
-    if (seg_seq < tcb->rcv.nxt || seg_seq >= tcb->rcv.nxt + tcb->rcv.wnd) {
+    if (!tcp_seq_inwnd(seg_seq, tcb->rcv.nxt, tcb->rcv.wnd) ||
+            !tcp_seq_inwnd(seg_end, tcb->rcv.nxt, tcb->rcv.wnd)) {
         valid = false;
         LOG(LINFO, "[TCP] Recv'd out-of-sequence segment: SEQ %u < RCV.NXT %u",
             seg_seq, tcb->rcv.nxt);
     }
-    if (seg_end > tcb->rcv.nxt + tcb->rcv.wnd) {
+    if (!tcp_seq_inwnd(seg_end, tcb->rcv.nxt, tcb->rcv.wnd)) {
         valid = false;
         LOG(LINFO, "[TCP] more data was sent than can fit in RCV.WND: "
-                    "SEQ %u, LEN %hu, RCV.NXT %u, RCV.WND %hu",
-            seg_seq, seg_len, tcb->rcv.nxt, tcb->rcv.wnd);
+                    "SEQ %u, END %u, LEN %hu, RCV.NXT %u, RCV.WND %hu",
+            seg_seq, seg_end, seg_len, tcb->rcv.nxt, tcb->rcv.wnd);
     }
     /*
         If an incoming segment is not acceptable, an acknowledgment
@@ -612,7 +613,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     if (seg->flags.ack != 1)
         goto drop_pkt;
     /*
-     
+
       if the ACK bit is on
     */
     switch (sock->state) {
@@ -630,7 +631,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             and send it.
     */
         case TCP_SYN_RECEIVED:
-            if (tcp_ack_acceptable(tcb, seg)) {
+            if (tcp_ack_acceptable(tcb, seg_ack)) {
                 tcp_established(sock, seg);
             } else {
                 LOGFN(LDBUG, "[TCP] Sending RST");
@@ -828,6 +829,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             // Regardless of whether the segment was in-order, it takes up
             // space in the recvqueue so adjust the window accordingly
             tcb->rcv.wnd -= seg_len;
+            uint32_t irs = tcb->irs;
 
             // For debug purposes, print queued segments in recvqueue
             if (sock->recvqueue.length > 0) {
@@ -838,7 +840,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                     struct frame *qframe = llist_elem_data();
                     struct tcp_hdr *hdr = tcp_hdr(qframe);
                     uint32_t seqn = ntohl(hdr->seqn);
-                    uint32_t relseq = seqn - sock->tcb.irs;
+                    uint32_t relseq = seqn - irs;
                     if (seqn > ctr)
                         LOGT(&t, "[TCP] recvqueue    < GAP OF %u bytes>\n", seqn - ctr);
                     LOGT(&t, "[TCP] recvqueue[%u] seq %u-%u\n",
@@ -854,12 +856,12 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
 
             pthread_mutex_unlock(&sock->recvqueue.lock);
 
-            LOG(LDBUG, "seg->seq %u, rcv.nxt %u", seg_seq - tcb->irs,
-                tcb->rcv.nxt - tcb->irs);
+            LOGFN(LDBUG, "seg->seq %u, rcv.nxt %u", seg_seq - irs,
+                tcb->rcv.nxt - irs);
 
-            if (sock->recvptr > sock->tcb.rcv.nxt)
+            if (tcp_seq_gt(sock->recvptr, sock->tcb.rcv.nxt))
                 LOGFN(LERR, "You dun goofed: recvptr (%u) > RCV.NXT (%u)",
-                      sock->recvptr - tcb->irs, sock->tcb.rcv.nxt - tcb->irs);
+                      sock->recvptr - irs, sock->tcb.rcv.nxt - irs);
 
             // Only send an acknowledgement for the segment if it is the next
             // contiguous data in the sequence space. If we send an ACK always
