@@ -832,32 +832,13 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             uint32_t irs = tcb->irs;
 
             // For debug purposes, print queued segments in recvqueue
-            if (sock->recvqueue.length > 0) {
-                struct log_trans t = LOG_TRANS(LVERB);
-                uint i = 0;
-                uint32_t ctr = tcb->rcv.nxt;
-                for_each_llist(&sock->recvqueue) {
-                    struct frame *qframe = llist_elem_data();
-                    struct tcp_hdr *hdr = tcp_hdr(qframe);
-                    uint32_t seqn = ntohl(hdr->seqn);
-                    uint32_t relseq = seqn - irs;
-                    if (seqn > ctr)
-                        LOGT(&t, "[TCP] recvqueue    < GAP OF %u bytes>\n", seqn - ctr);
-                    LOGT(&t, "[TCP] recvqueue[%u] seq %u-%u\n",
-                         i++, relseq, relseq + frame_data_len(qframe) - 1);
-                    ctr = seqn + frame_data_len(qframe);
-                }
-                LOGT_COMMIT(&t);
-            }
+            //tcp_log_recvqueue(sock);
 
             // Before unlocking the recvqueue, count the amount of contiguous
             // bytes available locally in the queue from RCV.NXT
             tcb->rcv.nxt = tcp_recvqueue_contigseq(sock, tcb->rcv.nxt);
 
             pthread_mutex_unlock(&sock->recvqueue.lock);
-
-            LOGFN(LDBUG, "seg->seq %u, rcv.nxt %u", seg_seq - irs,
-                tcb->rcv.nxt - irs);
 
             if (tcp_seq_gt(sock->recvptr, sock->tcb.rcv.nxt))
                 LOGFN(LERR, "You dun goofed: recvptr (%u) > RCV.NXT (%u)",

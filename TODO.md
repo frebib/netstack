@@ -68,11 +68,11 @@
 ## [lib/tcp/tcp.c](lib/tcp/tcp.c)
   - Line 18: Work out why sometimes this is 0x0200 too small (in netwk byte-ord)
   - Line 30: Use frame->sock for socket lookup
-  - Line 116: Check for TSO and GRO and account for it, somehow..
-  - Line 125: Other integrity checks
-  - Line 134: Perform queued actions when reaching certain states
-  - Line 247: Choose a random unused outgoing port
-  - Line 252: Choose a secure initial sequence number
+  - Line 138: Check for TSO and GRO and account for it, somehow..
+  - Line 147: Other integrity checks
+  - Line 156: Perform queued actions when reaching certain states
+  - Line 269: Choose a random unused outgoing port
+  - Line 274: Choose a secure initial sequence number
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
   - Line 81: Send TCP RST for invalid connections
@@ -96,11 +96,11 @@
   - Line 685: Is sending an ACK here necessary?
   - Line 694: Work out if our FIN was ACK'ed
   - Line 715: Send success to waiting close() calls
-  - Line 949: Work out if 'our FIN has been ACKed'
-  - Line 953: stop other TCP timers in FIN-WAIT-2
-  - Line 967: stop other TCP timers in FIN-WAIT-2
-  - Line 1008: Implement locking
-  - Line 1009: Restore previous local address if it was set
+  - Line 930: Work out if 'our FIN has been ACKed'
+  - Line 934: stop other TCP timers in FIN-WAIT-2
+  - Line 948: stop other TCP timers in FIN-WAIT-2
+  - Line 989: Implement locking
+  - Line 990: Restore previous local address if it was set
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
   - Line 17: Allow for tcp_hdr->hlen options

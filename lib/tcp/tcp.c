@@ -53,6 +53,28 @@ bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum,
     return true;
 }
 
+void tcp_log_recvqueue(struct tcp_sock *sock) {
+    if (sock->recvqueue.length > 0) {
+        struct log_trans t = LOG_TRANS(LVERB);
+        uint i = 0;
+        uint32_t ctr = sock->tcb.rcv.nxt;
+        for_each_llist(&sock->recvqueue) {
+            struct frame *qframe = llist_elem_data();
+            struct tcp_hdr *hdr = tcp_hdr(qframe);
+            uint32_t seqn = ntohl(hdr->seqn);
+            uint32_t relseq = seqn - sock->tcb.irs;
+            if (seqn > ctr)
+                LOGT(&t, "[TCP] recvqueue    < GAP OF %u bytes>\n", seqn - ctr);
+            LOGT(&t, "[TCP] recvqueue[%u] seq %u-%u\n",
+                 i++, relseq, relseq + frame_data_len(qframe) - 1);
+            ctr = seqn + frame_data_len(qframe);
+        }
+        LOGT_COMMIT(&t);
+    } else {
+        LOG(LVERB, "[TCP] recvqueue is empty");
+    }
+}
+
 void tcp_ipv4_recv(struct frame *frame, struct ipv4_hdr *hdr) {
     struct tcp_hdr *tcp_hdr = tcp_hdr(frame);
     uint16_t sport = htons(tcp_hdr->sport);

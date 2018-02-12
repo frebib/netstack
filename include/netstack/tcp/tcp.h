@@ -228,6 +228,9 @@ static inline char *fmt_tcp_flags(struct tcp_hdr *hdr, char *buffer) {
 bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum,
              addr_t addr1, addr_t addr2);
 
+/* Logs all frames in the recvqueue of a socket with LVERB */
+void tcp_log_recvqueue(struct tcp_sock *sock);
+
 /* Receives a tcp frame given an ipv4 parent */
 void tcp_ipv4_recv(struct frame *frame, struct ipv4_hdr *hdr);
 
