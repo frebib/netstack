@@ -11,6 +11,9 @@
 ## [include/netstack/ip/ipv4.h](include/netstack/ip/ipv4.h)
   - Line 30: Take endianness into account in ipv4_hdr
 
+## [include/netstack/log.h](include/netstack/log.h)
+  - Line 13: Make LOG_MAX configurable
+
 ## [include/netstack/tcp/tcp.h](include/netstack/tcp/tcp.h)
   - Line 47: Take endianness into account in tcp_hdr
   - Line 167: Fix endianness in tcp.h

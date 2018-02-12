@@ -133,9 +133,9 @@ void VTLOGF(FILE *file, loglvl_t level, struct timespec *t, const char *fmt,
     prelen += snprintf(pre + prelen, maxlen, "[%s]\t", logconf.lvlstr[level]);
 
     // Produce formatted string
-    int len = vsnprintf(NULL, 0, fmt, args) + 1;
+    size_t len = LOG_MAX;
     char str[len];
-    vsnprintf(str, (size_t) len, fmt, args2);
+    vsnprintf(str, len, fmt, args2);
 
     pthread_mutex_lock(&logconf.lock);
 

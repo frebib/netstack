@@ -10,6 +10,8 @@
 #include <netstack/col/llist.h>
 
 #define LOG_TRANS_INIT_BUFFER   64      /* Initial log_trans buffer size */
+// TODO: Make LOG_MAX configurable
+#define LOG_MAX                 1024    /* Maximum log entry length */
 
 /*
  * Global logging configuration
