@@ -373,8 +373,9 @@ int tcp_user_close(struct tcp_sock *sock) {
             tcp_setstate(sock, TCP_FIN_WAIT_1);
             break;
         case TCP_CLOSE_WAIT:
+            // TODO: If unsent data, queue sending FIN/ACK on CLOSING
             tcp_send_finack(sock);
-            tcp_setstate(sock, TCP_CLOSED);
+            tcp_setstate(sock, TCP_CLOSING);
             break;
         case TCP_CLOSING:
         case TCP_LAST_ACK:

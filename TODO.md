@@ -133,6 +133,7 @@
   - Line 335: Check for MSG_PEEK and conditionally don't do this
   - Line 355: tcp_close() request until all send() calls have completed
   - Line 369: Check for pending send() calls
+  - Line 376: If unsent data, queue sending FIN/ACK on CLOSING
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
   - Line 16: Add many configurable interfaces
