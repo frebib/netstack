@@ -70,12 +70,12 @@
 
 ## [lib/tcp/tcp.c](lib/tcp/tcp.c)
   - Line 18: Work out why sometimes this is 0x0200 too small (in netwk byte-ord)
-  - Line 30: Use frame->sock for socket lookup
-  - Line 139: Check for TSO and GRO and account for it, somehow..
-  - Line 148: Other integrity checks
-  - Line 157: Perform queued actions when reaching certain states
-  - Line 271: Choose a random unused outgoing port
-  - Line 276: Choose a secure initial sequence number
+  - Line 29: Use frame->sock for socket lookup
+  - Line 138: Check for TSO and GRO and account for it, somehow..
+  - Line 147: Other integrity checks
+  - Line 156: Perform queued actions when reaching certain states
+  - Line 270: Choose a random unused outgoing port
+  - Line 275: Choose a secure initial sequence number
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
   - Line 81: Send TCP RST for invalid connections

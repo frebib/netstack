@@ -22,10 +22,9 @@ bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum,
     LOGT(trans, "csum 0x%04x", ntohs(pkt_csum));
     if (pkt_csum != calc_csum)
         LOGT(trans, " (invalid 0x%04x)", ntohs(calc_csum));
-    LOGT(trans, ", ");
 
     char sflags[9];
-    LOGT(trans, "flags [%s], ", fmt_tcp_flags(hdr, sflags));
+    LOGT(trans, ", flags [%s]", fmt_tcp_flags(hdr, sflags));
 
     // TODO: Use frame->sock for socket lookup
     uint16_t sport = htons(hdr->sport);
@@ -38,17 +37,17 @@ bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum,
     uint16_t len = frame_data_len(frame);
 
     if (len > 0)
-        LOGT(trans, "seq %u-%u, ", seqn, seqn + len - 1);
-    else
-        LOGT(trans, "seq %u, ", seqn);
+        LOGT(trans, ", seq %u-%u", seqn, seqn + len - 1);
+    else if (hdr->flags.syn || hdr->flags.fin || hdr->flags.rst)
+        LOGT(trans, ", seq %u", seqn);
 
     if (hdr->flags.ack)
-        LOGT(trans, "ack %u, ", ackn);
+        LOGT(trans, ", ack %u", ackn);
 
-    LOGT(trans, "wind %hu, ", ntohs(hdr->wind));
+    LOGT(trans, ", wind %hu", ntohs(hdr->wind));
 
     // Print IPv4 payload size
-    LOGT(trans, "length %hu, ", len);
+    LOGT(trans, ", length %hu", len);
 
     return true;
 }
