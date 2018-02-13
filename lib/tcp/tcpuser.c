@@ -193,20 +193,24 @@ int tcp_user_recv(struct tcp_sock *sock, void* data, size_t len, int flags) {
             // TODO: Wait here until there is something to recv
             tcp_sock_unlock(sock);
             retlock_wait(&sock->recvwait, &err);
+            ret = _tcp_user_recv_data(sock, data, len);
+            break;
         case TCP_ESTABLISHED:
         case TCP_FIN_WAIT_1:
         case TCP_FIN_WAIT_2:
+            tcp_sock_unlock(sock);
             // TODO: Send ACKs for data passed to the user (if specified)
+            // Fall-through to CLOSE-WAIT
+        case TCP_CLOSE_WAIT:
             // Return value is # of bytes read
             ret = _tcp_user_recv_data(sock, data, len);
             break;
-        case TCP_CLOSE_WAIT:
-            ret = _tcp_user_recv_data(sock, data, len);
         default:
             break;
     }
 
     // Decrement refcount and release sock->lock
+    tcp_sock_lock(sock);
     tcp_sock_decref(sock);
 
     return ret;
@@ -223,6 +227,7 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
 
         // First check if there is something to recv
         struct frame *seg = llist_peek(&sock->recvqueue);
+        tcp_sock_lock(sock);
         uint32_t irs = sock->tcb.irs;
 
         // If there is a segment, ensure it is the next in sequence
@@ -242,6 +247,7 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
                 sock->tcb.rcv.wnd += seg_len;
                 frame_unlock(seg);
                 llist_remove(&sock->recvqueue, seg);
+                tcp_sock_unlock(sock);
 
                 // Loop back around to try again
                 continue;
@@ -253,10 +259,12 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
 
         // If the next segment isn't in the recvqueue, wait for it
         if (seg == NULL || tcp_seq_geq(sock->recvptr, sock->tcb.rcv.nxt)) {
-            if (count > 0)
+            if (count > 0) {
                 // We have already read some data and the queue is now empty
                 // Return back the data to the user
+                tcp_sock_unlock(sock);
                 break;
+            }
 
             if (sock->state == TCP_CLOSE_WAIT) {
                 // We have hit EOF. No more data to recv()
@@ -280,18 +288,21 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
                 // return error or EOF
                 return err;
 
-            // Obtain read lock again so we can read safely
-            tcp_sock_lock(sock);
-
             // Return to start of loop to obtain next segment to recv
             continue;
-        }
+        } else
+            tcp_sock_unlock(sock);
+
+        pthread_mutex_lock(&sock->recvqueue.lock);
         LOGFN(LDBUG, "recvqueue->length = %lu", sock->recvqueue.length);
+        pthread_mutex_unlock(&sock->recvqueue.lock);
 
         size_t space_left = len - count;
         frame_lock(seg, SHARED_RD);
         uint32_t seg_seq = ntohl(tcp_hdr(seg)->seqn);
         uint16_t seg_len = frame_data_len(seg);
+
+        tcp_sock_lock(sock);
         // seg_ofs is the offset within the segment data to start at
         size_t seg_ofs = sock->recvptr - seg_seq;
         // seg_left is the amount of data left in the current seg to read
@@ -300,8 +311,10 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
         // This shouldn't happen, but just to be sure
         if (!tcp_seq_inwnd(sock->recvptr, seg_seq, seg_len)) {
             LOGFN(LERR, "sock->recvptr is outside seg_seq");
+            tcp_sock_unlock(sock);
             continue;
         }
+        tcp_sock_unlock(sock);
 
         LOGFN(LDBUG, "seg len %hu, ptr %lu, space %lu, seg left %lu",
             seg_len, seg_ofs, space_left, seg_left);
@@ -315,7 +328,9 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
             count += space_left;
 
             // Update last recv position in sock
+            tcp_sock_lock(sock);
             sock->recvptr += space_left;
+            tcp_sock_unlock(sock);
 
             // Break from loop and return
             frame_unlock(seg);
@@ -326,11 +341,15 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
             memcpy(out + count, seg->data + seg_ofs, seg_left);
             count += seg_left;
 
+            tcp_sock_lock(sock);
+
             // Update last recv position in sock
             sock->recvptr += seg_left;
 
             // Update RCV.WND size after removing consumed segment
             sock->tcb.rcv.wnd += seg_len;
+
+            tcp_sock_unlock(sock);
 
             // TODO: Check for MSG_PEEK and conditionally don't do this
             // Remove completely consumed frame from the queue
@@ -348,9 +367,10 @@ int tcp_user_close(struct tcp_sock *sock) {
     if (!sock)
         return -ENOTSOCK;
 
+    int ret = 0;
+
     // Ensure socket cannot be free'd until this lock is released
     tcp_sock_lock(sock);
-    tcp_sock_incref(sock);
 
     // TODO: tcp_close() request until all send() calls have completed
     switch (sock->state) {
@@ -369,29 +389,35 @@ int tcp_user_close(struct tcp_sock *sock) {
             // TODO: Check for pending send() calls
             // Fall through to TCP_ESTABLISHED
         case TCP_ESTABLISHED:
+            tcp_sock_incref(sock);
             tcp_send_finack(sock);
             tcp_setstate(sock, TCP_FIN_WAIT_1);
+            tcp_sock_unlock(sock);
+            retlock_wait(&sock->closewait, &ret);
+            tcp_sock_lock(sock);
             break;
         case TCP_CLOSE_WAIT:
             // TODO: If unsent data, queue sending FIN/ACK on CLOSING
+            tcp_sock_incref(sock);
             tcp_send_finack(sock);
             tcp_setstate(sock, TCP_CLOSING);
+            tcp_sock_unlock(sock);
+            retlock_wait(&sock->closewait, &ret);
+            tcp_sock_lock(sock);
             break;
         case TCP_CLOSING:
         case TCP_LAST_ACK:
         case TCP_TIME_WAIT:
             // Connection already closing
             tcp_sock_decref(sock);
-            tcp_sock_unlock(sock);
             return -EALREADY;
         case TCP_CLOSED:
             tcp_sock_decref(sock);
-            tcp_sock_unlock(sock);
             return -ENOTCONN;
         default:
             break;
     }
 
     tcp_sock_decref(sock);
-    return 0;
+    return ret;
 }

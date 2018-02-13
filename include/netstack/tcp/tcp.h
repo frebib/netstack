@@ -159,6 +159,7 @@ struct tcp_sock {
 
     // Thread wait locks
     retlock_t openwait;
+    retlock_t closewait;
     retlock_t sendwait;
     retlock_t recvwait;
 };

@@ -102,6 +102,7 @@ void tcp_ipv4_recv(struct frame *frame, struct ipv4_hdr *hdr) {
     } else {
         // Always lock the socket
         tcp_sock_lock(sock);
+
         if (sock->state == TCP_LISTEN) {
             // Set peer addresses on LISTENing sockets
             sock->inet.remaddr = saddr;
@@ -218,6 +219,7 @@ void tcp_sock_cleanup(struct tcp_sock *sock) {
     retlock_broadcast(&sock->openwait, -ECONNABORTED);
     retlock_broadcast(&sock->sendwait, -ECONNABORTED);
     retlock_broadcast(&sock->recvwait, -ECONNABORTED);
+    retlock_broadcast(&sock->closewait, -ECONNABORTED);
 
     switch (sock->state) {
         case TCP_SYN_SENT:

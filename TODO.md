@@ -16,7 +16,7 @@
 
 ## [include/netstack/tcp/tcp.h](include/netstack/tcp/tcp.h)
   - Line 47: Take endianness into account in tcp_hdr
-  - Line 167: Fix endianness in tcp.h
+  - Line 168: Fix endianness in tcp.h
 
 ## [lib/eth/arp.c](lib/eth/arp.c)
   - Line 160: Use hashtable for ARP lookups on IPv4
@@ -71,11 +71,11 @@
 ## [lib/tcp/tcp.c](lib/tcp/tcp.c)
   - Line 18: Work out why sometimes this is 0x0200 too small (in netwk byte-ord)
   - Line 30: Use frame->sock for socket lookup
-  - Line 138: Check for TSO and GRO and account for it, somehow..
-  - Line 147: Other integrity checks
-  - Line 156: Perform queued actions when reaching certain states
-  - Line 269: Choose a random unused outgoing port
-  - Line 274: Choose a secure initial sequence number
+  - Line 139: Check for TSO and GRO and account for it, somehow..
+  - Line 148: Other integrity checks
+  - Line 157: Perform queued actions when reaching certain states
+  - Line 271: Choose a random unused outgoing port
+  - Line 276: Choose a secure initial sequence number
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
   - Line 81: Send TCP RST for invalid connections
@@ -99,11 +99,11 @@
   - Line 685: Is sending an ACK here necessary?
   - Line 694: Work out if our FIN was ACK'ed
   - Line 715: Send success to waiting close() calls
-  - Line 930: Work out if 'our FIN has been ACKed'
-  - Line 934: stop other TCP timers in FIN-WAIT-2
-  - Line 948: stop other TCP timers in FIN-WAIT-2
-  - Line 989: Implement locking
-  - Line 990: Restore previous local address if it was set
+  - Line 931: Work out if 'our FIN has been ACKed'
+  - Line 935: stop other TCP timers in FIN-WAIT-2
+  - Line 949: stop other TCP timers in FIN-WAIT-2
+  - Line 990: Implement locking
+  - Line 991: Restore previous local address if it was set
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
   - Line 17: Allow for tcp_hdr->hlen options
@@ -128,12 +128,12 @@
   - Line 159: Signal sending thread and offload segmentation/transmission
   - Line 160: Check for MSG_MORE flag and don't trigger for a short while
   - Line 193: Wait here until there is something to recv
-  - Line 199: Send ACKs for data passed to the user (if specified)
-  - Line 219: Don't return EOF until recv'd up to FIN seqn
-  - Line 335: Check for MSG_PEEK and conditionally don't do this
-  - Line 355: tcp_close() request until all send() calls have completed
-  - Line 369: Check for pending send() calls
-  - Line 376: If unsent data, queue sending FIN/ACK on CLOSING
+  - Line 202: Send ACKs for data passed to the user (if specified)
+  - Line 223: Don't return EOF until recv'd up to FIN seqn
+  - Line 354: Check for MSG_PEEK and conditionally don't do this
+  - Line 375: tcp_close() request until all send() calls have completed
+  - Line 389: Check for pending send() calls
+  - Line 400: If unsent data, queue sending FIN/ACK on CLOSING
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
   - Line 16: Add many configurable interfaces

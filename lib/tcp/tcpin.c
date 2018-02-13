@@ -152,7 +152,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             // TODO: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
 
         /*
-                 If the SEG.PRC is greater than the TCB.PRC then if allowed by
+            If the SEG.PRC is greater than the TCB.PRC then if allowed by
             the user and the system set TCB.PRC<-SEG.PRC, if not allowed
             send a reset and return.
 
@@ -713,6 +713,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     */
             case TCP_FIN_WAIT_2:
                 // TODO: Send success to waiting close() calls
+                retlock_broadcast(&sock->closewait, 0);
                 break;
     /*
         CLOSING STATE
