@@ -6,6 +6,8 @@
 #include <netstack/tcp/tcp.h>
 #include <netstack/ip/neigh.h>
 
+struct tcp_hdr *tcp_addoptions(struct tcp_sock *sock, struct frame *frame, uint8_t flags);
+
 int tcp_send(struct tcp_sock *sock, struct frame *frame) {
     struct inet_sock *inet = &sock->inet;
     struct tcp_hdr *hdr = tcp_hdr(frame);
@@ -14,8 +16,7 @@ int tcp_send(struct tcp_sock *sock, struct frame *frame) {
     hdr->rsvd = 0;
     hdr->csum = 0;
     hdr->urg_ptr = 0;
-    // TODO: Allow for tcp_hdr->hlen options
-    hdr->hlen = 5;
+    hdr->hlen = ((frame->data - frame->head) >> 2);
     // TODO: Vary hdr->wind in tcp_send()
     hdr->wind = htons(sock->tcb.rcv.wnd);
 
@@ -52,15 +53,13 @@ int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
     seg->intf = sock->inet.intf;
 
     // TODO: Allocate space for TCP options
-    struct tcp_hdr *hdr = frame_head_alloc(seg, sizeof(struct tcp_hdr));
+    struct tcp_hdr *hdr = tcp_addoptions(sock, seg, flags);
     hdr->seqn = htonl(seqn);
     hdr->ackn = htonl(ackn);
     hdr->flagval = flags;
 
     int ret = tcp_send(sock, seg);
     // We created the frame so ensure it's unlocked if it never sent
-    if (ret)
-        frame_unlock(seg);
     frame_decref(seg);
 
     return ret;
@@ -74,15 +73,13 @@ int tcp_send_data(struct tcp_sock *sock, uint8_t flags) {
     seg->intf = sock->inet.intf;
 
     // https://tools.ietf.org/html/rfc793#section-3.7
-    // TODO: Implement MSS variability. Default MSS is quite small
     // Calculate data size to send, limited by MSS
-    size_t count = MIN(rbuf_count(&sock->sndbuf), TCP_DEF_MSS);
+    size_t count = MIN(rbuf_count(&sock->sndbuf), sock->mss);
     void* data = frame_data_alloc(seg, count);
     // rbuf_read already does a count upper-bounds check to prevent over-reading
     rbuf_read(&sock->sndbuf, data, count);
 
-    // TODO: Allocate space for TCP options
-    struct tcp_hdr *hdr = frame_head_alloc(seg, sizeof(struct tcp_hdr));
+    struct tcp_hdr *hdr = tcp_addoptions(sock, seg, flags);
     hdr->seqn = htonl(sock->tcb.snd.nxt);
     hdr->ackn = htonl(sock->tcb.rcv.nxt);
     hdr->flagval = flags;
@@ -98,4 +95,52 @@ int tcp_send_data(struct tcp_sock *sock, uint8_t flags) {
     frame_decref(seg);
 
     return (ret < 0 ? ret : (int) count);
+}
+
+struct tcp_hdr *tcp_addoptions(struct tcp_sock *sock, struct frame *frame,
+                               uint8_t flags) {
+    // Cumulative count of all options in octets/bytes
+    size_t optlen = 0;
+
+    bool mssopt = false;
+
+    // Only send MSS option in SYN flags, if the MSS has been set
+    if (flags & TCP_FLAG_SYN && sock->mss != TCP_DEF_MSS) {
+        // Maximum Segment Size option is 1+1+2 bytes:
+        // https://tools.ietf.org/html/rfc793#page-19
+        mssopt = true;
+        optlen += 4;
+        LOG(LVERB, "[TCP] MSS option enabled with mss = %hu", sock->mss);
+    }
+
+    // No options to add, return just the standard header size
+    if (optlen < 1)
+        return frame_head_alloc(frame, sizeof(struct tcp_hdr));
+
+    /*
+     * Add all options to header now we know what and how big
+     */
+
+    size_t total_optlen = (optlen + 3) & -4;    // Round to multiple of 4
+    size_t hdrsize = sizeof(struct tcp_hdr) + total_optlen;
+    struct tcp_hdr *hdr = frame_head_alloc(frame, hdrsize);
+    uint8_t *optptr = (frame->head + sizeof(struct tcp_hdr));
+
+    if (mssopt) {
+        *optptr++ = 0x02;   // Option type   2
+        *optptr++ = 0x04;   // Option length 4
+        *((uint16_t *) optptr) = htons(sock->mss);   // MSS value
+        optptr += 2;    // MSS value is 2 bytes long
+    }
+
+    if (optptr > frame->data)
+        LOG(LERR, "[TCP] options overflowed into payload: frame->head %p, "
+                    "frame->data %p, optptr %p, optlen %lu",
+                    (void *) frame->head, (void *) frame->data,
+                    (void *)optptr, optlen);
+
+    // Fill remaining option space with 0s
+    memset(optptr, 0, frame->data - optptr);
+
+    return hdr;
 }

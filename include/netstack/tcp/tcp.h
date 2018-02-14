@@ -144,6 +144,7 @@ struct tcp_sock {
     enum tcp_state state;
     bool opentype;              // Either TCP_ACTIVE_OPEN or TCP_PASSIVE_OPEN
     struct tcb tcb;
+    uint16_t mss;               // Defaults to TCP_DEF_MSS if not "negotiated"
 
     // Data buffers
     rbuf sndbuf;
@@ -190,7 +191,8 @@ struct tcp_sock {
 #define TCP_ACTIVE_OPEN     0x0
 #define TCP_PASSIVE_OPEN    0x1
 
-#define TCP_DEF_MSS     536
+#define TCP_DEF_MSS     536     // MSS conservative default as per RFC879
+                                // https://tools.ietf.org/html/rfc879
 #define TCP_MSL         60      // Maximum Segment Lifetime (in seconds)
 
 
@@ -225,6 +227,10 @@ static inline char *fmt_tcp_flags(struct tcp_hdr *hdr, char *buffer) {
 /* Returns the size in bytes of a header
  * hdr->hlen is 1 byte, soo 4x is 1 word size */
 #define tcp_hdr_len(hdr) ((uint16_t) ((hdr)->hlen * 4))
+
+#define tcp_mss_ipv4(intf) (uint16_t) ((intf)->mtu) - \
+                                sizeof(struct tcp_hdr) - \
+                                sizeof(struct ipv4_hdr)
 
 bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum,
              addr_t addr1, addr_t addr2);

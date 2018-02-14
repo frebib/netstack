@@ -16,7 +16,7 @@
 
 ## [include/netstack/tcp/tcp.h](include/netstack/tcp/tcp.h)
   - Line 47: Take endianness into account in tcp_hdr
-  - Line 168: Fix endianness in tcp.h
+  - Line 169: Fix endianness in tcp.h
 
 ## [lib/eth/arp.c](lib/eth/arp.c)
   - Line 160: Use hashtable for ARP lookups on IPv4
@@ -74,8 +74,9 @@
   - Line 140: Check for TSO and GRO and account for it, somehow..
   - Line 149: Other integrity checks
   - Line 158: Perform queued actions when reaching certain states
-  - Line 272: Choose a random unused outgoing port
-  - Line 277: Choose a secure initial sequence number
+  - Line 190: Make TCP MSS calculation IP-agnostic
+  - Line 276: Choose a random unused outgoing port
+  - Line 281: Choose a secure initial sequence number
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
   - Line 85: Send TCP RST for invalid connections
@@ -106,15 +107,12 @@
   - Line 995: Restore previous local address if it was set
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
-  - Line 17: Allow for tcp_hdr->hlen options
-  - Line 19: Vary hdr->wind in tcp_send()
-  - Line 26: Don't assume IPv4 L3, choose based on sock->saddr
-  - Line 36: Don't assume IPv4 pseudo-header for checksumming
-  - Line 42: Implement functionality to specify IP flags (different for IP4/6?)
-  - Line 54: Allocate space for TCP options
-  - Line 77: Implement MSS variability. Default MSS is quite small
-  - Line 84: Allocate space for TCP options
-  - Line 92: Start the retransmission timeout
+  - Line 20: Vary hdr->wind in tcp_send()
+  - Line 27: Don't assume IPv4 L3, choose based on sock->saddr
+  - Line 37: Don't assume IPv4 pseudo-header for checksumming
+  - Line 43: Implement functionality to specify IP flags (different for IP4/6?)
+  - Line 55: Allocate space for TCP options
+  - Line 89: Start the retransmission timeout
 
 ## [lib/tcp/tcpuser.c](lib/tcp/tcpuser.c)
   - Line 13: Handle sending SIGPIPE for dead connections to calling process
