@@ -12,7 +12,7 @@
 #include <netstack/col/llist.h>
 #include <netstack/timer.h>
 #include <netstack/inet.h>
-#include <netstack/ip/ipv4.h>
+#include <netstack/ip/neigh.h>
 #include <netstack/intf/intf.h>
 #include <netstack/lock/retlock.h>
 
@@ -409,17 +409,57 @@ void tcp_restore_listen(struct tcp_sock *sock);
  */
 
 /*!
- *
- * @param sock
- * @param frame
- * @return
+ * Computes the TCP header checksum for a complete TCP frame and sends it
+ * according to the route information in rt.
+ * @param sock TCP socket that the frame refers to
+ * @param frame frame to send
+ * @return 0 on success, negative error otherwise
  */
-int tcp_send(struct tcp_sock *sock, struct frame *frame);
+int tcp_send(struct tcp_sock *sock, struct frame *frame, struct neigh_route *rt);
 
+/*!
+ * Constructs and sends a TCP packet with an empty payload
+ * @param sock TCP socket to send a packet for
+ * @param seqn sequence number to put in the header
+ * @param ackn acknowledgement number to put in the header
+ * @param flags TCP state flags to set in the header
+ * @return 0 on success, negative error otherwise
+ */
 int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
                    uint8_t flags);
 
+/*!
+ * Constructs and sends a TCP packet with the largest payload available to send,
+ * or as much as can fit in a single packet, from the socket data send queue.
+ * @param sock TCP socket to send a packet for
+ * @param flags TCP state flags to set in the header
+ * @return >= 0: number of bytes sent, negative error otherwise
+ */
 int tcp_send_data(struct tcp_sock *sock, uint8_t flags);
+
+/*!
+ * Given an uninitialised frame, a TCP segment is formed, allocating space for
+ * data, header options and the header.
+ * @param seg   segment to initialise
+ * @param sock  socket to initialise segment for
+ * @param seqn sequence number to put in the header
+ * @param ackn acknowledgement number to put in the header
+ * @param flags TCP state flags to set in the header
+ * @param datalen largest payload size to allocate space for
+ * @return >= 0: number of bytes allocated for segment payload, negative error otherwise
+ */
+long tcp_init_header(struct frame *seg, struct tcp_sock *sock, uint32_t seqn,
+                     uint32_t ackn, uint8_t flags, size_t datalen);
+
+/*!
+ * Constructs a block of TCP options for a given socket
+ * @param sock socket to construct options for
+ * @param flags TCP state flags of segment header
+ * @param opt buffer for option data. Should be large enough to accommodate all
+ * header options (at most 40 bytes)
+ * @return un-padded length of option block written to opt
+ */
+size_t tcp_options(struct tcp_sock *sock, uint8_t flags, uint8_t *opt);
 
 /*!
  * Send a TCP ACK segment in the form

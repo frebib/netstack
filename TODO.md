@@ -60,10 +60,11 @@
   - Line 157: Make this user-configurable
 
 ## [lib/ip/neigh.c](lib/ip/neigh.c)
-  - Line 15: Take source address into route calculation
-  - Line 31: Perform correct route/hardware address lookups when appropriate
-  - Line 137: Rate limit ARP requests to prevent flooding
-  - Line 147: Use inet_socket for passing options to neighbour
+  - Line 17: Take source address into route calculation
+  - Line 32: Perform correct route/hardware address lookups when appropriate
+  - Line 55: Make ARP/NDP request now, instead of later to reduce waiting time
+  - Line 160: Rate limit ARP requests to prevent flooding
+  - Line 170: Use inet_socket for passing options to neighbour
 
 ## [lib/ip/route.c](lib/ip/route.c)
   - Line 30: Define how routes with the same metric should behave?
@@ -107,12 +108,12 @@
   - Line 998: Restore previous local address if it was set
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
-  - Line 20: Vary hdr->wind in tcp_send()
-  - Line 27: Don't assume IPv4 L3, choose based on sock->saddr
-  - Line 37: Don't assume IPv4 pseudo-header for checksumming
-  - Line 43: Implement functionality to specify IP flags (different for IP4/6?)
-  - Line 55: Allocate space for TCP options
-  - Line 89: Start the retransmission timeout
+  - Line 14: Don't assume IPv4 L3, choose based on sock->saddr
+  - Line 24: Don't assume IPv4 pseudo-header for checksumming
+  - Line 30: Implement functionality to specify IP flags (different for IP4/6?)
+  - Line 91: Start the retransmission timeout
+  - Line 114: Calculate IP layer options in tcp_send_data()
+  - Line 117: Take into account ethernet header variations, such as VLAN tags
 
 ## [lib/tcp/tcpuser.c](lib/tcp/tcpuser.c)
   - Line 13: Handle sending SIGPIPE for dead connections to calling process

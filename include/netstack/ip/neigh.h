@@ -32,20 +32,52 @@ struct queued_pkt {
 };
 
 /*!
- * Sends an IP packet to a neighbour, being the nexthop in the route.
+ * Stores intermediary routing information for a given destination address,
+ * optional source address and interface. This can be used to pre-determine
+ * routing information before actually sending the packet, removing the
+ * duplicated route lookup
+ */
+struct neigh_route {
+    struct intf *intf;      /* Routable interface of next-hop */
+    addr_t nexthop;         /* IP address of neighbouring host next-hop */
+    addr_t saddr;           /* Source address of route */
+    addr_t daddr;           /* Destination address of route*/
+    uint8_t flags;          /* Route flags: see <netstack/ip/route.h> */
+};
+
+/*!
+ * Resolves the route to the next-hop for a given destination address.
+ * Pass a pointer to a neigh_route struct with at least the daddr field set to
+ * the destination address of the route.
+ * Optionally, the intf and saddr fields can be filled out with supporting
+ * detail to persuade the route choice.
+ * Most importantly the intf and nexthop addresses are completed which are
+ * the bare minimum required for correctly routing a packet.
+ * @return the neigh_route struct, `out`, fully completed with route details.
+ */
+int neigh_find_route(struct neigh_route *out);
+
+/*!
+ * Sends an IP packet to a neighbour, being the next-hop in the route.
  * Given a destination address, a route is found and hardware address
  * looked-up and the packet is forwarded on.
- * Packets that cannot be dispatched straight away will be queued and sent as
- * soon as the required lower-layer information is available.
- * @param frame frame to send or queue
- * @param proto IP header protocol field
- * @param flags IP flags
- * @param daddr IP destination address
- * @param saddr IP source address (should belong to frame->intf
- * @return 0 on success, otherwise if error
+ * Directly calls neigh_find_route() and then neigh_send_to()
  */
 int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags,
                uint16_t sock_flags, addr_t *daddr, addr_t *saddr);
+
+/*!
+ * Sends an IP packet to a neighbour, as per the neigh_route structure.
+ * Packets that cannot be dispatched straight away will be queued and sent as
+ * soon as the required lower-layer information is available.
+ * @param rt    route information about nexthop
+ * @param frame frame to send or queue
+ * @param proto IP header protocol field
+ * @param flags IP flags
+ * @return 0 on success, otherwise if error
+ */
+int neigh_send_to(struct neigh_route *rt, struct frame *frame, uint8_t proto,
+                  uint16_t flags, uint16_t sock_flags);
 
 /*!
  * Updates the neighbour processing of a hardware address update that can be
