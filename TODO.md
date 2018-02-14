@@ -79,32 +79,32 @@
   - Line 281: Choose a secure initial sequence number
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
-  - Line 85: Send TCP RST for invalid connections
-  - Line 86: Optionally don't send TCP RST packets
-  - Line 156: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
-  - Line 259: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
-  - Line 314: Remove acknowledged segments from the retransmission queue
-  - Line 338: Send pending data it the sndbuf
-  - Line 362: If there are other controls or text in the segment,
-  - Line 458: Store out-of-order segments that are >RCV.NXT for later processing
-  - Line 484: Inform user of ECONNREFUSED
-  - Line 485: Clear retransmission queue
-  - Line 510: Interrupt user send() and recv() calls with ECONNRESET
-  - Line 511: Clear retransmission queue
-  - Line 530: Clear retransmission queue
-  - Line 596: Interrupt user send() and recv() calls with ECONNRESET
-  - Line 599: Clear retransmission queue
-  - Line 601: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
-  - Line 681: Remove any segments from the rtq that are ack'd
-  - Line 682: Inform any waiting send() calls when acknowledgements
-  - Line 689: Is sending an ACK here necessary?
-  - Line 698: Work out if our FIN was ACK'ed
-  - Line 719: Send success to waiting close() calls
-  - Line 935: Work out if 'our FIN has been ACKed'
-  - Line 939: stop other TCP timers in FIN-WAIT-2
-  - Line 953: stop other TCP timers in FIN-WAIT-2
-  - Line 994: Implement locking
-  - Line 995: Restore previous local address if it was set
+  - Line 88: Send TCP RST for invalid connections
+  - Line 89: Optionally don't send TCP RST packets
+  - Line 159: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
+  - Line 262: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
+  - Line 317: Remove acknowledged segments from the retransmission queue
+  - Line 341: Send pending data it the sndbuf
+  - Line 365: If there are other controls or text in the segment,
+  - Line 461: Store out-of-order segments that are >RCV.NXT for later processing
+  - Line 487: Inform user of ECONNREFUSED
+  - Line 488: Clear retransmission queue
+  - Line 513: Interrupt user send() and recv() calls with ECONNRESET
+  - Line 514: Clear retransmission queue
+  - Line 533: Clear retransmission queue
+  - Line 599: Interrupt user send() and recv() calls with ECONNRESET
+  - Line 602: Clear retransmission queue
+  - Line 604: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
+  - Line 684: Remove any segments from the rtq that are ack'd
+  - Line 685: Inform any waiting send() calls when acknowledgements
+  - Line 692: Is sending an ACK here necessary?
+  - Line 701: Work out if our FIN was ACK'ed
+  - Line 722: Send success to waiting close() calls
+  - Line 938: Work out if 'our FIN has been ACKed'
+  - Line 942: stop other TCP timers in FIN-WAIT-2
+  - Line 956: stop other TCP timers in FIN-WAIT-2
+  - Line 997: Implement locking
+  - Line 998: Restore previous local address if it was set
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
   - Line 20: Vary hdr->wind in tcp_send()

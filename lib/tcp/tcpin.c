@@ -72,8 +72,11 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
 
     // If the state is CLOSED (i.e., TCB does not exist) then
     if (sock->state == TCP_CLOSED) {
-        LOGFN(LDBUG, "[TCP] Reached TCP_CLOSED on %s:%hu",
-            straddr(&inet->locaddr), inet->remport);
+        struct log_trans t = LOG_TRANS(LDBUG);
+        LOGT(&t, "[TCP] Reached TCP_CLOSED on");
+        LOGT(&t, "%s:%hu -> ", straddr(&inet->remaddr), inet->remport);
+        LOGT(&t, "%s:%hu", straddr(&inet->locaddr), inet->locport);
+        LOGT_COMMITFN(&t);
 
         // all data in the incoming segment is discarded.  An incoming
         // segment containing a RST is discarded.  An incoming segment not
