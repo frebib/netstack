@@ -6,6 +6,7 @@
 
 #include <netstack/tcp/tcp.h>
 #include <netstack/checksum.h>
+#include <netstack/ip/route.h>
 
 llist_t tcp_sockets = LLIST_INITIALISER;
 
@@ -88,14 +89,15 @@ void tcp_ipv4_recv(struct frame *frame, struct ipv4_hdr *hdr) {
     if (sock == NULL) {
         LOG(LWARN, "[IPv4] Unrecognised incoming TCP connection");
         // Allocate a new socket to provide address to tcp_send_rst()
-        sock = tcp_sock_init(malloc(sizeof(struct tcp_sock)));
-        sock->state = TCP_CLOSED;
+        sock = malloc(sizeof(struct tcp_sock));
         sock->inet = (struct inet_sock) {
                 .remaddr = saddr,
                 .remport = sport,
                 .locaddr = daddr,
                 .locport = dport,
+                .intf = route_lookup(&saddr)->intf
         };
+        tcp_sock_init(sock);
         tcp_sock_lock(sock);
         llist_append(&tcp_sockets, sock);
     } else {

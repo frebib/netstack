@@ -62,48 +62,48 @@
 ## [lib/ip/neigh.c](lib/ip/neigh.c)
   - Line 15: Take source address into route calculation
   - Line 31: Perform correct route/hardware address lookups when appropriate
-  - Line 123: Rate limit ARP requests to prevent flooding
-  - Line 133: Use inet_socket for passing options to neighbour
+  - Line 137: Rate limit ARP requests to prevent flooding
+  - Line 147: Use inet_socket for passing options to neighbour
 
 ## [lib/ip/route.c](lib/ip/route.c)
   - Line 30: Define how routes with the same metric should behave?
 
 ## [lib/tcp/tcp.c](lib/tcp/tcp.c)
-  - Line 18: Work out why sometimes this is 0x0200 too small (in netwk byte-ord)
-  - Line 29: Use frame->sock for socket lookup
-  - Line 138: Check for TSO and GRO and account for it, somehow..
-  - Line 147: Other integrity checks
-  - Line 156: Perform queued actions when reaching certain states
-  - Line 270: Choose a random unused outgoing port
-  - Line 275: Choose a secure initial sequence number
+  - Line 19: Work out why sometimes this is 0x0200 too small (in netwk byte-ord)
+  - Line 30: Use frame->sock for socket lookup
+  - Line 140: Check for TSO and GRO and account for it, somehow..
+  - Line 149: Other integrity checks
+  - Line 158: Perform queued actions when reaching certain states
+  - Line 272: Choose a random unused outgoing port
+  - Line 277: Choose a secure initial sequence number
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
-  - Line 81: Send TCP RST for invalid connections
-  - Line 82: Optionally don't send TCP RST packets
-  - Line 152: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
-  - Line 255: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
-  - Line 310: Remove acknowledged segments from the retransmission queue
-  - Line 334: Send pending data it the sndbuf
-  - Line 358: If there are other controls or text in the segment,
-  - Line 454: Store out-of-order segments that are >RCV.NXT for later processing
-  - Line 480: Inform user of ECONNREFUSED
-  - Line 481: Clear retransmission queue
-  - Line 506: Interrupt user send() and recv() calls with ECONNRESET
-  - Line 507: Clear retransmission queue
-  - Line 526: Clear retransmission queue
-  - Line 592: Interrupt user send() and recv() calls with ECONNRESET
-  - Line 595: Clear retransmission queue
-  - Line 597: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
-  - Line 677: Remove any segments from the rtq that are ack'd
-  - Line 678: Inform any waiting send() calls when acknowledgements
-  - Line 685: Is sending an ACK here necessary?
-  - Line 694: Work out if our FIN was ACK'ed
-  - Line 715: Send success to waiting close() calls
-  - Line 931: Work out if 'our FIN has been ACKed'
-  - Line 935: stop other TCP timers in FIN-WAIT-2
-  - Line 949: stop other TCP timers in FIN-WAIT-2
-  - Line 990: Implement locking
-  - Line 991: Restore previous local address if it was set
+  - Line 85: Send TCP RST for invalid connections
+  - Line 86: Optionally don't send TCP RST packets
+  - Line 156: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
+  - Line 259: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
+  - Line 314: Remove acknowledged segments from the retransmission queue
+  - Line 338: Send pending data it the sndbuf
+  - Line 362: If there are other controls or text in the segment,
+  - Line 458: Store out-of-order segments that are >RCV.NXT for later processing
+  - Line 484: Inform user of ECONNREFUSED
+  - Line 485: Clear retransmission queue
+  - Line 510: Interrupt user send() and recv() calls with ECONNRESET
+  - Line 511: Clear retransmission queue
+  - Line 530: Clear retransmission queue
+  - Line 596: Interrupt user send() and recv() calls with ECONNRESET
+  - Line 599: Clear retransmission queue
+  - Line 601: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
+  - Line 681: Remove any segments from the rtq that are ack'd
+  - Line 682: Inform any waiting send() calls when acknowledgements
+  - Line 689: Is sending an ACK here necessary?
+  - Line 698: Work out if our FIN was ACK'ed
+  - Line 719: Send success to waiting close() calls
+  - Line 935: Work out if 'our FIN has been ACKed'
+  - Line 939: stop other TCP timers in FIN-WAIT-2
+  - Line 953: stop other TCP timers in FIN-WAIT-2
+  - Line 994: Implement locking
+  - Line 995: Restore previous local address if it was set
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
   - Line 17: Allow for tcp_hdr->hlen options
@@ -111,12 +111,10 @@
   - Line 26: Don't assume IPv4 L3, choose based on sock->saddr
   - Line 36: Don't assume IPv4 pseudo-header for checksumming
   - Line 42: Implement functionality to specify IP flags (different for IP4/6?)
-  - Line 48: Work out route interface before allocating buffer
-  - Line 55: Allocate space for TCP options
-  - Line 71: Work out route interface before allocating buffer
-  - Line 79: Implement MSS variability. Default MSS is quite small
-  - Line 86: Allocate space for TCP options
-  - Line 94: Start the retransmission timeout
+  - Line 54: Allocate space for TCP options
+  - Line 77: Implement MSS variability. Default MSS is quite small
+  - Line 84: Allocate space for TCP options
+  - Line 92: Start the retransmission timeout
 
 ## [lib/tcp/tcpuser.c](lib/tcp/tcpuser.c)
   - Line 13: Handle sending SIGPIPE for dead connections to calling process

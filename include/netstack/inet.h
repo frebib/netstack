@@ -10,6 +10,8 @@ struct inet_sock {
     addr_t remaddr;
     uint16_t locport;
     uint16_t remport;
+    struct intf *intf;      /* Interface is fixed per-socket as the address/port
+                              pairs define the socket, and thus the interface */
 };
 
 /*

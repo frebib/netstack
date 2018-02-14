@@ -34,9 +34,21 @@ int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags,
         return -EINVAL;
     }
 
-    // Set frame interface now it is known from route
-    struct intf *intf = rt->intf;
-    frame->intf = intf;
+    // Use interface specified in frame, regardless of route, if it is set
+    // This may seem strange, however there is likely a reason it has been
+    // overridden, even if it is an invalid/different intf for the route/daddr
+    struct intf *intf;
+    if (frame->intf != NULL) {
+        if (frame->intf != rt->intf) {
+            LOG(LWARN, "[ROUTE] route interface differs from the one in the "
+                "sending packet (%s != %s", rt->intf->name, frame->intf->name);
+        }
+        intf = frame->intf;
+    } else {
+        // Set frame interface now it is known from route
+        intf = rt->intf;
+        frame->intf = rt->intf;
+    }
 
     // If route is a gateway, send to the gateway, otherwise send directly
     addr_t *nexthop = (rt->flags & RT_GATEWAY) ? &rt->gwaddr : daddr;
@@ -44,10 +56,12 @@ int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags,
     if (saddr) {
         // Ensure the saddr passed is valid for the sending interface
         if (!intf_has_addr(intf, saddr)) {
-            LOG(LERR, "The requested address %s is invalid for "
+            LOG(LWARN, "The requested address %s is invalid for "
                     "interface %s", straddr(saddr), intf->name);
 
-            return -EADDRNOTAVAIL;
+            // It is not an error to send a packet with a mis-matched address,
+            // however strange it may seem, though, yes, it _is_ stupid.
+            //return -EADDRNOTAVAIL;
         }
     } else {
 

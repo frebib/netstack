@@ -62,6 +62,10 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     uint16_t seg_len = frame_data_len(frame);
     uint32_t seg_end = seg_seq + MAX(seg_len - 1, 0);
 
+    if (sock->inet.intf == NULL)
+        // Use incoming interface as known intf for socket
+        sock->inet.intf = frame->intf;
+
     // A segment is "in-order" if the sequence number is
     // the next one we expect to receive
     bool in_order = (seg_seq == tcb->rcv.nxt);

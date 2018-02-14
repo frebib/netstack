@@ -45,12 +45,11 @@ int tcp_send(struct tcp_sock *sock, struct frame *frame) {
 
 int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
                    uint8_t flags) {
-    // TODO: Work out route interface before allocating buffer
-    struct route_entry *rt = route_lookup(&sock->inet.remaddr);
 
-    size_t size = intf_max_frame_size(rt->intf);
-    struct frame *seg = intf_frame_new(rt->intf, size);
+    size_t size = intf_max_frame_size(sock->inet.intf);
+    struct frame *seg = intf_frame_new(sock->inet.intf, size);
     seg->head = seg->data;
+    seg->intf = sock->inet.intf;
 
     // TODO: Allocate space for TCP options
     struct tcp_hdr *hdr = frame_head_alloc(seg, sizeof(struct tcp_hdr));
@@ -68,12 +67,11 @@ int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
 }
 
 int tcp_send_data(struct tcp_sock *sock, uint8_t flags) {
-    // TODO: Work out route interface before allocating buffer
-    struct route_entry *rt = route_lookup(&sock->inet.remaddr);
 
-    size_t size = intf_max_frame_size(rt->intf);
-    struct frame *seg = intf_frame_new(rt->intf, size);
+    size_t size = intf_max_frame_size(sock->inet.intf);
+    struct frame *seg = intf_frame_new(sock->inet.intf, size);
     seg->head = seg->data;
+    seg->intf = sock->inet.intf;
 
     // https://tools.ietf.org/html/rfc793#section-3.7
     // TODO: Implement MSS variability. Default MSS is quite small
