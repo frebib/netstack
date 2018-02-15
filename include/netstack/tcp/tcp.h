@@ -194,24 +194,24 @@ struct tcp_sock {
 
 
 /* Returns a string of characters/dots representing a set/unset TCP flag */
-static inline char *fmt_tcp_flags(struct tcp_hdr *hdr, char *buffer) {
+static inline char *fmt_tcp_flags(uint8_t flags, char *buffer) {
     if (buffer == NULL) {
         return NULL;
     }
-    if (hdr == NULL) {
+    if (flags == 0) {
         buffer[0] = '\0';
         return buffer;
     }
 
     uint8_t count = 0;
-    if (hdr->flags.fin) buffer[count++] = 'F';
-    if (hdr->flags.syn) buffer[count++] = 'S';
-    if (hdr->flags.rst) buffer[count++] = 'R';
-    if (hdr->flags.psh) buffer[count++] = 'P';
-    if (hdr->flags.ack) buffer[count++] = 'A';
-    if (hdr->flags.urg) buffer[count++] = 'U';
-    if (hdr->flags.ece) buffer[count++] = 'E';
-    if (hdr->flags.cwr) buffer[count++] = 'C';
+    if (flags & TCP_FLAG_FIN) buffer[count++] = 'F';
+    if (flags & TCP_FLAG_SYN) buffer[count++] = 'S';
+    if (flags & TCP_FLAG_RST) buffer[count++] = 'R';
+    if (flags & TCP_FLAG_PSH) buffer[count++] = 'P';
+    if (flags & TCP_FLAG_ACK) buffer[count++] = 'A';
+    if (flags & TCP_FLAG_URG) buffer[count++] = 'U';
+    if (flags & TCP_FLAG_ECE) buffer[count++] = 'E';
+    if (flags & TCP_FLAG_CWR) buffer[count++] = 'C';
     buffer[count] = '\0';
 
     return buffer;

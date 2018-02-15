@@ -25,7 +25,7 @@ bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum,
         LOGT(trans, " (invalid 0x%04x)", ntohs(calc_csum));
 
     char sflags[9];
-    LOGT(trans, ", flags [%s]", fmt_tcp_flags(hdr, sflags));
+    LOGT(trans, ", flags [%s]", fmt_tcp_flags(hdr->flagval, sflags));
 
     // TODO: Use frame->sock for socket lookup
     uint16_t sport = htons(hdr->sport);
