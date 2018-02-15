@@ -61,10 +61,12 @@ int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags,
                uint16_t sock_flags, addr_t *daddr, addr_t *saddr) {
 
     struct neigh_route rt = {
-            .saddr = *saddr,
             .daddr = *daddr,
             .intf = frame->intf
     };
+    if (saddr != NULL)
+        rt.saddr = *saddr;
+
     return neigh_find_route(&rt) ||
            neigh_send_to(&rt, frame, proto, flags, sock_flags);
 }
