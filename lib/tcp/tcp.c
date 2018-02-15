@@ -187,9 +187,8 @@ struct tcp_sock *tcp_sock_init(struct tcp_sock *sock) {
     sock->state = TCP_CLOSED;
     sock->timewait = (timeout_t) {0};
     sock->tcb = (struct tcb) {0};
-    // TODO: Make TCP MSS calculation IP-agnostic
-    sock->mss = sock->inet.intf != NULL ?
-                    tcp_mss_ipv4(sock->inet.intf) : TCP_DEF_MSS;
+    // Use default MSS for outgoing send() calls
+    sock->mss = TCP_DEF_MSS;
     atomic_init(&sock->refcount, 1);
     pthread_mutex_init(&sock->lock, NULL);
     retlock_init(&sock->wait);

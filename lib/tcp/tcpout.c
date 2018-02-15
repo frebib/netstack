@@ -46,7 +46,8 @@ int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
 
     struct intf *intf = route.intf;
     struct frame *seg = intf_frame_new(intf, intf_max_frame_size(intf));
-    
+
+    // Send 0 datalen for empty packet
     long count = tcp_init_header(seg, sock, htonl(seqn), htonl(ackn), flags, 0);
     // < 0 indicates error
     if (count < 0)
@@ -154,21 +155,22 @@ size_t tcp_options(struct tcp_sock *sock, uint8_t tcp_flags, uint8_t *opt) {
     // Track the start pointer
     uint8_t *optstart = opt;
 
-    // Only send MSS option in SYN flags, if the MSS has been set
-    if ((tcp_flags & TCP_FLAG_SYN) && (sock->mss != TCP_DEF_MSS)) {
+    // Only send MSS option in SYN flags
+    uint16_t mss = tcp_mss_ipv4(sock->inet.intf);
+    if ((tcp_flags & TCP_FLAG_SYN) && (mss != TCP_DEF_MSS)) {
         // Maximum Segment Size option is 1+1+2 bytes:
         // https://tools.ietf.org/html/rfc793#page-19
-        LOG(LDBUG, "[TCP] MSS option enabled with mss = %hu", sock->mss);
+        LOG(LDBUG, "[TCP] MSS option enabled with mss = %hu", mss);
 
         *opt++ = TCP_OPT_MSS;
         *opt++ = TCP_OPT_MSS_LEN;
-        *((uint16_t *) opt) = htons(sock->mss);   // MSS value
+        *((uint16_t *) opt) = htons(mss);   // MSS value
         opt += 2;
     }
 
     // Length of options is delta
     uint64_t len = opt - optstart;
-    LOG(LVERB, "[TCP] options length %lu", len);
+    LOGFN(LVERB, "[TCP] options length %lu", len);
 
     return len;
 }

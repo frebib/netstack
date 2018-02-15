@@ -183,7 +183,6 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         */
 
             uint32_t iss = tcp_seqnum();
-            sock->mss = tcp_mss_ipv4(frame->intf);
             sock->tcb = (struct tcb) {
                     .irs = seg_seq,
                     .iss = ntohl(iss),
