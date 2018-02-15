@@ -16,7 +16,7 @@
 
 ## [include/netstack/tcp/tcp.h](include/netstack/tcp/tcp.h)
   - Line 47: Take endianness into account in tcp_hdr
-  - Line 169: Fix endianness in tcp.h
+  - Line 166: Fix endianness in tcp.h
 
 ## [lib/eth/arp.c](lib/eth/arp.c)
   - Line 160: Use hashtable for ARP lookups on IPv4
@@ -76,8 +76,8 @@
   - Line 149: Other integrity checks
   - Line 158: Perform queued actions when reaching certain states
   - Line 190: Make TCP MSS calculation IP-agnostic
-  - Line 276: Choose a random unused outgoing port
-  - Line 281: Choose a secure initial sequence number
+  - Line 271: Choose a random unused outgoing port
+  - Line 276: Choose a secure initial sequence number
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
   - Line 88: Send TCP RST for invalid connections
@@ -88,24 +88,21 @@
   - Line 342: Send pending data it the sndbuf
   - Line 366: If there are other controls or text in the segment,
   - Line 462: Store out-of-order segments that are >RCV.NXT for later processing
-  - Line 488: Inform user of ECONNREFUSED
   - Line 489: Clear retransmission queue
-  - Line 514: Interrupt user send() and recv() calls with ECONNRESET
   - Line 515: Clear retransmission queue
   - Line 534: Clear retransmission queue
-  - Line 600: Interrupt user send() and recv() calls with ECONNRESET
-  - Line 603: Clear retransmission queue
-  - Line 605: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
-  - Line 685: Remove any segments from the rtq that are ack'd
-  - Line 686: Inform any waiting send() calls when acknowledgements
-  - Line 693: Is sending an ACK here necessary?
-  - Line 702: Work out if our FIN was ACK'ed
-  - Line 723: Send success to waiting close() calls
-  - Line 939: Work out if 'our FIN has been ACKed'
-  - Line 943: stop other TCP timers in FIN-WAIT-2
-  - Line 957: stop other TCP timers in FIN-WAIT-2
-  - Line 998: Implement locking
-  - Line 999: Restore previous local address if it was set
+  - Line 604: Clear retransmission queue
+  - Line 606: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
+  - Line 686: Remove any segments from the rtq that are ack'd
+  - Line 687: Inform any waiting send() calls when acknowledgements
+  - Line 694: Is sending an ACK here necessary?
+  - Line 703: Work out if our FIN was ACK'ed
+  - Line 724: Send success to waiting close() calls
+  - Line 944: Work out if 'our FIN has been ACKed'
+  - Line 948: stop other TCP timers in FIN-WAIT-2
+  - Line 962: stop other TCP timers in FIN-WAIT-2
+  - Line 1003: Implement locking
+  - Line 1004: Restore previous local address if it was set
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
   - Line 14: Don't assume IPv4 L3, choose based on sock->saddr

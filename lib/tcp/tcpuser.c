@@ -83,9 +83,9 @@ int tcp_user_open(struct tcp_sock *sock) {
     // Wait for the connection to be established
     while (sock->state != TCP_ESTABLISHED && ret >= 0) {
 
-        // Take reference to openwait before releasing lock
+        // Take reference to wait before releasing lock
         // Hopefully this does not incur a race condition :/
-        retlock_t *wait = &sock->openwait;
+        retlock_t *wait = &sock->wait;
         // Unlock before going to sleep
         tcp_sock_unlock(sock);
 
@@ -192,7 +192,7 @@ int tcp_user_recv(struct tcp_sock *sock, void* data, size_t len, int flags) {
         case TCP_SYN_RECEIVED:
             // TODO: Wait here until there is something to recv
             tcp_sock_unlock(sock);
-            retlock_wait(&sock->recvwait, &err);
+            retlock_wait(&sock->wait, &err);
             ret = _tcp_user_recv_data(sock, data, len);
             break;
         case TCP_ESTABLISHED:
@@ -278,7 +278,7 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
 
             // Wait for some data then continue when some arrives
             LOGFN(LDBUG, "recvqueue has nothing ready. waiting to be woken up");
-            if ((ret = retlock_wait(&sock->recvwait, &err)))
+            if ((ret = retlock_wait(&sock->wait, &err)))
                 LOGE(LERR, "retlock_wait %s: ", strerror((int) ret));
 
             LOGFN(LDBUG, "tcp_user_recv woken with %d", err);
@@ -393,7 +393,7 @@ int tcp_user_close(struct tcp_sock *sock) {
             tcp_send_finack(sock);
             tcp_setstate(sock, TCP_FIN_WAIT_1);
             tcp_sock_unlock(sock);
-            retlock_wait(&sock->closewait, &ret);
+            retlock_wait(&sock->wait, &ret);
             tcp_sock_lock(sock);
             break;
         case TCP_CLOSE_WAIT:
@@ -402,7 +402,7 @@ int tcp_user_close(struct tcp_sock *sock) {
             tcp_send_finack(sock);
             tcp_setstate(sock, TCP_CLOSING);
             tcp_sock_unlock(sock);
-            retlock_wait(&sock->closewait, &ret);
+            retlock_wait(&sock->wait, &ret);
             tcp_sock_lock(sock);
             break;
         case TCP_CLOSING:

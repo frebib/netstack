@@ -158,11 +158,8 @@ struct tcp_sock {
     atomic_uint refcount;
     pthread_mutex_t lock;
 
-    // Thread wait locks
-    retlock_t openwait;
-    retlock_t closewait;
-    retlock_t sendwait;
-    retlock_t recvwait;
+    // Thread wait lock
+    retlock_t wait;
 };
 
 

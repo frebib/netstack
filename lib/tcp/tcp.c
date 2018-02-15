@@ -161,7 +161,7 @@ void _tcp_setstate(struct tcp_sock *sock, enum tcp_state state) {
     switch (state) {
         case TCP_CLOSING:
             // Signal EOF to any waiting recv() calls
-            retlock_broadcast(&sock->recvwait, 0);
+            retlock_broadcast(&sock->wait, 0);
             break;
         default:
             break;
@@ -192,9 +192,7 @@ struct tcp_sock *tcp_sock_init(struct tcp_sock *sock) {
                     tcp_mss_ipv4(sock->inet.intf) : TCP_DEF_MSS;
     atomic_init(&sock->refcount, 1);
     pthread_mutex_init(&sock->lock, NULL);
-    retlock_init(&sock->openwait);
-    retlock_init(&sock->sendwait);
-    retlock_init(&sock->recvwait);
+    retlock_init(&sock->wait);
     return sock;
 }
 
@@ -221,10 +219,7 @@ inline void tcp_sock_destroy(struct tcp_sock *sock) {
 void tcp_sock_cleanup(struct tcp_sock *sock) {
 
     // Set the open() return value and wake it up
-    retlock_broadcast(&sock->openwait, -ECONNABORTED);
-    retlock_broadcast(&sock->sendwait, -ECONNABORTED);
-    retlock_broadcast(&sock->recvwait, -ECONNABORTED);
-    retlock_broadcast(&sock->closewait, -ECONNABORTED);
+    retlock_broadcast(&sock->wait, -ECONNABORTED);
 
     switch (sock->state) {
         case TCP_SYN_SENT:
