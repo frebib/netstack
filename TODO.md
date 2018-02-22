@@ -121,7 +121,7 @@
   - Line 159: Signal sending thread and offload segmentation/transmission
   - Line 160: Check for MSG_MORE flag and don't trigger for a short while
   - Line 193: Wait here until there is something to recv
-  - Line 202: Send ACKs for data passed to the user (if specified)
+  - Line 201: Send ACKs for data passed to the user (if specified)
   - Line 223: Don't return EOF until recv'd up to FIN seqn
   - Line 354: Check for MSG_PEEK and conditionally don't do this
   - Line 375: tcp_close() request until all send() calls have completed

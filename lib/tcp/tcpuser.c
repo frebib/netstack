@@ -198,10 +198,10 @@ int tcp_user_recv(struct tcp_sock *sock, void* data, size_t len, int flags) {
         case TCP_ESTABLISHED:
         case TCP_FIN_WAIT_1:
         case TCP_FIN_WAIT_2:
-            tcp_sock_unlock(sock);
             // TODO: Send ACKs for data passed to the user (if specified)
             // Fall-through to CLOSE-WAIT
         case TCP_CLOSE_WAIT:
+            tcp_sock_unlock(sock);
             // Return value is # of bytes read
             ret = _tcp_user_recv_data(sock, data, len);
             break;
