@@ -67,8 +67,11 @@ int neigh_send(struct frame *frame, uint8_t proto, uint16_t flags,
     if (saddr != NULL)
         rt.saddr = *saddr;
 
-    return neigh_find_route(&rt) ||
-           neigh_send_to(&rt, frame, proto, flags, sock_flags);
+    int ret;
+    if ((ret = neigh_find_route(&rt)))
+        return ret;
+
+    return neigh_send_to(&rt, frame, proto, flags, sock_flags);
 }
 
 int neigh_send_to(struct neigh_route *rt, struct frame *frame, uint8_t proto,
