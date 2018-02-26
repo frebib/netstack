@@ -16,7 +16,6 @@ bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum,
     frame->data = frame->head + tcp_hdr_len(hdr);
     struct log_trans *trans = &log->t;
 
-    // TODO: Work out why sometimes this is 0x0200 too small (in netwk byte-ord)
     // Print and check checksum
     uint16_t pkt_csum = hdr->csum;
     uint16_t calc_csum = in_csum(hdr, frame_pkt_len(frame), net_csum) + hdr->csum;
