@@ -36,7 +36,7 @@ int rawsock_new(struct intf *interface) {
         return -1;
     }
 
-    // TODO: This is hacky, assuiming lo is loopback
+    // TODO: This is hacky, assuming lo is loopback
     // Request first non-loopback interface
     struct ifreq ifr;
     struct if_nameindex *if_ni = NULL,
