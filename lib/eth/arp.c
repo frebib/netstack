@@ -50,13 +50,14 @@ void arp_recv(struct frame *frame) {
             // this is good
             break;
         default:
-            LOG(LINFO, "ARP hardware %d not supported\n", ntohs(msg->hwtype));
+            LOGFN(LINFO, "ARP hardware %d not supported", ntohs(msg->hwtype));
     }
 
     // https://tools.ietf.org/html/rfc826
 
     struct arp_ipv4 *req;
-    switch (ntohs(msg->proto)) {
+    uint16_t proto = ntohs(msg->proto);
+    switch (proto) {
         case ETH_P_IP:
             // also good
             req = (struct arp_ipv4 *) frame->data;
@@ -95,8 +96,8 @@ void arp_recv(struct frame *frame) {
             }
             break;
         default:
-            LOG(LINFO, "ARP protocol %s not supported",
-                    fmt_ethertype(ntohs(msg->proto)));
+            LOG(LINFO, "ARP protocol %s (0x%04x) not supported",
+                    fmt_ethertype(proto), proto);
     };
 }
 

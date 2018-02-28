@@ -34,7 +34,7 @@ struct eth_hdr_vlan {
 
 /* Calculates ethernet header length, taking 802.11Q VLAN tags into account */
 #define ether_hdr_len(f)  sizeof(struct eth_hdr) + \
-                        (ntohs(eth_hdr(f)->ethertype) == ETH_P_VLAN ? 6 : 0)
+                        (ntohs(eth_hdr(f)->ethertype) == ETH_P_VLAN ? 4 : 0)
 
 bool ether_log(struct pkt_log *log, struct frame *frame);
 

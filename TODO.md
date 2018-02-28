@@ -19,12 +19,15 @@
   - Line 166: Fix endianness in tcp.h
 
 ## [lib/eth/arp.c](lib/eth/arp.c)
-  - Line 160: Use hashtable for ARP lookups on IPv4
-  - Line 171: ARP doesn't account for protocol addresses that change hw
-  - Line 238: Use hwtype to determine length and type of address
-  - Line 239: Change arp_send_req to handle other address types
-  - Line 315: Change arp_send_reply to handle other address types
-  - Line 321: Use hwtype to determine length and type of address
+  - Line 161: Use hashtable for ARP lookups on IPv4
+  - Line 172: ARP doesn't account for protocol addresses that change hw
+  - Line 239: Use hwtype to determine length and type of address
+  - Line 240: Change arp_send_req to handle other address types
+  - Line 316: Change arp_send_reply to handle other address types
+  - Line 322: Use hwtype to determine length and type of address
+
+## [lib/eth/ether.c](lib/eth/ether.c)
+  - Line 19: Check and compare intf->vlan to hdr->vlan and reject if no match
 
 ## [lib/frame.c](lib/frame.c)
   - Line 76: Deduplicate frame_decref_unlock() code

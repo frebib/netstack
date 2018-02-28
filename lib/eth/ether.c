@@ -16,6 +16,7 @@ bool ether_log(struct pkt_log *log, struct frame *frame) {
         LOGT(trans, "(out) ");
     else if (memcmp(hdr->daddr, intf->ll_addr, ETH_ADDR_LEN) == 0)
         LOGT(trans, "(in)  ");
+    // TODO: Check and compare intf->vlan to hdr->vlan and reject if no match
     else if (!ether_should_accept(hdr, intf))
         return false;
     else
@@ -28,14 +29,14 @@ bool ether_log(struct pkt_log *log, struct frame *frame) {
     if (memcmp(hdr->daddr, &ETH_BRD_ADDR, ETH_ADDR_LEN) == 0)
         LOGT(trans, "Broadcast ");
 
-    frame->data = frame->head + sizeof(struct eth_hdr);
     uint16_t ethertype = ntohs(hdr->ethertype);
     if (ethertype == ETH_P_VLAN) {
         struct eth_hdr_vlan *vhdr = (void *) hdr;
-        LOGT(trans, "VLAN %d ", vhdr->vlan);
         ethertype = ntohs(vhdr->ethertype);
-        frame->data += 6;
+        LOGT(trans, "VLAN %d, ", ntohs(vhdr->vlan));
     }
+
+    frame->data = frame->head + ether_hdr_len(frame);
     frame->head = frame->data;
     switch (ethertype) {
         case ETH_P_ARP:
@@ -48,11 +49,11 @@ bool ether_log(struct pkt_log *log, struct frame *frame) {
             LOGT(trans, "IPv6 unimpl ");
             return false;
         default: {
-            const char *ethertype = fmt_ethertype(ntohs(hdr->ethertype));
-            if (ethertype != NULL)
-                LOGT(trans, "unrecognised %s", ethertype);
+            const char *strethertype = fmt_ethertype(ethertype);
+            if (strethertype != NULL)
+                LOGT(trans, "unrecognised %s", strethertype);
             else
-                LOGT(trans, "unrecognised %04x", ntohs(hdr->ethertype));
+                LOGT(trans, "unrecognised 0x%04x", ethertype);
         }
     }
     return true;
