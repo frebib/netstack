@@ -3,6 +3,7 @@
 #include <string.h>
 #include <sysexits.h>
 #include <errno.h>
+#include <unistd.h>
 
 #ifdef _GNU_SOURCE
 #include <pthread.h>
@@ -13,14 +14,24 @@
 struct log_config logconf = {
         .streams = LLIST_INITIALISER,
         .lvlstr  = {
-                [LCRIT] = "CRITICAL",
+                [LCRIT] = "CRIT",
                 [LERR]  = "ERROR",
                 [LWARN] = "WARN",
-                [LNTCE] = "NOTICE",
+                [LNTCE] = "NTICE",
                 [LINFO] = "INFO",
                 [LDBUG] = "DEBUG",
                 [LVERB] = "VRBSE",
                 [LTRCE] = "TRACE",
+        },
+        .lvlcol  = {
+                [LCRIT] = COLOR_RED,
+                [LERR]  = COLOR_RED,
+                [LWARN] = COLOR_YELLOW,
+                [LNTCE] = COLOR_MAGENTA,
+                [LINFO] = COLOR_CYAN,
+                [LDBUG] = COLOR_GRAY,
+                [LVERB] = COLOR_GRAY,
+                [LTRCE] = COLOR_GRAY,
         },
         .lock = PTHREAD_MUTEX_INITIALIZER
 };
@@ -29,12 +40,12 @@ void log_default(struct log_config *conf) {
     // Add stdout/stderr streams
     struct log_stream *out = malloc(sizeof(struct log_stream));
     out->stream = stdout;
-    out->min = LNULL;
-    out->max = LWARN - 1;
+    out->min = LTRCE;
+    out->max = LNTCE - 1;
     llist_append(&logconf.streams, out);
     struct log_stream *err = malloc(sizeof(struct log_stream));
     err->stream = stderr;
-    err->min = LWARN;
+    err->min = LNTCE;
     err->max = loglvl_max - 1;
     llist_append(&logconf.streams, err);
 }
@@ -130,7 +141,15 @@ void VTLOGF(FILE *file, loglvl_t level, struct timespec *t, const char *fmt,
 #endif
 
     // Append log level to pre
-    prelen += snprintf(pre + prelen, maxlen, "[%s]\t", logconf.lvlstr[level]);
+    char *col = logconf.lvlcol[level];
+    bool print_color = isatty(fileno(file)) && col != NULL;
+
+    if (print_color) {
+        prelen += snprintf(pre + prelen, maxlen, "[%s%s" COLOR_RESET "]\t",
+                           col, logconf.lvlstr[level]);
+    }
+    else
+        prelen += snprintf(pre + prelen, maxlen, "[%s]\t", logconf.lvlstr[level]);
 
     // Produce formatted string
     size_t len = LOG_MAX;
@@ -142,8 +161,12 @@ void VTLOGF(FILE *file, loglvl_t level, struct timespec *t, const char *fmt,
     // Print to output file
     char *line, *tmp = str;
     // Print line-by-line using \n as delimiter
-    while ((line = strtok_r(NULL, "\n", &tmp)) != NULL)
-        fprintf(file, "%s%s\n", pre, line);
+    while ((line = strtok_r(NULL, "\n", &tmp)) != NULL) {
+        if (print_color)
+            fprintf(file, "%s%s%s" COLOR_RESET "\n", pre, col, line);
+        else
+            fprintf(file, "%s%s\n", pre, line);
+    }
     fflush(file);
 
     pthread_mutex_unlock(&logconf.lock);

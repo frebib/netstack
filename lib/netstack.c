@@ -9,6 +9,11 @@ int netstack_init(void) {
     // Initialise default logging with stdout & stderr
     log_default(&logconf);
     logconf.lvlstr[LFRAME] = "FRAME";
+    struct log_stream *fr = malloc(sizeof(struct log_stream));
+    fr->stream = stdout;
+    fr->min = LFRAME;
+    fr->max = LFRAME;
+    llist_append(&logconf.streams, fr);
 
     return 0;
 }

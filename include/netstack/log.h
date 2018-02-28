@@ -26,6 +26,7 @@ typedef uint8_t loglvl_t;
 struct log_config {
     llist_t streams;            /* Standard logging output */
     char *lvlstr[loglvl_max];   /* String representations of log levels */
+    char *lvlcol[loglvl_max];   /* String representations of log levels */
     pthread_mutex_t lock;
 };
 
@@ -60,6 +61,16 @@ struct pkt_log {
 #define LVERB 0x20
 #define LTRCE 0x10
 #define LNULL 0x00
+
+
+#define COLOR_RED     "\x1b[31m"
+#define COLOR_GREEN   "\x1b[32m"
+#define COLOR_YELLOW  "\x1b[33m"
+#define COLOR_BLUE    "\x1b[34m"
+#define COLOR_MAGENTA "\x1b[35m"
+#define COLOR_CYAN    "\x1b[36m"
+#define COLOR_GRAY    "\x1b[37m"
+#define COLOR_RESET   "\x1b[0m"
 
 
 /*!
