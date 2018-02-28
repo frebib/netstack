@@ -44,6 +44,11 @@
   - Line 159: Allocate a buffer from the interface for frame storage
   - Line 164: Find an appropriate size for the control buffer
 
+## [lib/intf/tap.c](lib/intf/tap.c)
+  - Line 31: Allow TUN/TAP name configuration
+  - Line 49: Fix TUN/TAP SIOCGIFMTU: EINVAL
+  - Line 95: Check for IFF_PI and allocate space for it
+
 ## [lib/ip/icmp.c](lib/ip/icmp.c)
   - Line 91: Don't assume IPv4 parent
   - Line 96: Find ICMP route
