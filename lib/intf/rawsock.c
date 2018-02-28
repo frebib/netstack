@@ -36,84 +36,80 @@ int rawsock_new(struct intf *interface) {
         return -1;
     }
 
-    // TODO: This is hacky, assuming lo is loopback
     // Request first non-loopback interface
-    struct ifreq ifr;
-    struct if_nameindex *if_ni = NULL,
-                        *if_ni_head = if_nameindex();
+    struct ifreq ifr = {0};
+    struct if_nameindex *if_ni, *if_ni_head = if_nameindex();
     if_ni = if_ni_head;
+    int ifrsock = socket(PF_INET6, SOCK_DGRAM, IPPROTO_IP);
     while (if_ni != NULL && if_ni->if_index != 0) {
 
-        // Check if the interface is 'up'
-        int ifrsock = socket(PF_INET6, SOCK_DGRAM, IPPROTO_IP);
-        memset(&ifr, 0, sizeof(ifr));
         strncpy(ifr.ifr_name, if_ni->if_name, IFNAMSIZ);
-        if (ioctl(ifrsock, SIOCGIFFLAGS, &ifr) < 0)
+        if (ioctl(ifrsock, SIOCGIFFLAGS, &ifr)) {
+            int err = errno;
             LOGERR("ioctl SIOCGIFFLAGS");
-        close(ifrsock);
-        if (!(ifr.ifr_flags & IFF_UP)) {
-            if_ni++;
-            continue;
+            if_freenameindex(if_ni_head);
+            close(ifrsock);
+            close(sock);
+            return err;
         }
-
-        if (strcmp(if_ni->if_name, "lo") != 0)
+        // Check if the interface is 'up'
+        if (ifr.ifr_flags & IFF_UP && !(ifr.ifr_flags & IFF_LOOPBACK))
             break;
+
+        // Keep looking
         if_ni++;
     }
+    close(ifrsock);
+
     if (if_ni == NULL) {
-        if_freenameindex(if_ni_head);
         close(sock);
         return -ENODEV;
     }
 
+    memset(interface->name, 0, IFNAMSIZ);
+    strncpy(interface->name, if_ni->if_name, IFNAMSIZ);
+    uint32_t ifindex = if_ni->if_index;
+    char *ifname = interface->name;
+    if_freenameindex(if_ni_head);
+
     // Bind to specific interface to prevent duplicate packet reception
     struct sockaddr_ll sa_ll = {
-            .sll_ifindex = if_ni->if_index,
+            .sll_ifindex = ifindex,
             .sll_family = AF_PACKET
     };
     if (bind(sock, (struct sockaddr *) &sa_ll, sizeof(sa_ll))) {
-        LOGERR("bind");
-        if_freenameindex(if_ni_head);
+        LOGERR("[RAWSOCK] bind");
         close(sock);
         return -1;
     }
+
+    struct ifreq req = {0};
+    strcpy(req.ifr_name, ifname);
 
     // Get chosen interface mac address
+    if (ioctl(sock, SIOCGIFHWADDR, &req)) {
+        close(sock);
+        return -1;
+    }
     uint8_t *hwaddr = malloc(IFHWADDRLEN);
-    struct ifreq req;
-    strcpy(req.ifr_name, if_ni->if_name);
-    if (ioctl(sock, SIOCGIFHWADDR, &req) == 0) {
-        memcpy(hwaddr, req.ifr_addr.sa_data, IFHWADDRLEN);
-    } else {
+    memcpy(hwaddr, req.ifr_addr.sa_data, IFHWADDRLEN);
+
+    if (ioctl(sock, SIOCGIFMTU, &req)) {
         free(hwaddr);
-        if_freenameindex(if_ni_head);
         close(sock);
         return -1;
     }
+    int mtu = req.ifr_mtu;
 
-    int mtu;
-    if (ioctl(sock, SIOCGIFMTU, &req) == 0) {
-        mtu = req.ifr_mtu;
-    } else {
-        free(hwaddr);
-        if_freenameindex(if_ni_head);
-        close(sock);
-        return -1;
-    }
-
-    LOG(LINFO, "Using interface (#%d) %s, mtu %d",
-        if_ni->if_index, if_ni->if_name, mtu);
+    LOG(LINFO, "Using interface (#%d) %s, mtu %d", ifindex, ifname, mtu);
 
     struct intf_rawsock *ll = malloc(sizeof(struct intf_rawsock));
     ll->sock = sock;
-    ll->if_index = if_ni->if_index;
+    ll->if_index = ifindex;
 
     interface->ll = ll;
     interface->ll_addr = hwaddr;
     interface->mtu = (size_t) mtu;
-    // Zero then copy interface name
-    memset(interface->name, 0, IFNAMSIZ);
-    memcpy(interface->name, if_ni->if_name, strlen(if_ni->if_name));
     interface->type = INTF_RAWSOCK;
     interface->proto = PROTO_ETHER;
     interface->free = rawsock_free;
@@ -121,8 +117,6 @@ int rawsock_new(struct intf *interface) {
     interface->send_frame = rawsock_send_frame;
     interface->new_buffer = intf_malloc_buffer;
     interface->free_buffer = intf_free_buffer;
-
-    if_freenameindex(if_ni_head);
 
     return 0;
 }

@@ -39,11 +39,10 @@
   - Line 230: Selectively choose an appropriate address from intf
 
 ## [lib/intf/rawsock.c](lib/intf/rawsock.c)
-  - Line 39: This is hacky, assuming lo is loopback
-  - Line 131: Move some of this cleanup logic into a generic intf_free() function
-  - Line 140: Ensure frames are destroyed, even if they still have references
-  - Line 165: Allocate a buffer from the interface for frame storage
-  - Line 170: Find an appropriate size for the control buffer
+  - Line 125: Move some of this cleanup logic into a generic intf_free() function
+  - Line 134: Ensure frames are destroyed, even if they still have references
+  - Line 159: Allocate a buffer from the interface for frame storage
+  - Line 164: Find an appropriate size for the control buffer
 
 ## [lib/ip/icmp.c](lib/ip/icmp.c)
   - Line 91: Don't assume IPv4 parent
