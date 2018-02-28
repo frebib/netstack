@@ -388,8 +388,8 @@ int tcp_user_close(struct tcp_sock *sock) {
             // Fall through to TCP_ESTABLISHED
         case TCP_ESTABLISHED:
             tcp_sock_incref(sock);
-            tcp_send_finack(sock);
             tcp_setstate(sock, TCP_FIN_WAIT_1);
+            tcp_send_finack(sock);
             tcp_sock_unlock(sock);
             retlock_wait(&sock->wait, &ret);
             tcp_sock_lock(sock);

@@ -95,7 +95,7 @@
   - Line 388: If there are other controls or text in the segment,
   - Line 480: Store out-of-order segments that are >RCV.NXT for later processing
   - Line 506: Clear retransmission queue
-  - Line 532: Clear retransmission queue
+  - Line 531: Clear retransmission queue
   - Line 551: Clear retransmission queue
   - Line 621: Clear retransmission queue
   - Line 623: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
@@ -104,9 +104,9 @@
   - Line 712: Is sending an ACK here necessary?
   - Line 721: Work out if our FIN was ACK'ed
   - Line 742: Send success to waiting close() calls
-  - Line 962: Work out if 'our FIN has been ACKed'
-  - Line 966: stop other TCP timers in FIN-WAIT-2
-  - Line 980: stop other TCP timers in FIN-WAIT-2
+  - Line 955: Work out if 'our FIN has been ACKed'
+  - Line 959: stop other TCP timers in FIN-WAIT-2
+  - Line 973: stop other TCP timers in FIN-WAIT-2
   - Line 1021: Implement locking
   - Line 1022: Restore previous local address if it was set
 

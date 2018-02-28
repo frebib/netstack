@@ -528,9 +528,9 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         case TCP_FIN_WAIT_2:
         case TCP_CLOSE_WAIT:
             if (seg->flags.rst == 1) {
-                retlock_broadcast(&sock->wait, -ECONNRESET);
                 // TODO: Clear retransmission queue
                 tcp_setstate(sock, TCP_CLOSED);
+                retlock_broadcast(&sock->wait, -ECONNRESET);
                 tcp_sock_destroy(sock);
                 ret = -ECONNRESET;
                 goto drop_pkt;
@@ -932,13 +932,6 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
       FIN implies PUSH for any segment text not yet delivered to the
       user.
     */
-        // Send 0 to pending recv() calls indicating EOF
-        retlock_signal(&sock->wait, 0);
-
-        tcb->rcv.nxt = seg_seq + 1;
-        LOGFN(LDBUG, "[TCP] Sending ACK");
-        ret = tcp_send_ack(sock);
-
         switch (sock->state) {
     /*
         SYN-RECEIVED STATE
@@ -1004,6 +997,13 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             default:
                 break;
         }
+
+        // Send 0 to pending recv() calls indicating EOF
+        retlock_signal(&sock->wait, 0);
+
+        tcb->rcv.nxt = seg_seq + 1;
+        LOGFN(LDBUG, "[TCP] Sending ACK");
+        ret = tcp_send_ack(sock);
     }
 
 drop_pkt:
