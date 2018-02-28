@@ -21,6 +21,13 @@ int retlock_unlock(retlock_t *lock) {
     return -pthread_mutex_unlock(&lock->lock);
 }
 
+int retlock_wait_bare(retlock_t *lock, int *value) {
+    int ret = pthread_cond_wait(&lock->wait, &lock->lock);
+    if (value != NULL)
+        *value = lock->val;
+    return ret;
+}
+
 int retlock_wait(retlock_t *lock, int *value) {
     int ret;
     if ((ret = retlock_lock(lock)))
@@ -85,6 +92,11 @@ int retlock_broadcast_nolock(retlock_t *lock, int value) {
     if ((ret = pthread_cond_broadcast(&lock->wait)))
         return -ret;
     return retlock_unlock(lock);
+}
+
+int retlock_broadcast_bare(retlock_t *lock, int value) {
+    lock->val = value;
+    return pthread_cond_broadcast(&lock->wait);
 }
 
 int pthread_cond_reltimedwait(pthread_cond_t *__restrict cond,

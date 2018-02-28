@@ -152,7 +152,7 @@ void _tcp_setstate(struct tcp_sock *sock, enum tcp_state state) {
         case TCP_CLOSE_WAIT:
             // Signal EOF to any waiting recv() calls
             LOGFN(LTRCE, "[TCP] Waking all waiting user calls");
-            retlock_broadcast(&sock->wait, 0);
+            retlock_broadcast_bare(&sock->wait, 0);
             break;
         default:
             break;
@@ -187,7 +187,6 @@ struct tcp_sock *tcp_sock_init(struct tcp_sock *sock) {
     // Use default MSS for outgoing send() calls
     sock->mss = TCP_DEF_MSS;
     atomic_init(&sock->refcount, 1);
-    pthread_mutex_init(&sock->lock, NULL);
     retlock_init(&sock->wait);
     return sock;
 }
@@ -202,6 +201,10 @@ inline void tcp_sock_free(struct tcp_sock *sock) {
     if (sock->sndbuf.size > 0)
         rbuf_destroy(&sock->sndbuf);
 
+    if (tcp_sock_trylock(sock) != EBUSY) {
+        LOGFN(LERR, "[TCP] tcp_sock_free() called on unlocked socket!");
+        return;
+    }
     tcp_sock_unlock(sock);
 
     free(sock);
@@ -246,17 +249,15 @@ uint tcp_sock_incref(struct tcp_sock *sock) {
     return atomic_fetch_add(&sock->refcount, 1);
 }
 
-uint tcp_sock_decref(struct tcp_sock *sock) {
+uint _tcp_sock_decref(struct tcp_sock *sock, const char *file, int line, const char *func) {
     // Subtract and destroy socket if no more refs held
     uint refcnt;
     if ((refcnt = atomic_fetch_sub(&sock->refcount, 1)) == 1) {
-        LOG(LDBUG, "dereferencing sock %p", sock);
-        tcp_sock_unlock(sock);
+        LOG(LDBUG, "[TCP] dereferencing sock %p" ": %s:%u<%s>", sock,
+            file, line, func);
         tcp_sock_destroy(sock);
-    } else {
-        tcp_sock_unlock(sock);
     }
-    return refcnt;
+    return refcnt - 1;
 }
 
 /*

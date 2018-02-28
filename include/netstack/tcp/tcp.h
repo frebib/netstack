@@ -165,7 +165,6 @@ struct tcp_sock {
 
     // Reference counting & shared-locking
     atomic_uint refcount;
-    pthread_mutex_t lock;
 
     // Thread wait lock
     retlock_t wait;
@@ -327,11 +326,29 @@ uint tcp_sock_incref(struct tcp_sock *sock);
  * free'd. This function should be called with the sock->lock held.
  * Note: The shared lock sock->lock is released by this function
  */
-uint tcp_sock_decref(struct tcp_sock *sock);
+uint _tcp_sock_decref(struct tcp_sock *sock, const char *file, int line, const char *func);
 
-#define tcp_sock_lock(sock) pthread_mutex_lock(&(sock)->lock)
+#define tcp_sock_decref(sock) _tcp_sock_decref(sock, __FILE__, __LINE__, __func__)
 
-#define tcp_sock_unlock(sock) pthread_mutex_unlock(&(sock)->lock)
+#define tcp_sock_decref_unlock(sock) \
+    if (tcp_sock_decref(sock) > 0) { \
+        tcp_sock_unlock_safe(sock); \
+    }
+
+#define tcp_sock_lock(sock) pthread_mutex_lock(&(sock)->wait.lock)
+
+#define tcp_sock_trylock(sock) pthread_mutex_trylock(&(sock)->wait.lock)
+
+#define tcp_sock_unlock(sock) pthread_mutex_unlock(&(sock)->wait.lock)
+
+#define tcp_sock_unlock_safe(sock) { \
+    int _trylock_ret = tcp_sock_trylock(sock); \
+    /* Unlock if the lock was just obtained or if it was already locked */ \
+    if (_trylock_ret == 0 || _trylock_ret == EBUSY) { \
+        LOGFN(LINFO, "tcp_sock_unlock_safe"); \
+        tcp_sock_unlock(sock); \
+    } \
+}
 
 
 /*

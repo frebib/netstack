@@ -41,6 +41,14 @@ int retlock_trylock(retlock_t *lock);
 int retlock_unlock(retlock_t *lock);
 
 /*!
+ * Waits for the lock condition and obtains the value but
+ * does NOT lock or unlock the mutex
+ * @param value pointer to write the returned value when the lock releases
+ * @return see pthread_cond_wait(3P)
+ */
+int retlock_wait_bare(retlock_t *lock, int *value);
+
+/*!
  * Waits for the lock to be signalled from another thread
  * @param value pointer to write the returned value when the lock releases
  * @return see pthread_cond_wait(3P)
@@ -109,6 +117,17 @@ int retlock_broadcast(retlock_t *lock, int value);
  * @return see pthread_cond_signal(3P)
  */
 int retlock_broadcast_nolock(retlock_t *lock, int value);
+
+/*!
+ * Broadcasts to all waiting threads with a value
+ * Note: Does not lock the mutex before waiting or after signalling!
+ * It is required for the user to call retlock_lock before
+ * and retlock_unlock after calling this function.
+ * @param value return value to send to waiting thread
+ * @return see pthread_cond_signal(3P)
+ */
+int retlock_broadcast_bare(retlock_t *lock, int value);
+
 
 
 int pthread_cond_reltimedwait(pthread_cond_t *__restrict cond,
