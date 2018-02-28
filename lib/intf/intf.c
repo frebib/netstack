@@ -178,7 +178,7 @@ int intf_init(struct intf *intf) {
     intf->arptbl = (llist_t) LLIST_INITIALISER;
     intf->sendq = (llist_t) LLIST_INITIALISER;
 
-    LOG(LDBUG, "Creating threads\n");
+    LOG(LDBUG, "Creating threads");
 
     // Concatenate interface name before thread name
     size_t len = 32;
@@ -186,10 +186,10 @@ int intf_init(struct intf *intf) {
     int end = snprintf(temp, len, "%s/", intf->name);
     // Create threads
     pthread_t *th_ids = intf->threads;
-    pthread_create_named(&th_ids[INTF_THR_SEND], strncat(temp, "send", len),
+    pthread_create_named(&th_ids[INTF_THR_SEND], strncat(temp, "snd", len),
                          &_intf_send_thread, intf);
     temp[end] = '\0';   // Reset string end
-    pthread_create_named(&th_ids[INTF_THR_RECV], strncat(temp, "recv", len),
+    pthread_create_named(&th_ids[INTF_THR_RECV], strncat(temp, "rcv", len),
                          &_intf_recv_thread, intf);
     temp[end] = '\0';
 
