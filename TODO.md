@@ -99,16 +99,16 @@
   - Line 551: Clear retransmission queue
   - Line 621: Clear retransmission queue
   - Line 623: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
-  - Line 703: Remove any segments from the rtq that are ack'd
-  - Line 704: Inform any waiting send() calls when acknowledgements
-  - Line 711: Is sending an ACK here necessary?
-  - Line 720: Work out if our FIN was ACK'ed
-  - Line 741: Send success to waiting close() calls
-  - Line 961: Work out if 'our FIN has been ACKed'
-  - Line 965: stop other TCP timers in FIN-WAIT-2
-  - Line 979: stop other TCP timers in FIN-WAIT-2
-  - Line 1020: Implement locking
-  - Line 1021: Restore previous local address if it was set
+  - Line 704: Remove any segments from the rtq that are ack'd
+  - Line 705: Inform any waiting send() calls when acknowledgements
+  - Line 712: Is sending an ACK here necessary?
+  - Line 721: Work out if our FIN was ACK'ed
+  - Line 742: Send success to waiting close() calls
+  - Line 962: Work out if 'our FIN has been ACKed'
+  - Line 966: stop other TCP timers in FIN-WAIT-2
+  - Line 980: stop other TCP timers in FIN-WAIT-2
+  - Line 1021: Implement locking
+  - Line 1022: Restore previous local address if it was set
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
   - Line 14: Don't assume IPv4 L3, choose based on sock->saddr
@@ -134,7 +134,7 @@
   - Line 373: tcp_close() request until all send() calls have completed
   - Line 387: Check for pending send() calls
   - Line 398: If unsent data, queue sending FIN/ACK on CLOSING
-  - Line 469: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
+  - Line 472: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
   - Line 16: Add many configurable interfaces

@@ -397,8 +397,11 @@ int tcp_user_close(struct tcp_sock *sock) {
         case TCP_CLOSE_WAIT:
             // TODO: If unsent data, queue sending FIN/ACK on CLOSING
             tcp_sock_incref(sock);
+            // RFC 1122: Section 4.2.2.20 (a)
+            // TCP event processing corrections
+            // https://tools.ietf.org/html/rfc1122#page-93
+            tcp_setstate(sock, TCP_LAST_ACK);
             tcp_send_finack(sock);
-            tcp_setstate(sock, TCP_CLOSING);
             tcp_sock_unlock(sock);
             retlock_wait(&sock->wait, &ret);
             tcp_sock_lock(sock);

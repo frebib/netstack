@@ -696,9 +696,10 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         case TCP_FIN_WAIT_2:
         case TCP_CLOSE_WAIT:
         case TCP_CLOSING:
-            // This differs from tcp_ack_acceptable() on the first </<=
-            if (tcb->snd.una < seg_ack &&
-                seg_ack <= tcb->snd.nxt) {
+            // RFC 1122: Section 4.2.2.20 (g)
+            // TCP event processing corrections
+            // https://tools.ietf.org/html/rfc1122#page-94
+            if (tcp_ack_acceptable(tcb, seg_ack)) {
                 tcb->snd.una = seg_ack;
                 // TODO: Remove any segments from the rtq that are ack'd
                 // TODO: Inform any waiting send() calls when acknowledgements
