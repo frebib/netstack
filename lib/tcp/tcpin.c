@@ -35,6 +35,171 @@ void expand_escapes(char* dest, const char* src, size_t len) {
     *dest = '\0'; /* Ensure NULL terminator */
 }
 
+void tcp_recv_closed(struct frame *frame, struct tcp_hdr *seg) {
+
+    // If the state is CLOSED (i.e., TCB does not exist) then
+    struct log_trans t = LOG_TRANS(LDBUG);
+    LOGT(&t, "[TCP] Reached TCP_CLOSED on ");
+    LOGT(&t, "%s:%hu -> ", straddr(&frame->remaddr), frame->remport);
+    LOGT(&t, "%s:%hu", straddr(&frame->locaddr), frame->locport);
+    LOGT_COMMITFN(&t);
+
+    // all data in the incoming segment is discarded.  An incoming
+    // segment containing a RST is discarded.  An incoming segment not
+    // containing a RST causes a RST to be sent in response.  The
+    // acknowledgment and sequence field values are selected to make the
+    // reset sequence acceptable to the TCP that sent the offending
+    // segment.
+
+    // TODO: Optionally don't send TCP RST packets
+
+    // tcp_send_* functions only use sock->inet
+    struct tcp_sock sock = { .inet = {
+            .locport = frame->locport,
+            .locaddr = frame->locaddr,
+            .remport = frame->remport,
+            .remaddr = frame->remaddr,
+            .intf = frame->intf
+    } };
+
+    if (seg->flags.ack != 1) {
+        // If the ACK bit is off, sequence number zero is used,
+        // <SEQ=0><ACK=SEG.SEQ+SEG.LEN><CTL=RST,ACK>
+        LOGFN(LDBUG, "[TCP] Sending RST/ACK");
+        tcp_send_rstack(&sock, 0, ntohl(seg->seqn) + frame_data_len(frame) + 1);
+    } else {
+        // If the ACK bit is on,
+        // <SEQ=SEG.ACK><CTL=RST>
+        LOGFN(LDBUG, "[TCP] Sending RST");
+        tcp_send_rst(&sock, ntohl(seg->ackn));
+    }
+}
+
+void tcp_recv_listen(struct frame *frame, struct tcp_sock *parent,
+                     struct tcp_hdr *seg) {
+
+    LOGFN(LDBUG, "[TCP] Reached TCP_LISTEN on %s:%hu",
+          straddr(&frame->remaddr), frame->remport);
+
+    // tcp_send_* functions only use sock->inet
+    struct tcp_sock sock = { .inet = {
+            .locport = frame->locport,
+            .locaddr = frame->locaddr,
+            .remport = frame->remport,
+            .remaddr = frame->remaddr,
+            .intf = frame->intf
+    } };
+
+    /*
+      first check for an RST
+
+        An incoming RST should be ignored.  Return.
+    */
+    if (seg->flags.rst == 1) {
+        return;
+    }
+    /*
+      second check for an ACK
+
+        Any acknowledgment is bad if it arrives on a connection still in
+        the LISTEN state.  An acceptable reset segment should be formed
+        for any arriving ACK-bearing segment.  The RST should be
+        formatted as follows:
+
+          <SEQ=SEG.ACK><CTL=RST>
+
+        Return.
+    */
+    if (seg->flags.ack == 1) {
+        LOGFN(LDBUG, "[TCP] Sending RST");
+        tcp_send_rst(&sock, ntohl(seg->ackn));
+        return;
+    }
+    /*
+      third check for a SYN
+
+        If the SYN bit is set, check the security.  If the
+        security/compartment on the incoming segment does not exactly
+        match the security/compartment in the TCB then send a reset and
+        return.
+
+          <SEQ=SEG.ACK><CTL=RST>
+    */
+    if (seg->flags.syn != 1) {
+        return;
+    }
+
+
+    // Incoming 'frame' is SYN frame
+
+    // TODO: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
+
+    /*
+        If the SEG.PRC is greater than the TCB.PRC then if allowed by
+        the user and the system set TCB.PRC<-SEG.PRC, if not allowed
+        send a reset and return.
+
+          <SEQ=SEG.ACK><CTL=RST>
+
+        If the SEG.PRC is less than the TCB.PRC then continue.
+
+        Set RCV.NXT to SEG.SEQ+1, IRS is set to SEG.SEQ and any other
+        control or text should be queued for processing later.  ISS
+        should be selected and a SYN segment sent of the form:
+
+          <SEQ=ISS><ACK=RCV.NXT><CTL=SYN,ACK>
+
+        SND.NXT is set to ISS+1 and SND.UNA to ISS.  The connection
+        state should be changed to SYN-RECEIVED.  Note that any other
+        incoming control or data (combined with SYN) will be processed
+        in the SYN-RECEIVED state, but processing of SYN and ACK should
+        not be repeated.  If the listen was not fully specified (i.e.,
+        the foreign socket was not fully specified), then the
+        unspecified fields should be filled in now.
+    */
+
+    uint32_t iss = ntohl(tcp_seqnum());
+    uint32_t seg_seq = ntohl(seg->seqn);
+
+    struct tcp_sock *client = tcp_sock_init(calloc(1, sizeof(struct tcp_sock)));
+    client->inet.locport = frame->locport;
+    client->inet.locaddr = frame->locaddr;
+    client->inet.remport = frame->remport;
+    client->inet.remaddr = frame->remaddr;
+    client->inet.intf = frame->intf;
+    client->tcb = (struct tcb) {
+            .irs = seg_seq,
+            .iss = iss,
+            .snd = {
+                    .una = iss,
+                    .nxt = iss + 1,
+                    .wnd = ntohs(seg->wind)
+            },
+            .rcv = {
+                    .nxt = seg_seq + 1,
+                    .wnd = UINT16_MAX
+            }
+    };
+    tcp_setstate(client, TCP_SYN_RECEIVED);
+    client->parent = parent;
+    llist_push(&tcp_sockets, client);
+
+    // Send SYN/ACK and drop incoming segment
+    LOGFN(LDBUG, "[TCP] Sending SYN/ACK");
+    tcp_send_synack(client);
+
+    /*
+      fourth other text or control
+
+        Any other control or text-bearing segment (not containing SYN)
+        must have an ACK and thus would be discarded by the ACK
+        processing.  An incoming RST segment could not be valid, since
+        it could not have been sent in response to anything sent by this
+        incarnation of the connection.  So you are unlikely to get here,
+        but if you do, drop the segment, and return.
+     */
+}
+
 /*
  * Initial TCP input routine, after packet sanity checks in tcp_recv()
  *
@@ -70,153 +235,9 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     // the next one we expect to receive
     bool in_order = (seg_seq == tcb->rcv.nxt);
 
-    // If the state is CLOSED (i.e., TCB does not exist) then
-    if (sock->state == TCP_CLOSED) {
-        struct log_trans t = LOG_TRANS(LDBUG);
-        LOGT(&t, "[TCP] Reached TCP_CLOSED on");
-        LOGT(&t, "%s:%hu -> ", straddr(&inet->remaddr), inet->remport);
-        LOGT(&t, "%s:%hu", straddr(&inet->locaddr), inet->locport);
-        LOGT_COMMITFN(&t);
-
-        // all data in the incoming segment is discarded.  An incoming
-        // segment containing a RST is discarded.  An incoming segment not
-        // containing a RST causes a RST to be sent in response.  The
-        // acknowledgment and sequence field values are selected to make the
-        // reset sequence acceptable to the TCP that sent the offending
-        // segment.
-
-        // TODO: Send TCP RST for invalid connections
-        // TODO: Optionally don't send TCP RST packets
-
-        if (seg->flags.ack != 1) {
-            // If the ACK bit is off, sequence number zero is used,
-            // <SEQ=0><ACK=SEG.SEQ+SEG.LEN><CTL=RST,ACK>
-            LOGFN(LDBUG, "[TCP] Sending RST/ACK");
-            ret = tcp_send_rstack(sock, 0, seg_seq + frame_data_len(frame) + 1);
-        } else {
-            // If the ACK bit is on,
-            // <SEQ=SEG.ACK><CTL=RST>
-            LOGFN(LDBUG, "[TCP] Sending RST");
-            ret = tcp_send_rst(sock, seg_ack);
-        }
-        tcp_sock_destroy(sock);
-
-        // Return.
-        goto drop_pkt;
-    }
-
-    switch (sock->state) {
-        // If the state is LISTEN then
-        case TCP_LISTEN:
-            LOGFN(LDBUG, "[TCP] Reached TCP_LISTEN on %s:%hu",
-                fmtip4(inet->locaddr.ipv4), inet->remport);
-
-        /*
-          first check for an RST
-
-            An incoming RST should be ignored.  Return.
-        */
-            if (seg->flags.rst == 1) {
-                tcp_restore_listen(sock);
-                goto drop_pkt;
-            }
-        /*
-          second check for an ACK
-
-            Any acknowledgment is bad if it arrives on a connection still in
-            the LISTEN state.  An acceptable reset segment should be formed
-            for any arriving ACK-bearing segment.  The RST should be
-            formatted as follows:
-
-              <SEQ=SEG.ACK><CTL=RST>
-
-            Return.
-        */
-            if (seg->flags.ack == 1) {
-                LOGFN(LDBUG, "[TCP] Sending RST");
-                ret = tcp_send_rst(sock, seg_ack);
-                tcp_restore_listen(sock);
-                goto drop_pkt;
-            }
-        /*
-          third check for a SYN
-
-            If the SYN bit is set, check the security.  If the
-            security/compartment on the incoming segment does not exactly
-            match the security/compartment in the TCB then send a reset and
-            return.
-
-              <SEQ=SEG.ACK><CTL=RST>
-        */
-            if (seg->flags.syn != 1) {
-                tcp_restore_listen(sock);
-                goto drop_pkt;
-            }
-
-
-            // Incoming 'frame' is SYN frame
-
-            // TODO: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
-
-        /*
-            If the SEG.PRC is greater than the TCB.PRC then if allowed by
-            the user and the system set TCB.PRC<-SEG.PRC, if not allowed
-            send a reset and return.
-
-              <SEQ=SEG.ACK><CTL=RST>
-
-            If the SEG.PRC is less than the TCB.PRC then continue.
-
-            Set RCV.NXT to SEG.SEQ+1, IRS is set to SEG.SEQ and any other
-            control or text should be queued for processing later.  ISS
-            should be selected and a SYN segment sent of the form:
-
-              <SEQ=ISS><ACK=RCV.NXT><CTL=SYN,ACK>
-
-            SND.NXT is set to ISS+1 and SND.UNA to ISS.  The connection
-            state should be changed to SYN-RECEIVED.  Note that any other
-            incoming control or data (combined with SYN) will be processed
-            in the SYN-RECEIVED state, but processing of SYN and ACK should
-            not be repeated.  If the listen was not fully specified (i.e.,
-            the foreign socket was not fully specified), then the
-            unspecified fields should be filled in now.
-        */
-
-            uint32_t iss = tcp_seqnum();
-            sock->tcb = (struct tcb) {
-                    .irs = seg_seq,
-                    .iss = ntohl(iss),
-                    .snd = {
-                            .nxt = ntohl(iss) + 1
-                    },
-                    .rcv = {
-                            .nxt = seg_seq + 1,
-                            .wnd = UINT16_MAX
-                    }
-            };
-            tcp_setstate(sock, TCP_SYN_RECEIVED);
-
-            // Send SYN/ACK and drop incoming segment
-            LOGFN(LDBUG, "[TCP] Sending SYN/ACK");
-            ret = tcp_send_synack(sock);
-            goto drop_pkt;
-
-        /*
-          fourth other text or control
-
-            Any other control or text-bearing segment (not containing SYN)
-            must have an ACK and thus would be discarded by the ACK
-            processing.  An incoming RST segment could not be valid, since
-            it could not have been sent in response to anything sent by this
-            incarnation of the connection.  So you are unlikely to get here,
-            but if you do, drop the segment, and return.
-         */
-            goto drop_pkt;
-
-            // If the state is SYN-SENT then
-        case TCP_SYN_SENT:
-            LOGFN(LDBUG, "[TCP] Reached SYN-SENT on %s:%hu",
-                straddr(&inet->remaddr), inet->remport);
+    if (sock->state == TCP_SYN_SENT) {
+        LOGFN(LDBUG, "[TCP] Reached SYN-SENT on %s:%hu",
+              straddr(&inet->remaddr), inet->remport);
         /*
           first check the ACK bit
 
@@ -231,16 +252,16 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
 
               If SND.UNA =< SEG.ACK =< SND.NXT then the ACK is acceptable.
         */
-            if (seg->flags.ack == 1) {
-                if (tcp_seq_lt(seg_ack, tcb->iss) ||
-                    tcp_seq_gt(seg_ack, tcb->snd.nxt)) {
-                     if (seg->flags.rst != 1) {
-                         LOGFN(LDBUG, "[TCP] Sending RST");
-                         ret = tcp_send_rst(sock, seg_ack);
-                     }
-                    goto drop_pkt;
+        if (seg->flags.ack == 1) {
+            if (tcp_seq_lt(seg_ack, tcb->iss) ||
+                tcp_seq_gt(seg_ack, tcb->snd.nxt)) {
+                if (seg->flags.rst != 1) {
+                    LOGFN(LDBUG, "[TCP] Sending RST");
+                    ret = tcp_send_rst(sock, seg_ack);
                 }
+                goto drop_pkt;
             }
+        }
         /*
           second check the RST bit
           If the RST bit is set
@@ -251,13 +272,13 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
               and return.
 
         */
-            if (seg->flags.rst == 1) {
-                if (tcp_ack_acceptable(tcb, seg_ack)) {
-                    tcp_setstate(sock, TCP_CLOSED);
-                    retlock_signal(&sock->wait, -ECONNREFUSED);
-                }
-                goto drop_pkt;
+        if (seg->flags.rst == 1) {
+            if (tcp_ack_acceptable(tcb, seg_ack)) {
+                tcp_setstate(sock, TCP_CLOSED);
+                retlock_signal(&sock->wait, -ECONNREFUSED);
             }
+            goto drop_pkt;
+        }
 
         // TODO: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
         /*
@@ -308,47 +329,49 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             is an ACK), and any segments on the retransmission queue which
             are thereby acknowledged should be removed.
         */
-            if (seg->flags.syn == 1) {
-                tcb->rcv.nxt = seg_seq + 1;
-                tcb->irs = seg_seq;
-                if (tcp_ack_acceptable(tcb, seg_ack))
-                    tcb->snd.una = seg_ack;
+        if (seg->flags.syn == 1) {
+            tcb->rcv.nxt = seg_seq + 1;
+            tcb->irs = seg_seq;
+            if (tcp_ack_acceptable(tcb, seg_ack))
+                tcb->snd.una = seg_ack;
 
-             // TODO: Remove acknowledged segments from the retransmission queue
+            // TODO: Remove acknowledged segments from the retransmission queue
 
-        /*
-            If SND.UNA > ISS (our SYN has been ACKed), change the connection
-            state to ESTABLISHED, form an ACK segment
+            /*
+                If SND.UNA > ISS (our SYN has been ACKed), change the connection
+                state to ESTABLISHED, form an ACK segment
 
-              <SEQ=SND.NXT><ACK=RCV.NXT><CTL=ACK>
+                  <SEQ=SND.NXT><ACK=RCV.NXT><CTL=ACK>
 
-            and send it.  Data or controls which were queued for
-            transmission may be included.  If there are other controls or
-            text in the segment then continue processing at the sixth step
-            below where the URG bit is checked, otherwise return.
-        */
-                if (tcb->snd.una > tcb->iss) {
+                and send it.  Data or controls which were queued for
+                transmission may be included.  If there are other controls or
+                text in the segment then continue processing at the sixth step
+                below where the URG bit is checked, otherwise return.
+            */
+            if (tcb->snd.una > tcb->iss) {
 
-                    // RFC 1122: Section 4.2.2.20 (c)
-                    // TCP event processing corrections
-                    // https://tools.ietf.org/html/rfc1122#page-94
-                    tcp_update_wnd(tcb, seg);
+                // TODO: Parse incoming TCP options for MSS value
 
-                    // Initialise established connection
-                    tcp_established(sock, seg);
+                // RFC 1122: Section 4.2.2.20 (c)
+                // TCP event processing corrections
+                // https://tools.ietf.org/html/rfc1122#page-94
+                tcp_update_wnd(tcb, seg);
 
-                    LOGFN(LDBUG, "[TCP] Sending ACK");
-                    // TODO: Send pending data it the sndbuf
-                    ret = tcp_send_ack(sock);
+                // Initialise established connection
+                tcp_established(sock, seg);
 
-                    // Signal the open() call if it's waiting for us
-                    if (retlock_broadcast(&sock->wait, 0)) {
-                        LOGERR("pthread_cond_signal");
-                    }
+                LOGFN(LDBUG, "[TCP] Sending ACK");
+                // TODO: Send pending data it the sndbuf
+                ret = tcp_send_ack(sock);
 
-                    goto drop_pkt;
+                // Signal the open() call if it's waiting for us
+                if (retlock_broadcast(&sock->wait, 0)) {
+                    LOGERR("pthread_cond_signal");
                 }
+
+                goto drop_pkt;
             }
+        }
         /*
             Otherwise enter SYN-RECEIVED, form a SYN,ACK segment
 
@@ -358,21 +381,17 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             segment, queue them for processing after the ESTABLISHED state
             has been reached, return.
         */
-            tcp_setstate(sock, TCP_SYN_RECEIVED);
-            LOGFN(LDBUG, "[TCP] Sending SYN/ACK");
-            ret = tcp_send_synack(sock);
+        tcp_setstate(sock, TCP_SYN_RECEIVED);
+        LOGFN(LDBUG, "[TCP] Sending SYN/ACK");
+        ret = tcp_send_synack(sock);
 
-            // TODO: If there are other controls or text in the segment,
-            // queue them for processing after the ESTABLISHED state is reached
-            goto drop_pkt;
+        // TODO: If there are other controls or text in the segment,
+        // queue them for processing after the ESTABLISHED state is reached
+        goto drop_pkt;
         /*
           fifth, if neither of the SYN or RST bits is set then drop the
           segment and return.
         */
-
-        // Handle all remaining cases to suppress (-Werror=switch)
-        default:
-            break;
     }
 
     /*
@@ -481,14 +500,13 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     */
         case TCP_SYN_RECEIVED:
             if (seg->flags.rst == 1) {
-                if (sock->opentype == TCP_PASSIVE_OPEN) {
-                    tcp_restore_listen(sock);
-                } else {
+                // If backlog list is NULL, socket is ACTIVE open
+                if (sock->passive == NULL) {
                     retlock_broadcast(&sock->wait, -ECONNREFUSED);
                     // TODO: Clear retransmission queue
-                    tcp_sock_destroy(sock);
                     ret = -ECONNREFUSED;
                 }
+                tcp_sock_destroy(sock);
                 goto drop_pkt;
             }
             break;

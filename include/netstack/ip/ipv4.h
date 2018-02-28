@@ -6,6 +6,8 @@
 #include <netstack/intf/intf.h>
 #include <netstack/ip/ipproto.h>
 
+struct frame;
+
 /*
     Source: https://tools.ietf.org/html/rfc791#page-11
 

@@ -34,9 +34,8 @@ int tcp_user_open(struct tcp_sock *sock) {
       state, and return.
     */
 
-    if (sock == NULL) {
+    if (sock == NULL)
         return -ENOTSOCK;
-    }
 
     // Ensure socket cannot be free'd until this lock is released
     tcp_sock_lock(sock);
@@ -61,7 +60,6 @@ int tcp_user_open(struct tcp_sock *sock) {
             break;
     }
 
-    sock->opentype = TCP_ACTIVE_OPEN;
     sock->inet.locport = tcp_randomport();
     // TODO: Fill out 'user timeout' information
 
@@ -111,9 +109,8 @@ int tcp_user_open(struct tcp_sock *sock) {
 }
 
 int tcp_user_send(struct tcp_sock *sock, void *data, size_t len, int flags) {
-    if (sock == NULL) {
+    if (sock == NULL)
         return -ENOTSOCK;
-    }
 
     // Ensure socket cannot be free'd until this lock is released
     tcp_sock_lock(sock);
@@ -267,6 +264,7 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
             }
 
             if (sock->state == TCP_CLOSE_WAIT) {
+                LOGFN(LTRCE, "[TCP] sock->state hit CLOSE-WAIT. Returning EOF");
                 // We have hit EOF. No more data to recv()
                 tcp_sock_unlock(sock);
                 // Zero signifies EOF
@@ -420,4 +418,63 @@ int tcp_user_close(struct tcp_sock *sock) {
 
     tcp_sock_decref(sock);
     return ret;
+}
+
+int tcp_user_listen(struct tcp_sock *sock, size_t backlog) {
+    if (sock == NULL)
+        return -ENOTSOCK;
+
+    // Move socket to end of socket list
+    // Listening sockets should be the last thing to looked-up
+    pthread_mutex_lock(&tcp_sockets.lock);
+    llist_remove_nolock(&tcp_sockets, sock);
+    llist_append_nolock(&tcp_sockets, sock);
+    pthread_mutex_unlock(&tcp_sockets.lock);
+
+    tcp_sock_lock(sock);
+
+    tcp_setstate(sock, TCP_LISTEN);
+    sock->passive = malloc(sizeof(struct tcp_passive));
+    *sock->passive = (struct tcp_passive) {
+        .maxbacklog = backlog,
+        .backlog = LLIST_INITIALISER,
+    };
+
+    tcp_sock_unlock(sock);
+
+    return 0;
+}
+
+int tcp_user_accept(struct tcp_sock *sock, struct tcp_sock **client) {
+    if (sock == NULL)
+        return -ENOTSOCK;
+
+    tcp_sock_lock(sock);
+    // EINVAL: Socket is not listening for connections
+    if (client == NULL || sock->passive == NULL)
+        return -EINVAL;
+
+    // Initialise value to NULL to prevent unitialised errors
+    // We can't/shouldn't assume the user will initialise the memory
+    *client = NULL;
+
+    while (*client == NULL) {
+
+        // Check to see if there is an established socket ready to accept
+        if ((*client = llist_pop(&sock->passive->backlog)) != NULL) {
+            LOGFN(LNTCE, "[TCP] Accepting client from backlog");
+            break;
+        }
+
+        // TODO: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
+
+        LOGFN(LNTCE, "[TCP] No connections ready to be accepted. Waiting..");
+
+        tcp_sock_unlock(sock);
+        retlock_wait(&sock->wait, NULL);
+        tcp_sock_lock(sock);
+    }
+
+    tcp_sock_unlock(sock);
+    return 0;
 }

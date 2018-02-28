@@ -128,6 +128,9 @@ void ipv4_recv(struct frame *frame) {
     // Push IP into protocol stack
     frame_layer_push(frame, PROTO_IPV4);
 
+    frame->remaddr = (addr_t) {.proto = PROTO_IPV4, .ipv4 = ntohl(hdr->saddr)};
+    frame->locaddr = (addr_t) {.proto = PROTO_IPV4, .ipv4 = ntohl(hdr->daddr)};
+
     frame->head = frame->data;
     switch (hdr->proto) {
         case IP_P_TCP:

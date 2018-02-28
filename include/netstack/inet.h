@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <netstack/addr.h>
 #include <netstack/ip/ipv4.h>
+#include <netstack/intf/intf.h>
 
 struct inet_sock {
     addr_t locaddr;
@@ -12,6 +13,7 @@ struct inet_sock {
     uint16_t remport;
     struct intf *intf;      /* Interface is fixed per-socket as the address/port
                               pairs define the socket, and thus the interface */
+    uint16_t flags;         /* Socket-level options */
 };
 
 /*
@@ -36,6 +38,7 @@ struct inet_ipv4_phdr {
 }__attribute((packed));
 
 
+struct ipv4_hdr;
 uint16_t inet_ipv4_csum(struct ipv4_hdr *hdr);
 
 /*!

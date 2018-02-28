@@ -75,49 +75,31 @@ void tcp_log_recvqueue(struct tcp_sock *sock) {
 }
 
 void tcp_ipv4_recv(struct frame *frame, struct ipv4_hdr *hdr) {
+
     struct tcp_hdr *tcp_hdr = tcp_hdr(frame);
-    uint16_t sport = htons(tcp_hdr->sport);
-    uint16_t dport = htons(tcp_hdr->dport);
-    addr_t saddr = {.proto = PROTO_IPV4, .ipv4 = ntohl(hdr->saddr)};
-    addr_t daddr = {.proto = PROTO_IPV4, .ipv4 = ntohl(hdr->daddr)};
-    struct tcp_sock *sock = tcp_sock_lookup(&saddr, &daddr, sport, dport);
+    frame->remport = htons(tcp_hdr->sport);
+    frame->locport = htons(tcp_hdr->dport);
+    struct tcp_sock *sock =
+            tcp_sock_lookup(&frame->remaddr, &frame->locaddr,
+                             frame->remport,  frame->locport);
 
     // https://blog.cloudflare.com/syn-packet-handling-in-the-wild
 
     // No (part/complete) established connection was found
     if (sock == NULL) {
-        LOG(LWARN, "[IPv4] Unrecognised incoming TCP connection");
-        // Allocate a new socket to provide address to tcp_send_rst()
-        sock = malloc(sizeof(struct tcp_sock));
-        sock->inet = (struct inet_sock) {
-                .remaddr = saddr,
-                .remport = sport,
-                .locaddr = daddr,
-                .locport = dport,
-                .intf = route_lookup(&saddr)->intf
-        };
-        tcp_sock_init(sock);
-        tcp_sock_lock(sock);
-        llist_append(&tcp_sockets, sock);
+        LOGFN(LWARN, "[IPv4] Unrecognised incoming TCP connection");
     } else {
-        // Always lock the socket
-        tcp_sock_lock(sock);
-
-        if (sock->state == TCP_LISTEN) {
-            // Set peer addresses on LISTENing sockets
-            sock->inet.remaddr = saddr;
-            sock->inet.remport = sport;
-            sock->inet.locaddr = daddr;
-        }
+        LOGFN(LWARN, "[TCP] Socket in state %s", tcp_strstate(sock->state));
+        tcp_sock_incref(sock);
     }
-    tcp_sock_incref(sock);
-
     /* Pass initial network csum as TCP packet csum seed */
     tcp_recv(frame, sock, inet_ipv4_csum(hdr));
 
     // Decrement sock refcount and unlock
-    tcp_sock_decref(sock);
+    if (sock != NULL)
+        tcp_sock_decref(sock);
 }
+
 
 void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {
 
@@ -138,7 +120,7 @@ void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {
 
     // TODO: Check for TSO and GRO and account for it, somehow..
     if (in_csum(frame->head, frame_pkt_len(frame), net_csum) != 0) {
-        LOG(LTRCE, "Dropping TCP packet with invalid checksum!");
+        LOGFN(LTRCE, "Dropping TCP packet with invalid checksum!");
         goto drop_pkt;
     }
 
@@ -147,7 +129,15 @@ void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {
 
     // TODO: Other integrity checks
 
-    tcp_seg_arr(frame, sock);
+    // Parse segment TCP options
+    // TODO: Parse incoming TCP segment options
+
+    if (sock == NULL || sock->state == TCP_CLOSED)
+        tcp_recv_closed(frame, hdr);
+    else if (sock->state == TCP_LISTEN)
+        tcp_recv_listen(frame, sock, hdr);
+    else
+        tcp_seg_arr(frame, sock);
 
     drop_pkt:
     return;
@@ -159,7 +149,9 @@ void _tcp_setstate(struct tcp_sock *sock, enum tcp_state state) {
 
     switch (state) {
         case TCP_CLOSING:
+        case TCP_CLOSE_WAIT:
             // Signal EOF to any waiting recv() calls
+            LOGFN(LTRCE, "[TCP] Waking all waiting user calls");
             retlock_broadcast(&sock->wait, 0);
             break;
         default:
@@ -172,7 +164,7 @@ void tcp_established(struct tcp_sock *sock, struct tcp_hdr *seg) {
     tcp_setstate(sock, TCP_ESTABLISHED);
 
     // Set the initial recv value to the first byte in stream
-    sock->recvptr = ntohl(seg->seqn) + 1;
+    sock->recvptr = ntohl(seg->seqn);
     LOG(LTRCE, "[TCP] set recvptr to %u", sock->recvptr);
 
     // Allocate send/receive buffers
@@ -180,10 +172,16 @@ void tcp_established(struct tcp_sock *sock, struct tcp_hdr *seg) {
     rbuf_init(&sock->sndbuf, sock->tcb.snd.wnd, BYTE);
     LOG(LDBUG, "[TCP] Allocated SND.WND %hu, RCV.WND %hu",
         sock->tcb.snd.wnd, sock->tcb.rcv.wnd);
+
+    // If socket was PASSIVE open, notify the parent socket if waiting on accept()
+    if (sock->parent != NULL) {
+        llist_append(&sock->parent->passive->backlog, sock);
+        retlock_broadcast(&sock->parent->wait, 1);
+    }
 }
 
 struct tcp_sock *tcp_sock_init(struct tcp_sock *sock) {
-    sock->state = TCP_CLOSED;
+    sock->passive = NULL;
     sock->timewait = (timeout_t) {0};
     sock->tcb = (struct tcb) {0};
     // Use default MSS for outgoing send() calls

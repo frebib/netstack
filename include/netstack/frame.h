@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdatomic.h>
 #include <time.h>
+#include <netstack/inet.h>
 #include <netstack/proto.h>
 #include <netstack/col/alist.h>
 #include <netstack/intf/intf.h>
@@ -32,6 +33,11 @@ ARRAYLIST_DEFINE(frame_stack, struct frame_layer);
 
 struct frame {
     struct intf *intf;      /* Always present for incoming packets */
+    addr_t   locaddr;
+    addr_t   remaddr;
+    uint16_t locport;
+    uint16_t remport;
+
     struct timespec time;   /* Send/recv time for frame */
     frame_stack_t layer;    /* Arraylist of protocol layers in frame, ordered */
     size_t buf_sz;
@@ -44,6 +50,7 @@ struct frame {
     pthread_rwlock_t lock;
     atomic_uint refcount;
 };
+
 
 /*!
  * Shifts the head and data pointers backwards by size

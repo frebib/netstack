@@ -139,12 +139,21 @@ static const char *tcp_strstate(enum tcp_state state) {
     }
 }
 
+struct tcp_passive {
+    size_t maxbacklog;          // Maximum amount of backlog clients acceptable
+    llist_t backlog;            // List of clients waiting to be accept'ed.
+};
+
 struct tcp_sock {
     struct inet_sock inet;
     enum tcp_state state;
-    bool opentype;              // Either TCP_ACTIVE_OPEN or TCP_PASSIVE_OPEN
     struct tcb tcb;
+    union {
+        struct tcp_passive *passive;// Non-NULL when the connection is PASSIVE (LISTEN)
+        struct tcp_sock *parent;
+    };
     uint16_t mss;               // Defaults to TCP_DEF_MSS if not "negotiated"
+                                // MSS for _outgoing_ send() calls only!
 
     // Data buffers
     rbuf sndbuf;
@@ -384,6 +393,12 @@ uint32_t tcp_recvqueue_contigseq(struct tcp_sock *sock, uint32_t init);
  * See: tcpin.c
  */
 void expand_escapes(char* dest, const char* src, size_t len);
+
+void tcp_recv_closed(struct frame *frame, struct tcp_hdr *seg);
+
+void tcp_recv_listen(struct frame *frame, struct tcp_sock *sock,
+                     struct tcp_hdr *seg);
+
 int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock);
 
 /*!
@@ -509,7 +524,8 @@ size_t tcp_options(struct tcp_sock *sock, uint8_t flags, uint8_t *opt);
  * See: tcpuser.c
  */
 int tcp_user_open(struct tcp_sock *sock);
-int tcp_user_accept(struct tcp_sock *sock);
+int tcp_user_listen(struct tcp_sock *sock, size_t backlog);
+int tcp_user_accept(struct tcp_sock *sock, struct tcp_sock **client);
 int tcp_user_send(struct tcp_sock *sock, void *data, size_t len, int flags);
 int tcp_user_recv(struct tcp_sock *sock, void* data, size_t len, int flags);
 int tcp_user_close(struct tcp_sock *sock);
