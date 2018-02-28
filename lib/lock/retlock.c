@@ -32,7 +32,8 @@ int retlock_wait_nolock(retlock_t *lock, int *value) {
     int ret;
     if ((ret = pthread_cond_wait(&lock->wait, &lock->lock) != 0))
         return -ret;
-    *value = lock->val;
+    if (value != NULL)
+        *value = lock->val;
     return retlock_unlock(lock);
 }
 
@@ -48,9 +49,11 @@ int retlock_timedwait_nolock(retlock_t *lock, struct timespec *t, int *value) {
     if (ret != 0) {
         if (ret != ETIMEDOUT)
             LOGSE(LERR, "pthread_cond_timedwait", ret);
+        retlock_unlock(lock);
         return ret;
     }
-    *value = lock->val;
+    if (value != NULL)
+        *value = lock->val;
     return retlock_unlock(lock);
 }
 
