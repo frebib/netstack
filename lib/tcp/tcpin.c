@@ -1,15 +1,17 @@
 #include <stdlib.h>
 #include <errno.h>
-#include <sys/param.h>
+#include <ctype.h>
 
+#include <sys/param.h>
 #include <netinet/in.h>
 
 #include <netstack/tcp/tcp.h>
 
 
-void expand_escapes(char* dest, const char* src, size_t len) {
+void expand_escapes(char *dest, const char *src, size_t len) {
     char c;
-    while (len-- > 0 && (c = *(src++))) {
+    while (len-- > 0) {
+        c = *(src++);
         switch(c) {
             case '\a': *(dest++) = '\\'; *(dest++) = 'a';
                 break;
@@ -29,7 +31,9 @@ void expand_escapes(char* dest, const char* src, size_t len) {
                 break;
             case '\"': *(dest++) = '\\'; *(dest++) = '\"';
                 break;
-            default:   *(dest++) = c;
+            case '\0': *(dest++) = '\\'; *(dest++) = '0';
+                break;
+            default:   *(dest++) = isprint(c) ? c : '?';
         }
     }
     *dest = '\0'; /* Ensure NULL terminator */
