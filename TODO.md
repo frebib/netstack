@@ -63,8 +63,8 @@
   - Line 112: Take options into account here
   - Line 119: Other integrity checks
   - Line 121: Change to `if (!ipv4_should_accept(frame))` to accept other packets
-  - Line 152: Dynamically allocate IPv4 header space
-  - Line 160: Make this user-configurable
+  - Line 154: Dynamically allocate IPv4 header space
+  - Line 162: Make this user-configurable
 
 ## [lib/ip/neigh.c](lib/ip/neigh.c)
   - Line 17: Take source address into route calculation

@@ -148,6 +148,8 @@ void ipv4_recv(struct frame *frame) {
 int ipv4_send(struct frame *frame, uint8_t proto, uint16_t flags,
               ip4_addr_t daddr, ip4_addr_t saddr, addr_t *hwaddr) {
 
+    frame_lock(frame, SHARED_RW);
+
     // Construct IPv4 header
     // TODO: Dynamically allocate IPv4 header space
     struct ipv4_hdr *hdr = frame_head_alloc(frame, sizeof(struct ipv4_hdr));

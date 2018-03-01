@@ -191,9 +191,6 @@ int neigh_send_to(struct neigh_route *rt, struct frame *frame, uint8_t proto,
                 LOGFN(LDBUG, "Requesting hwaddr for %s, (wait %lds)",
                       straddr(&rt->nexthop), to.tv_sec);
 
-                // Unlock the frame before pausing thread to prevent deadlock
-                frame_unlock(frame);
-
                 // Wait for packet to be sent, or timeout to occur
                 err = retlock_timedwait_nolock(&pending->retwait, &to, &ret);
 
@@ -250,9 +247,6 @@ void neigh_update_hwaddr(struct intf *intf, addr_t *daddr, addr_t *hwaddr) {
             // Remove queued packet from queue and unlock list
             llist_remove_nolock(&intf->neigh_outqueue, tosend);
             pthread_mutex_unlock(&intf->neigh_outqueue.lock);
-
-            // Lock the frame for writing so it can be written to
-            frame_lock(tosend->frame, SHARED_RW);
 
             // Send the queued frame!
             int ret = ipv4_send(tosend->frame, tosend->proto, tosend->flags,
