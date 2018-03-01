@@ -157,14 +157,16 @@ void llist_insert_sorted_nolock(llist_t *list, void *data,
 }
 
 void *llist_peek(llist_t *list) {
-    if (!list)
-        return NULL;
-    void *data = NULL;
     pthread_mutex_lock(&list->lock);
-    if (list->head)
-        data = list->head->data;
+    void *data = llist_peek_nolock(list);
     pthread_mutex_unlock(&list->lock);
     return data;
+}
+
+void *llist_peek_nolock(llist_t *list) {
+    return (list != NULL && list->head != NULL)
+                ? list->head->data
+                : NULL;
 }
 
 ssize_t llist_contains(llist_t *list, void *data) {

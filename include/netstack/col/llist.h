@@ -117,6 +117,7 @@ ssize_t llist_remove(llist_t *list, void *data);
 void llist_append_nolock(llist_t *list, void *data);
 void llist_push_nolock(llist_t *list, void *data);
 void *llist_pop_nolock(llist_t *list);
+void *llist_peek_nolock(llist_t *list);
 void *llist_pop_last_nolock(llist_t *list);
 void llist_insert_sorted_nolock(llist_t *list, void *data,
                                 int (*cmp)(void *, void *));
