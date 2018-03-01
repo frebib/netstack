@@ -175,7 +175,6 @@ void tcp_established(struct tcp_sock *sock, struct tcp_hdr *seg) {
 
     // If socket was PASSIVE open, notify the parent socket if waiting on accept()
     if (sock->parent != NULL) {
-        llist_append(&sock->parent->passive->backlog, sock);
         retlock_broadcast(&sock->parent->wait, 1);
     }
 }

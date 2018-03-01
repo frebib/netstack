@@ -82,8 +82,8 @@
   - Line 130: Other integrity checks
   - Line 133: Parse incoming TCP segment options
   - Line 147: Perform queued actions when reaching certain states
-  - Line 268: Choose a random unused outgoing port
-  - Line 273: Choose a secure initial sequence number
+  - Line 267: Choose a random unused outgoing port
+  - Line 272: Choose a secure initial sequence number
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
   - Line 54: Optionally don't send TCP RST packets
