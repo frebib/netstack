@@ -187,6 +187,7 @@ void tcp_recv_listen(struct frame *frame, struct tcp_sock *parent,
     tcp_setstate(client, TCP_SYN_RECEIVED);
     client->parent = parent;
     llist_push(&tcp_sockets, client);
+    llist_append(&parent->passive->backlog, client);
 
     // Send SYN/ACK and drop incoming segment
     LOGFN(LDBUG, "[TCP] Sending SYN/ACK");
