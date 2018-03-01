@@ -460,7 +460,38 @@ int tcp_user_accept(struct tcp_sock *sock, struct tcp_sock **client) {
 
         // Check to see if there is an established socket ready to accept
         if ((*client = llist_pop(&sock->passive->backlog)) != NULL) {
-            LOGFN(LNTCE, "[TCP] Accepting client from backlog");
+            tcp_sock_lock(*client);
+            switch ((*client)->state) {
+                case TCP_LISTEN:
+                case TCP_SYN_SENT:
+                case TCP_SYN_RECEIVED:
+                    // Connection is not established yet. Re-queue it for now
+                    llist_append(&sock->passive->backlog, *client);
+
+                    // Attempt to get another client
+                    tcp_sock_unlock(*client);
+                    *client = NULL;
+                    continue;
+
+                case TCP_FIN_WAIT_1:
+                case TCP_FIN_WAIT_2:
+                case TCP_CLOSING:
+                case TCP_CLOSED:
+                case TCP_LAST_ACK:
+                case TCP_TIME_WAIT:
+                    LOGFN(LWARN, "tcp_user_accept client in invalid state: %s",
+                            tcp_strstate((*client)->state));
+                    tcp_sock_unlock(*client);
+                    *client = NULL;
+                    continue;
+
+                case TCP_ESTABLISHED:
+                case TCP_CLOSE_WAIT:
+                    // Client is in valid state and ready to communicate
+                    LOGFN(LNTCE, "[TCP] Accepting client %p from backlog", *client);
+                    tcp_sock_unlock(*client);
+                    break;
+            }
             break;
         }
 
@@ -468,9 +499,7 @@ int tcp_user_accept(struct tcp_sock *sock, struct tcp_sock **client) {
 
         LOGFN(LNTCE, "[TCP] No connections ready to be accepted. Waiting..");
 
-        tcp_sock_unlock(sock);
-        retlock_wait(&sock->wait, NULL);
-        tcp_sock_lock(sock);
+        retlock_wait_bare(&sock->wait, NULL);
     }
 
     tcp_sock_unlock(sock);

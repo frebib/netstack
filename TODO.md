@@ -134,7 +134,7 @@
   - Line 372: tcp_close() request until all send() calls have completed
   - Line 386: Check for pending send() calls
   - Line 395: If unsent data, queue sending FIN/ACK on CLOSING
-  - Line 467: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
+  - Line 498: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
   - Line 16: Add many configurable interfaces
