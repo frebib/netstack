@@ -440,11 +440,11 @@ void tcp_restore_listen(struct tcp_sock *sock);
 /*!
  * Computes the TCP header checksum for a complete TCP frame and sends it
  * according to the route information in rt.
- * @param sock TCP socket that the frame refers to
+ * @param sock internet socket that the frame refers to (from sock->inet)
  * @param frame frame to send
  * @return 0 on success, negative error otherwise
  */
-int tcp_send(struct tcp_sock *sock, struct frame *frame, struct neigh_route *rt);
+int tcp_send(struct inet_sock *sock, struct frame *frame, struct neigh_route *rt);
 
 /*!
  * Constructs and sends a TCP packet with an empty payload

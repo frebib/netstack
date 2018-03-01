@@ -111,12 +111,12 @@
   - Line 1029: Restore previous local address if it was set
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
-  - Line 14: Don't assume IPv4 L3, choose based on sock->saddr
-  - Line 24: Don't assume IPv4 pseudo-header for checksumming
-  - Line 30: Implement functionality to specify IP flags (different for IP4/6?)
-  - Line 92: Start the retransmission timeout
-  - Line 115: Calculate IP layer options in tcp_send_data()
-  - Line 118: Take into account ethernet header variations, such as VLAN tags
+  - Line 13: Don't assume IPv4 L3, choose based on sock->saddr
+  - Line 23: Don't assume IPv4 pseudo-header for checksumming
+  - Line 29: Implement functionality to specify IP flags (different for IP4/6?)
+  - Line 95: Start the retransmission timeout
+  - Line 118: Calculate IP layer options in tcp_send_data()
+  - Line 121: Take into account ethernet header variations, such as VLAN tags
 
 ## [lib/tcp/tcpuser.c](lib/tcp/tcpuser.c)
   - Line 13: Handle sending SIGPIPE for dead connections to calling process
@@ -125,16 +125,16 @@
   - Line 92: Obtain timespec value for timedwait
   - Line 141: Wait on send() for something? (Buffer is full, wait for space?)
   - Line 148: Write to sndbuf and output directly at the same time
-  - Line 156: Signal sending thread and offload segmentation/transmission
-  - Line 157: Check for MSG_MORE flag and don't trigger for a short while
-  - Line 190: Wait here until there is something to recv
-  - Line 197: Send ACKs for data passed to the user (if specified)
-  - Line 218: Don't return EOF until recv'd up to FIN seqn
-  - Line 350: Check for MSG_PEEK and conditionally don't do this
-  - Line 372: tcp_close() request until all send() calls have completed
-  - Line 386: Check for pending send() calls
-  - Line 395: If unsent data, queue sending FIN/ACK on CLOSING
-  - Line 498: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
+  - Line 158: Signal sending thread and offload segmentation/transmission
+  - Line 159: Check for MSG_MORE flag and don't trigger for a short while
+  - Line 192: Wait here until there is something to recv
+  - Line 199: Send ACKs for data passed to the user (if specified)
+  - Line 220: Don't return EOF until recv'd up to FIN seqn
+  - Line 352: Check for MSG_PEEK and conditionally don't do this
+  - Line 374: tcp_close() request until all send() calls have completed
+  - Line 388: Check for pending send() calls
+  - Line 397: If unsent data, queue sending FIN/ACK on CLOSING
+  - Line 500: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
   - Line 16: Add many configurable interfaces

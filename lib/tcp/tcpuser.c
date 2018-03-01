@@ -153,6 +153,8 @@ int tcp_user_send(struct tcp_sock *sock, void *data, size_t len, int flags) {
         return sent;
     }
 
+    tcp_sock_unlock(sock);
+
     // TODO: Signal sending thread and offload segmentation/transmission
     // TODO: Check for MSG_MORE flag and don't trigger for a short while
     while (sent < len) {
@@ -166,7 +168,7 @@ int tcp_user_send(struct tcp_sock *sock, void *data, size_t len, int flags) {
     }
     LOG(LDBUG, "[TCP] Sent %i bytes", sent);
 
-    tcp_sock_decref_unlock(sock);
+    tcp_sock_decref(sock);
     return sent;
 }
 

@@ -7,8 +7,7 @@
 #include <netstack/tcp/tcpopt.h>
 
 
-int tcp_send(struct tcp_sock *sock, struct frame *frame, struct neigh_route *rt) {
-    struct inet_sock *inet = &sock->inet;
+int tcp_send(struct inet_sock *inet, struct frame *frame, struct neigh_route *rt) {
     struct tcp_hdr *hdr = tcp_hdr(frame);
 
     // TODO: Don't assume IPv4 L3, choose based on sock->saddr
@@ -53,7 +52,7 @@ int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
     if (count < 0)
         return (int) count;
 
-    int ret = tcp_send(sock, seg, &route);
+    int ret = tcp_send(&sock->inet, seg, &route);
     // We created the frame so ensure it's unlocked if it never sent
     frame_decref(seg);
 
@@ -75,6 +74,8 @@ int tcp_send_data(struct tcp_sock *sock, uint8_t flags) {
     struct intf *intf = route.intf;
     struct frame *seg = intf_frame_new(intf, intf_max_frame_size(intf));
 
+    tcp_sock_lock(sock);
+
     size_t tosend = rbuf_count(&sock->sndbuf);
     uint32_t seqn = htonl(sock->tcb.snd.nxt);
     uint32_t ackn = htonl(sock->tcb.rcv.nxt);
@@ -89,10 +90,12 @@ int tcp_send_data(struct tcp_sock *sock, uint8_t flags) {
     // rbuf_read already does a count upper-bounds check to prevent over-reading
     rbuf_read(&sock->sndbuf, seg->data, (size_t) count);
 
+    tcp_sock_unlock(sock);
+
     // TODO: Start the retransmission timeout
 
     // Send to neigh, passing IP options
-    int ret = tcp_send(sock, seg, &route);
+    int ret = tcp_send(&sock->inet, seg, &route);
     // We created the frame so ensure it's unlocked if it never sent
     if (ret)
         frame_unlock(seg);
@@ -160,7 +163,7 @@ size_t tcp_options(struct tcp_sock *sock, uint8_t tcp_flags, uint8_t *opt) {
     if ((tcp_flags & TCP_FLAG_SYN) && (mss != TCP_DEF_MSS)) {
         // Maximum Segment Size option is 1+1+2 bytes:
         // https://tools.ietf.org/html/rfc793#page-19
-        LOG(LDBUG, "[TCP] MSS option enabled with mss = %hu", mss);
+        LOG(LDBUG, "[TCP] MSS option enabled with mss = %u", mss);
 
         *opt++ = TCP_OPT_MSS;
         *opt++ = TCP_OPT_MSS_LEN;
