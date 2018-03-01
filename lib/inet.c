@@ -19,6 +19,8 @@ struct inet_sock *inet_sock_lookup(llist_t *socks,
                                    uint16_t remport, uint16_t locport) {
     // TODO: Use hashtbl instead of list to lookup sockets
 
+    pthread_mutex_lock(&socks->lock);
+
     for_each_llist(socks) {
         struct inet_sock *sock = llist_elem_data();
         if (!sock) {
@@ -62,8 +64,10 @@ struct inet_sock *inet_sock_lookup(llist_t *socks,
         // LOGT_COMMIT(&t);
 
         // Passed all matching checks
+        pthread_mutex_unlock(&socks->lock);
         return sock;
     }
 
+    pthread_mutex_unlock(&socks->lock);
     return NULL;
 }
