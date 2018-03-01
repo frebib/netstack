@@ -62,7 +62,7 @@ void _intf_send_thread(struct intf *intf) {
         struct frame *frame = queue_pop(&intf->sendq);
 
         // Only attempt to send a non-null frame
-        if (frame) {
+        if (frame && frame->buffer != NULL && frame->buf_sz > 0) {
             frame_lock(frame, SHARED_RD);
 
             // Send the frame!
@@ -108,6 +108,15 @@ void _intf_recv_thread(struct intf *intf) {
 
     while ((count = intf->recv_frame(rawframe)) != -1) {
         // TODO: Implement rx 'software' timestamping
+
+        if (count < 1) {
+            LOGFN(LERR, "interface returned an empty frame");
+            continue;
+        }
+        if (rawframe->buffer == NULL || rawframe->buf_sz < 1) {
+            LOGFN(LERR, "recv'd frame has no data");
+            continue;
+        }
 
         // Use transactional logging for packet logs
         struct frame *logframe = frame_clone(rawframe, SHARED_RD);

@@ -37,9 +37,9 @@
 
 ## [lib/intf/intf.c](lib/intf/intf.c)
   - Line 110: Implement rx 'software' timestamping
-  - Line 121: Conditionally print debugging information
-  - Line 200: Check intf hwtype to calculate max frame size
-  - Line 230: Selectively choose an appropriate address from intf
+  - Line 130: Conditionally print debugging information
+  - Line 209: Check intf hwtype to calculate max frame size
+  - Line 239: Selectively choose an appropriate address from intf
 
 ## [lib/intf/rawsock.c](lib/intf/rawsock.c)
   - Line 125: Move some of this cleanup logic into a generic intf_free() function
