@@ -159,12 +159,12 @@ void _tcp_setstate(struct tcp_sock *sock, enum tcp_state state) {
     }
 }
 
-void tcp_established(struct tcp_sock *sock, struct tcp_hdr *seg) {
+void tcp_established(struct tcp_sock *sock, uint32_t firstbyte) {
 
     tcp_setstate(sock, TCP_ESTABLISHED);
 
     // Set the initial recv value to the first byte in stream
-    sock->recvptr = ntohl(seg->seqn);
+    sock->recvptr = firstbyte;
     LOG(LTRCE, "[TCP] set recvptr to %u", sock->recvptr);
 
     // Allocate send/receive buffers

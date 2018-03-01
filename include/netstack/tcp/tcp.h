@@ -265,9 +265,9 @@ void _tcp_setstate(struct tcp_sock *sock, enum tcp_state state);
  * Called on a newly established connection. It allocates required buffers
  * for data transmission
  * @param sock  socket to initialise
- * @param seg   incoming tcp_hdr segment that established the connection
+ * @param firstbyte sequence number to expect the first byte at
  */
-void tcp_established(struct tcp_sock *sock, struct tcp_hdr *seg);
+void tcp_established(struct tcp_sock *sock, uint32_t firstbyte);
 
 /*!
  * Finds a matching tcp_sock with address/port quad, including matching

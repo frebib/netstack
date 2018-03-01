@@ -359,7 +359,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                 tcp_update_wnd(tcb, seg);
 
                 // Initialise established connection
-                tcp_established(sock, seg);
+                tcp_established(sock, seg_seq + 1);
 
                 LOGFN(LDBUG, "[TCP] Sending ACK");
                 // TODO: Send pending data it the sndbuf
@@ -659,7 +659,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     */
         case TCP_SYN_RECEIVED:
             if (tcp_ack_acceptable(tcb, seg_ack)) {
-                tcp_established(sock, seg);
+                tcp_established(sock, seg_seq);
             } else {
                 LOGFN(LDBUG, "[TCP] Sending RST");
                 ret = tcp_send_rst(sock, seg_ack);
