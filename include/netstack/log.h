@@ -63,13 +63,43 @@ struct pkt_log {
 #define LNULL 0x00
 
 
-#define COLOR_RED     "\x1b[31m"
-#define COLOR_GREEN   "\x1b[32m"
-#define COLOR_YELLOW  "\x1b[33m"
-#define COLOR_BLUE    "\x1b[34m"
-#define COLOR_MAGENTA "\x1b[35m"
-#define COLOR_CYAN    "\x1b[36m"
-#define COLOR_GRAY    "\x1b[37m"
+#define ANSI_ESC            "\033["
+#define ANSI_BOLD           "1;"
+#define ANSI_ITALIC         "3;"
+#define ANSI_UNDERLN        "4;"
+
+#define ANSI_RED            "31m"
+#define ANSI_GREEN          "32m"
+#define ANSI_YELLOW         "33m"
+#define ANSI_BLUE           "34m"
+#define ANSI_MAGENTA        "35m"
+#define ANSI_CYAN           "36m"
+#define ANSI_GRAY           "37m"
+
+#define ANSI_BRIGHT_RED     "91m"
+#define ANSI_BRIGHT_GREEN   "92m"
+#define ANSI_BRIGHT_YELLOW  "93m"
+#define ANSI_BRIGHT_BLUE    "94m"
+#define ANSI_BRIGHT_MAGENTA "95m"
+#define ANSI_BRIGHT_CYAN    "96m"
+#define ANSI_BRIGHT_GRAY    "97m"
+
+#define COLOR_RED            ANSI_ESC ANSI_RED
+#define COLOR_GREEN          ANSI_ESC ANSI_GREEN
+#define COLOR_YELLOW         ANSI_ESC ANSI_YELLOW
+#define COLOR_BLUE           ANSI_ESC ANSI_BLUE
+#define COLOR_MAGENTA        ANSI_ESC ANSI_MAGENTA
+#define COLOR_CYAN           ANSI_ESC ANSI_CYAN
+#define COLOR_GRAY           ANSI_ESC ANSI_GRAY
+
+#define COLOR_BRIGHT_RED     ANSI_ESC ANSI_BRIGHT_RED
+#define COLOR_BRIGHT_GREEN   ANSI_ESC ANSI_BRIGHT_GREEN
+#define COLOR_BRIGHT_YELLOW  ANSI_ESC ANSI_BRIGHT_YELLOW
+#define COLOR_BRIGHT_BLUE    ANSI_ESC ANSI_BRIGHT_BLUE
+#define COLOR_BRIGHT_MAGENTA ANSI_ESC ANSI_BRIGHT_MAGENTA
+#define COLOR_BRIGHT_CYAN    ANSI_ESC ANSI_BRIGHT_CYAN
+#define COLOR_BRIGHT_GRAY    ANSI_ESC ANSI_BRIGHT_GRAY
+
 #define COLOR_RESET   "\x1b[0m"
 
 
