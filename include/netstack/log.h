@@ -13,11 +13,6 @@
 // TODO: Make LOG_MAX configurable
 #define LOG_MAX                 1024    /* Maximum log entry length */
 
-/*
- * Global logging configuration
- */
-extern struct log_config logconf;
-
 typedef uint8_t loglvl_t;
 
 /* 2^n where n is size of loglvl_t, times 8 bits per byte */
@@ -48,6 +43,12 @@ struct pkt_log {
     struct log_trans t; /* Log transaction to write to */
     llist_t filter;     /* List of options, similar to those in tcpdump */
 };
+
+/*
+ * Global logging configuration
+ */
+extern struct log_config logconf;
+
 
 /*
  * Default log levels
