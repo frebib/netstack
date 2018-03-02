@@ -38,8 +38,8 @@ typedef struct contimer contimer_t;
 struct contimer_event {
     struct timespec wake;
     enum contimer_state state;
-    void *arg;
     contimer_event_t id;
+    uint8_t arg;
 };
 
 /*!
@@ -58,10 +58,12 @@ int contimer_init(contimer_t *timer, void (*callback)(void *));
  * earlier events even if the timeout is before
  * @param t timer instance to queue the event on
  * @param abs absolute time to have elapsed when the event callback triggers
- * @param arg argument pointer to pass to the callback
+ * @param arg argument pointer to copy data from
+ * @param len argument length to copy
  * @return a timer event that can be used to cancel the event
  */
-contimer_event_t contimer_queue(contimer_t *timer, struct timespec *abs, void *arg);
+contimer_event_t contimer_queue(contimer_t *timer, struct timespec *abs,
+                                void *arg, size_t len);
 
 /*!
  * Cancels an enqueued timer event

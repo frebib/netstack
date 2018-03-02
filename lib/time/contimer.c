@@ -79,7 +79,7 @@ static void *_contimer_run(void *arg) {
 
         // Now the t has elapsed, call the callback, cleanup, and loop again
         pthread_mutex_unlock(&t->timeouts.lock);
-        t->callback(event->arg);
+        t->callback(&event->arg);
         pthread_mutex_lock(&t->timeouts.lock);
 
     event_cleanup:
@@ -104,16 +104,21 @@ int contimer_init(contimer_t *t, void (*callback)(void *)) {
     return pthread_create(&t->thread, NULL, _contimer_run, t);
 }
 
-contimer_event_t contimer_queue(contimer_t *t, struct timespec *abs, void * arg) {
+contimer_event_t contimer_queue(contimer_t *t, struct timespec *abs,
+                                void *arg, size_t len) {
 
     pthread_mutex_lock(&t->timeouts.lock);
 
-    struct contimer_event *event = malloc(sizeof(struct contimer_event));
+    struct contimer_event *event = malloc(sizeof(struct contimer_event) + len - 1);
     event->id = t->nextid++;
-    event->arg = arg;
     event->wake.tv_sec = abs->tv_sec;
     event->wake.tv_nsec = abs->tv_nsec;
     event->state = WAITING;
+
+    // Copy arbitrary sized argument
+    if (arg != NULL && len > 0) {
+        memcpy(&event->arg, arg, len);
+    }
 
     llist_append_nolock(&t->timeouts, event);
 
