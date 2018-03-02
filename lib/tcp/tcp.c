@@ -29,9 +29,19 @@ bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum,
     // TODO: Use frame->sock for socket lookup
     uint16_t sport = htons(hdr->sport);
     uint16_t dport = htons(hdr->dport);
-    struct tcp_sock *sock = tcp_sock_lookup(&saddr, &daddr, sport, dport);
-    uint32_t irs = (sock == NULL || hdr->flags.syn == 1) ? 0 : sock->tcb.irs;
-    uint32_t iss = (sock == NULL) ? 0 : sock->tcb.iss;
+    uint32_t irs = 0, iss = 0;
+    struct tcp_sock *sock;
+    if (!hdr->flags.syn && !hdr->flags.fin && !hdr->flags.rst) {
+        if ((sock = tcp_sock_lookup(&saddr, &daddr, sport, dport)) != NULL) {
+            irs = sock->tcb.irs;
+            iss = sock->tcb.iss;
+        } else if ((sock = tcp_sock_lookup(&daddr, &saddr, dport, sport)) != NULL) {
+            irs = sock->tcb.iss;
+            iss = sock->tcb.irs;
+        } else {
+            LOGFN(LTRCE, "unrecognised socket");
+        }
+    }
     uint32_t seqn = ntohl(hdr->seqn) - irs;
     uint32_t ackn = ntohl(hdr->ackn) - iss;
     uint16_t len = frame_data_len(frame);
