@@ -129,6 +129,26 @@ contimer_event_t contimer_queue(contimer_t *t, struct timespec *abs,
     return event->id;
 }
 
+contimer_event_t contimer_queue_rel(contimer_t *t, struct timespec *rel,
+                                    void *arg, size_t len) {
+    
+    // Obtain the current time
+    struct timespec abs = {0};
+    clock_gettime(CLOCK_MONOTONIC, &abs);
+    
+    // Offset by the relative time
+    abs.tv_sec += rel->tv_sec;
+    abs.tv_nsec += rel->tv_nsec;
+    // Account for nanosecond overflow
+    if (abs.tv_nsec >= 1000000000) {
+        abs.tv_nsec -= 1000000000;
+        abs.tv_sec++;
+    }
+
+    // Enqueue the event
+    return contimer_queue(t, &abs, arg, len);
+}
+
 int contimer_cancel(contimer_t *timer, contimer_event_t id) {
     if (timer == NULL)
         return -EINVAL;

@@ -66,6 +66,13 @@ contimer_event_t contimer_queue(contimer_t *timer, struct timespec *abs,
                                 void *arg, size_t len);
 
 /*!
+ * Enqueues an event exactly the same as contimer_queue except takes a timespec
+ * relative to the time that this function is called.
+ */
+contimer_event_t contimer_queue_rel(contimer_t *t, struct timespec *rel,
+                                    void *arg, size_t len);
+
+/*!
  * Cancels an enqueued timer event
  * Does nothing if the event is triggering or has already elapsed
  * @param id event to cancel
