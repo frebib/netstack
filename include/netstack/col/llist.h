@@ -111,6 +111,18 @@ ssize_t llist_contains(llist_t *list, void *data);
  */
 ssize_t llist_remove(llist_t *list, void *data);
 
+/*!
+ * Return the first element in list that matches the predicate function pred
+ * @param list list to search through
+ * @param pred predicate function to call for each element.
+ *             the second argument will be the item from the list
+ * @param arg first argument to pass to the predicate function
+ * @return a pointer to the first data element that matches the predicate pred
+ *         or NULL if there are no matches in list
+ */
+void *llist_first(llist_t *list, bool (*pred)(void *, void *), void *arg);
+
+
 /*
  * Non-locking llist functions
  */
@@ -122,6 +134,7 @@ void *llist_pop_last_nolock(llist_t *list);
 void llist_insert_sorted_nolock(llist_t *list, void *data,
                                 int (*cmp)(void *, void *));
 ssize_t llist_remove_nolock(llist_t *list, void *data);
+void *llist_first_nolock(llist_t *list, bool (*pred)(void *, void *), void *arg);
 
 #endif //NETSTACK_LLIST_H
 

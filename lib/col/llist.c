@@ -223,3 +223,22 @@ ssize_t llist_remove(llist_t *list, void *data) {
     pthread_mutex_unlock(&list->lock);
     return ret;
 }
+
+void *llist_first(llist_t *list, bool (*pred)(void *, void *), void *arg) {
+
+    pthread_mutex_lock(&list->lock);
+    void *ret = llist_first_nolock(list, pred, arg);
+    pthread_mutex_unlock(&list->lock);
+    return ret;
+}
+
+void *llist_first_nolock(llist_t *list, bool (*pred)(void *, void *), void *arg) {
+
+    for_each_llist(list) {
+        void *data = llist_elem_data();
+        if (pred(arg, data)) {
+            return data;
+        }
+    }
+    return NULL;
+}
