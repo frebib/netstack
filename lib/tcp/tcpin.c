@@ -170,6 +170,9 @@ void tcp_recv_listen(struct frame *frame, struct tcp_sock *parent,
     client->inet.locaddr = frame->locaddr;
     client->inet.remport = frame->remport;
     client->inet.remaddr = frame->remaddr;
+    // Un-accepted connections should be non-blocking
+    // as to not cause deadlocks
+    client->inet.flags = O_NONBLOCK,
     client->inet.intf = frame->intf;
     client->tcb = (struct tcb) {
             .irs = seg_seq,

@@ -88,27 +88,27 @@
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
   - Line 58: Optionally don't send TCP RST packets
   - Line 139: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
-  - Line 289: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
-  - Line 344: Remove acknowledged segments from the retransmission queue
-  - Line 359: Parse incoming TCP options for MSS value
-  - Line 370: Send pending data it the sndbuf
-  - Line 394: If there are other controls or text in the segment,
-  - Line 486: Store out-of-order segments that are >RCV.NXT for later processing
-  - Line 512: Clear retransmission queue
-  - Line 537: Clear retransmission queue
-  - Line 557: Clear retransmission queue
-  - Line 627: Clear retransmission queue
-  - Line 629: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
-  - Line 710: Remove any segments from the rtq that are ack'd
-  - Line 711: Inform any waiting send() calls when acknowledgements
-  - Line 718: Is sending an ACK here necessary?
-  - Line 727: Work out if our FIN was ACK'ed
-  - Line 748: Send success to waiting close() calls
-  - Line 962: Work out if 'our FIN has been ACKed'
-  - Line 966: stop other TCP timers in FIN-WAIT-2
-  - Line 980: stop other TCP timers in FIN-WAIT-2
-  - Line 1029: Implement locking
-  - Line 1030: Restore previous local address if it was set
+  - Line 292: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
+  - Line 347: Remove acknowledged segments from the retransmission queue
+  - Line 362: Parse incoming TCP options for MSS value
+  - Line 373: Send pending data it the sndbuf
+  - Line 397: If there are other controls or text in the segment,
+  - Line 489: Store out-of-order segments that are >RCV.NXT for later processing
+  - Line 515: Clear retransmission queue
+  - Line 540: Clear retransmission queue
+  - Line 560: Clear retransmission queue
+  - Line 630: Clear retransmission queue
+  - Line 632: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
+  - Line 713: Remove any segments from the rtq that are ack'd
+  - Line 714: Inform any waiting send() calls when acknowledgements
+  - Line 721: Is sending an ACK here necessary?
+  - Line 730: Work out if our FIN was ACK'ed
+  - Line 751: Send success to waiting close() calls
+  - Line 965: Work out if 'our FIN has been ACKed'
+  - Line 969: stop other TCP timers in FIN-WAIT-2
+  - Line 983: stop other TCP timers in FIN-WAIT-2
+  - Line 1032: Implement locking
+  - Line 1033: Restore previous local address if it was set
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
   - Line 13: Don't assume IPv4 L3, choose based on sock->saddr
@@ -134,7 +134,7 @@
   - Line 374: tcp_close() request until all send() calls have completed
   - Line 388: Check for pending send() calls
   - Line 397: If unsent data, queue sending FIN/ACK on CLOSING
-  - Line 500: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
+  - Line 502: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
   - Line 16: Add many configurable interfaces

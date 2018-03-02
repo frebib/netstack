@@ -491,6 +491,8 @@ int tcp_user_accept(struct tcp_sock *sock, struct tcp_sock **client) {
                 case TCP_CLOSE_WAIT:
                     // Client is in valid state and ready to communicate
                     LOGFN(LNTCE, "[TCP] Accepting client %p from backlog", *client);
+                    // Remove non-blocking flag now that the user has control
+                    (*client)->inet.flags &= ~O_NONBLOCK;
                     tcp_sock_unlock(*client);
                     break;
             }
