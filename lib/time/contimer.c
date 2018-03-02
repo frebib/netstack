@@ -73,7 +73,7 @@ static void *_contimer_run(void *arg) {
             // 0 is time elapsed
         } while (ret != 0);
 
-        LOG(LTRCE, "[CONTIMER] t elapsed. calling callback");
+        LOG(LTRCE, "[CONTIMER] timer elapsed. calling callback");
 
         contimeout_change_state(event, CALLING);
 
