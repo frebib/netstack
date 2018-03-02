@@ -4,9 +4,9 @@
 #include <fcntl.h>
 
 #include <netstack/addr.h>
-#include <netstack/timer.h>
 #include <netstack/col/llist.h>
 #include <netstack/lock/retlock.h>
+#include <netstack/time/timer.h>
 
 /*
  * Neighbour provides functionality to dispatch internet protocol packets

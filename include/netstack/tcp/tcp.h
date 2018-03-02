@@ -10,10 +10,10 @@
 
 #include <netstack/log.h>
 #include <netstack/col/llist.h>
-#include <netstack/timer.h>
 #include <netstack/inet.h>
 #include <netstack/ip/neigh.h>
 #include <netstack/intf/intf.h>
+#include <netstack/time/timer.h>
 #include <netstack/lock/retlock.h>
 
 // Global TCP states list

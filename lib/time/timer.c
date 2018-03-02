@@ -3,7 +3,7 @@
 #include <errno.h>
 
 #include <netstack/log.h>
-#include <netstack/timer.h>
+#include <netstack/time/timer.h>
 
 // Private timer signal handler function
 static void netstack_timer_handler(int sig, siginfo_t *si, void *uc);

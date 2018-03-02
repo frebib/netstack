@@ -4,7 +4,7 @@
 #include <signal.h>
 
 #include <netstack/log.h>
-#include <netstack/contimer.h>
+#include <netstack/time/contimer.h>
 
 #define contimeout_change_state(event, newstate) \
     do { \

@@ -6,7 +6,6 @@
 #include <netstack/ip/route.h>
 #include <netstack/ip/ipv4.h>
 #include <netstack/ip/neigh.h>
-#include <netstack/timer.h>
 
 
 int neigh_find_route(struct neigh_route *out) {
