@@ -193,9 +193,6 @@ struct tcp_sock {
 #endif
 
 
-#define TCP_ACTIVE_OPEN     0x0
-#define TCP_PASSIVE_OPEN    0x1
-
 #define TCP_DEF_MSS     536     // MSS conservative default as per RFC879
                                 // https://tools.ietf.org/html/rfc879
 #define TCP_MSL         60      // Maximum Segment Lifetime (in seconds)
