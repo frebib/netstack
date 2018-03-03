@@ -81,17 +81,11 @@ int tcp_user_open(struct tcp_sock *sock) {
     // Wait for the connection to be established
     while (sock->state != TCP_ESTABLISHED && ret >= 0) {
 
-        // Take reference to wait before releasing lock
-        // Hopefully this does not incur a race condition :/
-        retlock_t *wait = &sock->wait;
-        // Unlock before going to sleep
-        tcp_sock_unlock(sock);
-
         // TODO: Check for O_NONBLOCK
         if (false) {
             // TODO: Obtain timespec value for timedwait
             struct timespec t = {.tv_sec = 5, .tv_nsec = 0};
-            retlock_timedwait(wait, &t, &ret);
+            retlock_timedwait(&sock->wait, &t, &ret);
             if (ret == ETIMEDOUT) {
                 LOGFN(LNTCE, "tcp_sock_decref() because ETIMEDOUT");
                 tcp_sock_decref_unlock(sock);
@@ -99,9 +93,8 @@ int tcp_user_open(struct tcp_sock *sock) {
             }
         } else {
             // Wait indefinitely until we are woken
-            retlock_wait(wait, &ret);
+            retlock_wait_bare(&sock->wait, &ret);
         }
-        tcp_sock_lock(sock);
     }
 
     tcp_sock_decref_unlock(sock);
@@ -178,30 +171,8 @@ int tcp_user_recv(struct tcp_sock *sock, void* data, size_t len, int flags) {
     tcp_sock_lock(sock);
     tcp_sock_incref(sock);
 
-    // recv things
-
-    int ret = 0, err = 0;
-    // Last byte sent to the user/copied from sock->recvqueue
-    switch (sock->state) {
-        case TCP_LISTEN:
-        case TCP_SYN_SENT:
-        case TCP_SYN_RECEIVED:
-            // TODO: Wait here until there is something to recv
-            retlock_wait_bare(&sock->wait, &err);
-            ret = _tcp_user_recv_data(sock, data, len);
-            break;
-        case TCP_ESTABLISHED:
-        case TCP_FIN_WAIT_1:
-        case TCP_FIN_WAIT_2:
-            // TODO: Send ACKs for data passed to the user (if specified)
-            // Fall-through to CLOSE-WAIT
-        case TCP_CLOSE_WAIT:
-            // Return value is # of bytes read
-            ret = _tcp_user_recv_data(sock, data, len);
-            break;
-        default:
-            break;
-    }
+    // TODO: Send ACKs for data passed to the user (if specified)
+    int ret = _tcp_user_recv_data(sock, data, len);
 
     // Decrement refcount and release sock->lock
     tcp_sock_decref_unlock(sock);
@@ -463,6 +434,8 @@ int tcp_user_accept(struct tcp_sock *sock, struct tcp_sock **client) {
                 case TCP_SYN_SENT:
                 case TCP_SYN_RECEIVED:
                     // Connection is not established yet. Re-queue it for now
+                    LOGFN(LWARN, "tcp_user_accept client not yet established"
+                            " %p. re-queuing..", *client);
                     llist_append(&sock->passive->backlog, *client);
 
                     // Attempt to get another client

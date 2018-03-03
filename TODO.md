@@ -119,20 +119,19 @@
 ## [lib/tcp/tcpuser.c](lib/tcp/tcpuser.c)
   - Line 13: Handle sending SIGPIPE for dead connections to calling process
   - Line 64: Fill out 'user timeout' information
-  - Line 90: Check for O_NONBLOCK
-  - Line 92: Obtain timespec value for timedwait
-  - Line 139: Wait on send() for something? (Buffer is full, wait for space?)
-  - Line 146: Write to sndbuf and output directly at the same time
-  - Line 152: Signal sending thread and offload segmentation/transmission
-  - Line 153: Check for MSG_MORE flag and don't trigger for a short while
-  - Line 189: Wait here until there is something to recv
-  - Line 196: Send ACKs for data passed to the user (if specified)
-  - Line 216: Don't return EOF until recv'd up to FIN seqn
-  - Line 348: Check for MSG_PEEK and conditionally don't do this
-  - Line 370: tcp_close() request until all send() calls have completed
-  - Line 384: Check for pending send() calls
-  - Line 392: If unsent data, queue sending FIN/ACK on CLOSING
-  - Line 497: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
+  - Line 84: Check for O_NONBLOCK
+  - Line 86: Obtain timespec value for timedwait
+  - Line 132: Wait on send() for something? (Buffer is full, wait for space?)
+  - Line 139: Write to sndbuf and output directly at the same time
+  - Line 145: Signal sending thread and offload segmentation/transmission
+  - Line 146: Check for MSG_MORE flag and don't trigger for a short while
+  - Line 174: Send ACKs for data passed to the user (if specified)
+  - Line 187: Don't return EOF until recv'd up to FIN seqn
+  - Line 319: Check for MSG_PEEK and conditionally don't do this
+  - Line 341: tcp_close() request until all send() calls have completed
+  - Line 355: Check for pending send() calls
+  - Line 363: If unsent data, queue sending FIN/ACK on CLOSING
+  - Line 470: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
   - Line 16: Add many configurable interfaces
