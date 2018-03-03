@@ -2,6 +2,7 @@
 
 #include <sys/capability.h>
 
+#define NETSTACK_LOG_UNIT "NETSTACK"
 #include <netstack.h>
 #include <netstack/log.h>
 

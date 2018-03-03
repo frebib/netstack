@@ -5,6 +5,7 @@
 
 #include <netinet/in.h>
 
+#define NETSTACK_LOG_UNIT "ARP"
 #include <netstack/eth/arp.h>
 #include <netstack/ip/neigh.h>
 
@@ -50,7 +51,7 @@ void arp_recv(struct frame *frame) {
             // this is good
             break;
         default:
-            LOGFN(LINFO, "ARP hardware %d not supported", ntohs(msg->hwtype));
+            LOG(LINFO, "ARP hardware %d not supported", ntohs(msg->hwtype));
     }
 
     // https://tools.ietf.org/html/rfc826
@@ -103,14 +104,14 @@ void arp_recv(struct frame *frame) {
 
 void arp_log_tbl(struct intf *intf, loglvl_t level) {
     struct log_trans trans = LOG_TRANS(level);
-    LOGT(&trans, "Intf\tProtocol\tHW Address\t\tState\n");
+    LOGT(&trans, "Intf\tProtocol\tHW Address\t\tState");
     for_each_llist(&intf->arptbl) {
         struct arp_entry *entry = llist_elem_data();
-        LOGT(&trans, "%s\t", intf->name);
+        LOGT(&trans, "\n\t%s\t", intf->name);
         LOGT(&trans, "%s\t", straddr(&entry->protoaddr));
         LOGT(&trans, "%s\t", (entry->state & ARP_PENDING) ?
                               "(pending)\t" : straddr(&entry->hwaddr));
-        LOGT(&trans, "%s\n", fmt_arp_state(entry->state));
+        LOGT(&trans, "%s", fmt_arp_state(entry->state));
     }
     LOGT_COMMIT(&trans);
 }

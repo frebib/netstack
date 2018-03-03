@@ -12,6 +12,7 @@
 #include <netpacket/packet.h>
 #include <linux/if_ether.h>
 
+#define NETSTACK_LOG_UNIT "RAWSOCK"
 #include <netstack/log.h>
 #include <netstack/eth/ether.h>
 #include <netstack/intf/rawsock.h>
@@ -78,7 +79,7 @@ int rawsock_new(struct intf *interface) {
             .sll_family = AF_PACKET
     };
     if (bind(sock, (struct sockaddr *) &sa_ll, sizeof(sa_ll))) {
-        LOGERR("[RAWSOCK] bind");
+        LOGERR("bind");
         close(sock);
         return -1;
     }

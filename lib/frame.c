@@ -2,6 +2,7 @@
 #include <malloc.h>
 #include <errno.h>
 
+#define NETSTACK_LOG_UNIT "FRAME"
 #include <netstack/log.h>
 #include <netstack/frame.h>
 

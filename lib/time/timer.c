@@ -2,6 +2,7 @@
 #include <string.h>
 #include <errno.h>
 
+#define NETSTACK_LOG_UNIT "TIMER"
 #include <netstack/log.h>
 #include <netstack/time/timer.h>
 
@@ -44,7 +45,7 @@ int timeout_set(timeout_t *t, void (*fn)(void *), void *arg,
         return -1;
     }
 
-    LOG(LDBUG, "Timer set for %lus, %luns", sec, nsec);
+    LOG(LDBUG, "Set for %lus, %luns", sec, nsec);
 
     return 0;
 }
@@ -67,7 +68,7 @@ int timeout_restart(timeout_t *t, time_t sec, time_t nsec) {
 }
 
 static void netstack_timer_handler(int sig, siginfo_t *si, void *uc) {
-    LOG(LDBUG, "%s() caught signal: %s", __func__, strsignal(sig));
+    LOG(LDBUG, "Caught signal: %s", strsignal(sig));
 
     if (sig == TIMER_SIGNAL) {
         timeout_t *t = si->si_value.sival_ptr;

@@ -19,121 +19,121 @@
   - Line 173: Fix endianness in tcp.h
 
 ## [lib/eth/arp.c](lib/eth/arp.c)
-  - Line 161: Use hashtable for ARP lookups on IPv4
-  - Line 172: ARP doesn't account for protocol addresses that change hw
-  - Line 239: Use hwtype to determine length and type of address
-  - Line 240: Change arp_send_req to handle other address types
-  - Line 316: Change arp_send_reply to handle other address types
-  - Line 322: Use hwtype to determine length and type of address
+  - Line 162: Use hashtable for ARP lookups on IPv4
+  - Line 173: ARP doesn't account for protocol addresses that change hw
+  - Line 240: Use hwtype to determine length and type of address
+  - Line 241: Change arp_send_req to handle other address types
+  - Line 317: Change arp_send_reply to handle other address types
+  - Line 323: Use hwtype to determine length and type of address
 
 ## [lib/eth/ether.c](lib/eth/ether.c)
-  - Line 19: Check and compare intf->vlan to hdr->vlan and reject if no match
+  - Line 20: Check and compare intf->vlan to hdr->vlan and reject if no match
 
 ## [lib/frame.c](lib/frame.c)
-  - Line 76: Deduplicate frame_decref_unlock() code
+  - Line 77: Deduplicate frame_decref_unlock() code
 
 ## [lib/inet.c](lib/inet.c)
-  - Line 20: Use hashtbl instead of list to lookup sockets
+  - Line 21: Use hashtbl instead of list to lookup sockets
 
 ## [lib/intf/intf.c](lib/intf/intf.c)
-  - Line 69: Implement rx 'software' timestamping
-  - Line 89: Conditionally print debugging information
-  - Line 161: Check intf hwtype to calculate max frame size
-  - Line 191: Selectively choose an appropriate address from intf
+  - Line 70: Implement rx 'software' timestamping
+  - Line 90: Conditionally print debugging information
+  - Line 162: Check intf hwtype to calculate max frame size
+  - Line 192: Selectively choose an appropriate address from intf
 
 ## [lib/intf/rawsock.c](lib/intf/rawsock.c)
-  - Line 125: Move some of this cleanup logic into a generic intf_free() function
-  - Line 157: Allocate a buffer from the interface for frame storage
-  - Line 162: Find an appropriate size for the control buffer
+  - Line 126: Move some of this cleanup logic into a generic intf_free() function
+  - Line 158: Allocate a buffer from the interface for frame storage
+  - Line 163: Find an appropriate size for the control buffer
 
 ## [lib/intf/tap.c](lib/intf/tap.c)
-  - Line 31: Allow TUN/TAP name configuration
-  - Line 49: Fix TUN/TAP SIOCGIFMTU: EINVAL
-  - Line 95: Check for IFF_PI and allocate space for it
+  - Line 32: Allow TUN/TAP name configuration
+  - Line 50: Fix TUN/TAP SIOCGIFMTU: EINVAL
+  - Line 96: Check for IFF_PI and allocate space for it
 
 ## [lib/ip/icmp.c](lib/ip/icmp.c)
-  - Line 91: Don't assume IPv4 parent
-  - Line 96: Find ICMP route
-  - Line 112: Fix frame->data pointer head/tail difference
+  - Line 92: Don't assume IPv4 parent
+  - Line 97: Find ICMP route
+  - Line 113: Fix frame->data pointer head/tail difference
 
 ## [lib/ip/ipv4.c](lib/ip/ipv4.c)
-  - Line 45: Change to `if (!ipv4_should_accept(frame))` to accept other packets
-  - Line 100: Keep track of invalid packets
-  - Line 112: Take options into account here
-  - Line 119: Other integrity checks
-  - Line 121: Change to `if (!ipv4_should_accept(frame))` to accept other packets
-  - Line 154: Dynamically allocate IPv4 header space
-  - Line 162: Make this user-configurable
+  - Line 46: Change to `if (!ipv4_should_accept(frame))` to accept other packets
+  - Line 101: Keep track of invalid packets
+  - Line 113: Take options into account here
+  - Line 120: Other integrity checks
+  - Line 122: Change to `if (!ipv4_should_accept(frame))` to accept other packets
+  - Line 155: Dynamically allocate IPv4 header space
+  - Line 163: Make this user-configurable
 
 ## [lib/ip/neigh.c](lib/ip/neigh.c)
-  - Line 16: Take source address into route calculation
-  - Line 31: Perform correct route/hardware address lookups when appropriate
-  - Line 54: Make ARP/NDP request now, instead of later to reduce waiting time
-  - Line 164: Rate limit ARP requests to prevent flooding
-  - Line 174: Use inet_socket for passing options to neighbour
+  - Line 18: Take source address into route calculation
+  - Line 33: Perform correct route/hardware address lookups when appropriate
+  - Line 56: Make ARP/NDP request now, instead of later to reduce waiting time
+  - Line 166: Rate limit ARP requests to prevent flooding
+  - Line 176: Use inet_socket for passing options to neighbour
 
 ## [lib/ip/route.c](lib/ip/route.c)
-  - Line 30: Define how routes with the same metric should behave?
+  - Line 33: Define how routes with the same metric should behave?
 
 ## [lib/tcp/tcp.c](lib/tcp/tcp.c)
-  - Line 29: Use frame->sock for socket lookup
-  - Line 131: Check for TSO and GRO and account for it, somehow..
-  - Line 140: Other integrity checks
-  - Line 143: Parse incoming TCP segment options
-  - Line 165: Perform queued actions when reaching certain states
-  - Line 298: Choose a random unused outgoing port
-  - Line 303: Choose a secure initial sequence number
+  - Line 31: Use frame->sock for socket lookup
+  - Line 133: Check for TSO and GRO and account for it, somehow..
+  - Line 142: Other integrity checks
+  - Line 145: Parse incoming TCP segment options
+  - Line 167: Perform queued actions when reaching certain states
+  - Line 300: Choose a random unused outgoing port
+  - Line 305: Choose a secure initial sequence number
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
-  - Line 58: Optionally don't send TCP RST packets
-  - Line 141: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
-  - Line 295: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
-  - Line 350: Remove acknowledged segments from the retransmission queue
-  - Line 365: Parse incoming TCP options for MSS value
-  - Line 376: Send pending data it the sndbuf
-  - Line 400: If there are other controls or text in the segment,
-  - Line 492: Store out-of-order segments that are >RCV.NXT for later processing
-  - Line 518: Clear retransmission queue
-  - Line 543: Clear retransmission queue
-  - Line 563: Clear retransmission queue
-  - Line 633: Clear retransmission queue
-  - Line 635: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
-  - Line 716: Remove any segments from the rtq that are ack'd
-  - Line 717: Inform any waiting send() calls when acknowledgements
-  - Line 724: Is sending an ACK here necessary?
-  - Line 733: Work out if our FIN was ACK'ed
-  - Line 754: Send success to waiting close() calls
-  - Line 968: Work out if 'our FIN has been ACKed'
-  - Line 972: stop other TCP timers in FIN-WAIT-2
-  - Line 986: stop other TCP timers in FIN-WAIT-2
+  - Line 59: Optionally don't send TCP RST packets
+  - Line 142: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
+  - Line 296: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
+  - Line 351: Remove acknowledged segments from the retransmission queue
+  - Line 366: Parse incoming TCP options for MSS value
+  - Line 377: Send pending data it the sndbuf
+  - Line 401: If there are other controls or text in the segment,
+  - Line 493: Store out-of-order segments that are >RCV.NXT for later processing
+  - Line 519: Clear retransmission queue
+  - Line 544: Clear retransmission queue
+  - Line 564: Clear retransmission queue
+  - Line 634: Clear retransmission queue
+  - Line 636: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
+  - Line 717: Remove any segments from the rtq that are ack'd
+  - Line 718: Inform any waiting send() calls when acknowledgements
+  - Line 725: Is sending an ACK here necessary?
+  - Line 734: Work out if our FIN was ACK'ed
+  - Line 755: Send success to waiting close() calls
+  - Line 969: Work out if 'our FIN has been ACKed'
+  - Line 973: stop other TCP timers in FIN-WAIT-2
+  - Line 987: stop other TCP timers in FIN-WAIT-2
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
-  - Line 13: Don't assume IPv4 L3, choose based on sock->saddr
-  - Line 23: Don't assume IPv4 pseudo-header for checksumming
-  - Line 29: Implement functionality to specify IP flags (different for IP4/6?)
-  - Line 68: Return socket close reason to user
-  - Line 104: Start the retransmission timeout
-  - Line 127: Calculate IP layer options in tcp_send_data()
-  - Line 130: Take into account ethernet header variations, such as VLAN tags
+  - Line 14: Don't assume IPv4 L3, choose based on sock->saddr
+  - Line 24: Don't assume IPv4 pseudo-header for checksumming
+  - Line 30: Implement functionality to specify IP flags (different for IP4/6?)
+  - Line 69: Return socket close reason to user
+  - Line 105: Start the retransmission timeout
+  - Line 128: Calculate IP layer options in tcp_send_data()
+  - Line 131: Take into account ethernet header variations, such as VLAN tags
 
 ## [lib/tcp/tcpuser.c](lib/tcp/tcpuser.c)
-  - Line 13: Handle sending SIGPIPE for dead connections to calling process
-  - Line 64: Fill out 'user timeout' information
-  - Line 84: Check for O_NONBLOCK
-  - Line 86: Obtain timespec value for timedwait
-  - Line 132: Wait on send() for something? (Buffer is full, wait for space?)
-  - Line 139: Write to sndbuf and output directly at the same time
-  - Line 145: Signal sending thread and offload segmentation/transmission
-  - Line 146: Check for MSG_MORE flag and don't trigger for a short while
-  - Line 174: Send ACKs for data passed to the user (if specified)
-  - Line 187: Don't return EOF until recv'd up to FIN seqn
-  - Line 319: Check for MSG_PEEK and conditionally don't do this
-  - Line 341: tcp_close() request until all send() calls have completed
-  - Line 355: Check for pending send() calls
-  - Line 363: If unsent data, queue sending FIN/ACK on CLOSING
-  - Line 470: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
+  - Line 14: Handle sending SIGPIPE for dead connections to calling process
+  - Line 65: Fill out 'user timeout' information
+  - Line 85: Check for O_NONBLOCK
+  - Line 87: Obtain timespec value for timedwait
+  - Line 133: Wait on send() for something? (Buffer is full, wait for space?)
+  - Line 140: Write to sndbuf and output directly at the same time
+  - Line 146: Signal sending thread and offload segmentation/transmission
+  - Line 147: Check for MSG_MORE flag and don't trigger for a short while
+  - Line 175: Send ACKs for data passed to the user (if specified)
+  - Line 188: Don't return EOF until recv'd up to FIN seqn
+  - Line 320: Check for MSG_PEEK and conditionally don't do this
+  - Line 342: tcp_close() request until all send() calls have completed
+  - Line 356: Check for pending send() calls
+  - Line 364: If unsent data, queue sending FIN/ACK on CLOSING
+  - Line 471: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
-  - Line 16: Add many configurable interfaces
-  - Line 17: Add loopback interface
-  - Line 30: Take interface etc. configuration from config file
+  - Line 17: Add many configurable interfaces
+  - Line 18: Add loopback interface
+  - Line 31: Take interface etc. configuration from config file

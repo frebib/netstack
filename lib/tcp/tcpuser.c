@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <netinet/in.h>
 
+#define NETSTACK_LOG_UNIT "TCP"
 #include <netstack/tcp/tcp.h>
 #include <netstack/lock/retlock.h>
 
@@ -48,12 +49,12 @@ int tcp_user_open(struct tcp_sock *sock) {
         case TCP_LAST_ACK:
         case TCP_CLOSING:
         case TCP_CLOSE_WAIT:
-            LOGFN(LNTCE, "tcp_sock_decref() because EISCONN");
+            LOG(LNTCE, "tcp_sock_decref() because EISCONN");
             tcp_sock_decref_unlock(sock);
             return -EISCONN;
         case TCP_SYN_SENT:
         case TCP_SYN_RECEIVED:
-            LOGFN(LNTCE, "tcp_sock_decref() because EALREADY");
+            LOG(LNTCE, "tcp_sock_decref() because EALREADY");
             tcp_sock_decref_unlock(sock);
             return -EALREADY;
         default:
@@ -71,7 +72,7 @@ int tcp_user_open(struct tcp_sock *sock) {
 
     int ret;
     if ((ret = tcp_send_syn(sock)) < 0) {
-        LOGFN(LNTCE, "tcp_sock_decref() because tcp_send_syn() err");
+        LOG(LNTCE, "tcp_sock_decref() because tcp_send_syn() err");
         tcp_sock_decref_unlock(sock);
         return ret;
     }
@@ -87,7 +88,7 @@ int tcp_user_open(struct tcp_sock *sock) {
             struct timespec t = {.tv_sec = 5, .tv_nsec = 0};
             retlock_timedwait(&sock->wait, &t, &ret);
             if (ret == ETIMEDOUT) {
-                LOGFN(LNTCE, "tcp_sock_decref() because ETIMEDOUT");
+                LOG(LNTCE, "tcp_sock_decref() because ETIMEDOUT");
                 tcp_sock_decref_unlock(sock);
                 return -ETIMEDOUT;
             }
@@ -148,15 +149,15 @@ int tcp_user_send(struct tcp_sock *sock, void *data, size_t len, int flags) {
 
         int ret = tcp_send_data(sock, TCP_FLAG_PSH | TCP_FLAG_ACK);
         if (ret <= 0) {
-            LOGSE(LINFO, "[TCP] tcp_send_data returned", -ret);
+            LOGSE(LINFO, "tcp_send_data returned", -ret);
             sent = ret;
             break;
         }
         sent += ret;
-        LOGFN(LVERB, "[TCP] Sent %i bytes (%i/%zu)", ret, sent, len);
+        LOG(LVERB, "Sent %i bytes (%i/%zu)", ret, sent, len);
     }
     if (sent > 0)
-        LOGFN(LDBUG, "[TCP] Sent in total %i bytes", sent);
+        LOG(LDBUG, "Sent in total %i bytes", sent);
 
     tcp_sock_decref(sock);
     return sent;
@@ -201,12 +202,12 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
             uint32_t seg_end = seg_seq + seg_len - 1;
 
             tcp_sock_lock(sock);
-            LOGFN(LTRCE, "sock->recvptr %u, seg_seq %u, seg_end %u",
+            LOG(LTRCE, "sock->recvptr %u, seg_seq %u, seg_end %u",
                 sock->recvptr - irs, seg_seq - irs, seg_end - irs);
 
             // Check if the queued segment has already been passed
             if (tcp_seq_gt(sock->recvptr, seg_end)) {
-                LOGFN(LWARN, "sock->recvptr is past seg_end. Skipping segment");
+                LOG(LWARN, "sock->recvptr is past seg_end. Skipping segment");
 
                 // Release and remove segment from the queue
                 sock->tcb.rcv.wnd += seg_len;
@@ -221,7 +222,7 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
 
         tcp_sock_trylock(sock);
         if (tcp_seq_gt(sock->recvptr, sock->tcb.rcv.nxt))
-            LOGFN(LERR, "recvptr > rcv.nxt. This should never happen!");
+            LOG(LERR, "recvptr > rcv.nxt. This should never happen!");
 
         // If the next segment isn't in the recvqueue, wait for it
         if (seg == NULL || tcp_seq_geq(sock->recvptr, sock->tcb.rcv.nxt)) {
@@ -233,7 +234,7 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
             }
 
             if (sock->state == TCP_CLOSE_WAIT) {
-                LOGFN(LTRCE, "[TCP] sock->state hit CLOSE-WAIT. Returning EOF");
+                LOG(LTRCE, "sock->state hit CLOSE-WAIT. Returning EOF");
                 // We have hit EOF. No more data to recv()
                 tcp_sock_unlock(sock);
                 // Zero signifies EOF
@@ -241,11 +242,11 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
             }
 
             // Wait for some data then continue when some arrives
-            LOGFN(LDBUG, "recvqueue has nothing ready. waiting to be woken up");
+            LOG(LDBUG, "recvqueue has nothing ready. waiting to be woken up");
             if ((ret = retlock_wait_bare(&sock->wait, &err)))
                 LOGE(LERR, "retlock_wait %s: ", strerror((int) ret));
 
-            LOGFN(LDBUG, "tcp_user_recv woken with %d", err);
+            LOG(LDBUG, "tcp_user_recv woken with %d", err);
 
             // err is <0 for error, 0 for EOF and >0 for data available
             if (err <= 0)
@@ -259,7 +260,7 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
         }
 
         pthread_mutex_lock(&sock->recvqueue.lock);
-        LOGFN(LDBUG, "recvqueue->length = %lu", sock->recvqueue.length);
+        LOG(LDBUG, "recvqueue->length = %lu", sock->recvqueue.length);
         pthread_mutex_unlock(&sock->recvqueue.lock);
 
         size_t space_left = len - count;
@@ -275,13 +276,13 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
 
         // This shouldn't happen, but just to be sure
         if (!tcp_seq_inwnd(sock->recvptr, seg_seq, seg_len)) {
-            LOGFN(LERR, "sock->recvptr is outside seg_seq");
+            LOG(LERR, "sock->recvptr is outside seg_seq");
             tcp_sock_unlock(sock);
             continue;
         }
         tcp_sock_unlock(sock);
 
-        LOGFN(LDBUG, "seg len %hu, ptr %lu, space %lu, seg left %lu",
+        LOG(LDBUG, "seg len %hu, ptr %lu, space %lu, seg left %lu",
             seg_len, seg_ofs, space_left, seg_left);
 
         // If there is more data in the segment than space in the buffer
@@ -434,7 +435,7 @@ int tcp_user_accept(struct tcp_sock *sock, struct tcp_sock **client) {
                 case TCP_SYN_SENT:
                 case TCP_SYN_RECEIVED:
                     // Connection is not established yet. Re-queue it for now
-                    LOGFN(LWARN, "tcp_user_accept client not yet established"
+                    LOG(LWARN, "tcp_user_accept client not yet established"
                             " %p. re-queuing..", *client);
                     llist_append(&sock->passive->backlog, *client);
 
@@ -449,7 +450,7 @@ int tcp_user_accept(struct tcp_sock *sock, struct tcp_sock **client) {
                 case TCP_CLOSED:
                 case TCP_LAST_ACK:
                 case TCP_TIME_WAIT:
-                    LOGFN(LWARN, "tcp_user_accept client in invalid state: %s",
+                    LOG(LWARN, "tcp_user_accept client in invalid state: %s",
                             tcp_strstate((*client)->state));
                     tcp_sock_unlock(*client);
                     *client = NULL;
@@ -458,7 +459,7 @@ int tcp_user_accept(struct tcp_sock *sock, struct tcp_sock **client) {
                 case TCP_ESTABLISHED:
                 case TCP_CLOSE_WAIT:
                     // Client is in valid state and ready to communicate
-                    LOGFN(LNTCE, "[TCP] Accepting client %p from backlog", *client);
+                    LOG(LNTCE, "Accepting client %p from backlog", *client);
                     // Remove non-blocking flag now that the user has control
                     (*client)->inet.flags &= ~O_NONBLOCK;
                     tcp_sock_unlock(*client);
@@ -469,7 +470,7 @@ int tcp_user_accept(struct tcp_sock *sock, struct tcp_sock **client) {
 
         // TODO: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
 
-        LOGFN(LNTCE, "[TCP] No connections ready to be accepted. Waiting..");
+        LOG(LNTCE, "No connections ready to be accepted. Waiting..");
 
         retlock_wait_bare(&sock->wait, NULL);
     }

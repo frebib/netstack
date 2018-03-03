@@ -252,7 +252,7 @@ void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum);
  * @param state state to set
  */
 #define tcp_setstate(sock, state) \
-        LOGFN(LDBUG, "[TCP] %s state reached", tcp_strstate(state)); \
+        LOG(LDBUG, "%s state reached", tcp_strstate(state)); \
         _tcp_setstate(sock, state)
 
 void _tcp_setstate(struct tcp_sock *sock, enum tcp_state state);
@@ -338,7 +338,7 @@ int _tcp_sock_decref(struct tcp_sock *sock, const char *file, int line, const ch
 #define tcp_sock_unlock(sock) pthread_mutex_unlock(&(sock)->wait.lock)
 
 #define tcp_sock_unlock_safe(sock) { \
-    LOGFN(LTRCE, "tcp_sock_unlock_safe(%p)", &(sock)->wait.lock); \
+    LOG(LTRCE, "tcp_sock_unlock_safe(%p)", &(sock)->wait.lock); \
     int _trylock_ret = pthread_mutex_trylock(&(sock)->wait.lock); \
     /* Unlock if the lock was just obtained or if it was already locked */ \
     if (_trylock_ret == 0 || _trylock_ret == EBUSY) \

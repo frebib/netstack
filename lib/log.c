@@ -9,6 +9,7 @@
 #include <pthread.h>
 #endif
 
+#include <sys/param.h>
 #include <netstack/log.h>
 
 struct log_config logconf = {
@@ -54,7 +55,7 @@ void log_default(struct log_config *conf) {
 /*
  * Non-varadic functions definitions
  */
-inline void LOG(loglvl_t level, const char *fmt, ...) {
+inline void _LOG(loglvl_t level, const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
     VLOG(level, fmt, args);
@@ -135,9 +136,13 @@ void VTLOGF(FILE *file, loglvl_t level, struct timespec *t, const char *fmt,
 
     // Append thread name to pre
 #ifdef _GNU_SOURCE
-    char name[32] = {0};
+    pre[prelen++] = '[';
+    char name[32];
     pthread_getname_np(pthread_self(), name, 32);
-    prelen += snprintf(pre + prelen, maxlen, "[%s]\t", name);
+    size_t name_end = MIN(strlen(name), 10);
+    name[name_end] = ']';
+    name[name_end + 1] = '\0';
+    prelen += snprintf(pre + prelen, maxlen, "%-12s", name);
 #endif
 
     // Append log level to pre
@@ -149,7 +154,7 @@ void VTLOGF(FILE *file, loglvl_t level, struct timespec *t, const char *fmt,
                            col, logconf.lvlstr[level]);
     }
     else
-        prelen += snprintf(pre + prelen, maxlen, "[%s]\t", logconf.lvlstr[level]);
+        prelen += snprintf(pre + prelen, maxlen, "[%s] ", logconf.lvlstr[level]);
 
     // Produce formatted string
     size_t len = LOG_MAX;
@@ -188,7 +193,7 @@ void VLOGT(struct log_trans *trans, const char *fmt, va_list args) {
         // Find next size that accommodates entire string
         bool empty = (trans->strsize == 0);
         size_t newsize = empty ? LOG_TRANS_INIT_BUFFER : trans->strsize;
-        do newsize *= 2;
+        do newsize <<= 1;
         while (newsize <= minsize);
 
         if ((trans->str = realloc(trans->str, newsize)) == NULL) {
@@ -200,7 +205,7 @@ void VLOGT(struct log_trans *trans, const char *fmt, va_list args) {
     vsnprintf(trans->str + tstrlen, (size_t) len, fmt, args2);
 }
 
-void LOGT_COMMIT(struct log_trans *trans) {
+void _LOGT_COMMIT(struct log_trans *trans) {
     if (trans == NULL)
         return;
 

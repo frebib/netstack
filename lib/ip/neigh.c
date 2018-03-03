@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include <errno.h>
 
+#define NETSTACK_LOG_UNIT "NEIGH"
+#include <netstack/log.h>
 #include <netstack/eth/arp.h>
 #include <netstack/ip/route.h>
 #include <netstack/ip/ipv4.h>
@@ -14,23 +16,23 @@ int neigh_find_route(struct neigh_route *out) {
         return -EINVAL;
 
     // TODO: Take source address into route calculation
-    LOGFN(LVERB, "Finding route to %s", straddr(&out->daddr));
+    LOG(LVERB, "Finding route to %s", straddr(&out->daddr));
     struct route_entry *rt = route_lookup(&out->daddr);
     if (!rt) {
         // If no route found, return DESTUNREACHABLE error
-        LOGFN(LNTCE, "No route to %s found", straddr(&out->daddr));
+        LOG(LNTCE, "No route to %s found", straddr(&out->daddr));
         return -EHOSTUNREACH;
     }
 
     struct log_trans t = LOG_TRANS(LTRCE);
     LOGT(&t, "Route found:  daddr %s", straddr(&rt->daddr));
     LOGT(&t, " gwaddr %s", straddr(&rt->gwaddr));
-    LOGTFN(&t, " nmask %s", straddr(&rt->netmask));
-    LOGT_COMMITFN(&t);
+    LOGT(&t, " nmask %s", straddr(&rt->netmask));
+    LOGT_COMMIT(&t);
 
     // TODO: Perform correct route/hardware address lookups when appropriate
     if (rt->intf == NULL) {
-        LOGFN(LERR, "Route interface is null for %p", (void *) rt);
+        LOG(LERR, "route interface is null for %p", (void *) rt);
         return -EINVAL;
     }
 
@@ -39,7 +41,7 @@ int neigh_find_route(struct neigh_route *out) {
     // overridden, even if it is an invalid/different intf for the route/daddr
     if (out->intf != NULL) {
         if (out->intf != rt->intf) {
-            LOGFN(LWARN, "[ROUTE] route interface differs from the one in the "
+            LOG(LWARN, "route interface differs from the one in the "
                     "sending packet (%s != %s", rt->intf->name, out->intf->name);
         }
     } else {
@@ -82,7 +84,7 @@ int neigh_send_to(struct neigh_route *rt, struct frame *frame, uint8_t proto,
     if (!addrzero(&rt->saddr)) {
         // Ensure the saddr passed is valid for the sending interface
         if (!intf_has_addr(intf, &rt->saddr)) {
-            LOGFN(LWARN, "The requested address %s is invalid for "
+            LOG(LWARN, "The requested address %s is invalid for "
                     "interface %s", straddr(&rt->saddr), intf->name);
 
             // It is not an error to send a packet with a mis-matched address,
@@ -110,18 +112,18 @@ int neigh_send_to(struct neigh_route *rt, struct frame *frame, uint8_t proto,
     // Don't assume ARP. IPv6 uses NDP for neighbour discovery
     switch (rt->daddr.proto) {
         case PROTO_IPV4:
-            LOGFN(LTRCE, "Finding %s addr for nexthop: %s",
+            LOG(LTRCE, "Finding %s addr for nexthop: %s",
                   strproto(rt->nexthop.proto), straddr(&rt->nexthop));
 
             struct arp_entry *entry;
             entry = arp_get_entry(&intf->arptbl, intf->proto, &rt->nexthop);
 
             if (entry != NULL) {
-                LOGFN(LTRCE, "ARP entry matching %s found", straddr(&rt->nexthop));
+                LOG(LTRCE, "ARP entry matching %s found", straddr(&rt->nexthop));
 
                 // Entry is resolved, send the frame!
                 if (entry->state & ARP_RESOLVED) {
-                    LOGFN(LTRCE, "ARP entry is resolved. Sending frame");
+                    LOG(LTRCE, "ARP entry is resolved. Sending frame");
 
                     // Take a copy of the hwaddr so we can release the lock
                     addr_t hwaddr = entry->hwaddr;
@@ -158,7 +160,7 @@ int neigh_send_to(struct neigh_route *rt, struct frame *frame, uint8_t proto,
 
             // Lock retlock atomically with respect to 'pending'
             retlock_lock(&pending->retwait);
-            LOGFN(LDBUG, "Queuing packet for later sending");
+            LOG(LDBUG, "Queuing packet for later sending");
             llist_append(&intf->neigh_outqueue, pending);
 
             // TODO: Rate limit ARP requests to prevent flooding
@@ -187,7 +189,7 @@ int neigh_send_to(struct neigh_route *rt, struct frame *frame, uint8_t proto,
                 // Indicate that the packet was queued
                 ret = -EWOULDBLOCK;
             } else {
-                LOGFN(LDBUG, "Requesting hwaddr for %s, (wait %lds)",
+                LOG(LDBUG, "Requesting hwaddr for %s, (wait %lds)",
                       straddr(&rt->nexthop), to.tv_sec);
 
                 // Wait for packet to be sent, or timeout to occur
@@ -238,8 +240,7 @@ void neigh_update_hwaddr(struct intf *intf, addr_t *daddr, addr_t *hwaddr) {
             }
 
             struct log_trans trans = LOG_TRANS(LDBUG);
-            LOGT(&trans, "Sending queued packet to %s",
-                 straddr(&tosend->nexthop));
+            LOGT(&trans, "Sending queued packet to %s", straddr(&tosend->nexthop));
             LOGT(&trans, " with hwaddr %s", straddr(hwaddr));
             LOGT_COMMIT(&trans);
 

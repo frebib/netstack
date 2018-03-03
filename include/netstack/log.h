@@ -13,6 +13,12 @@
 // TODO: Make LOG_MAX configurable
 #define LOG_MAX                 1024    /* Maximum log entry length */
 
+#ifndef NETSTACK_LOG_UNIT
+    #define LOG_UNIT ""
+#else
+    #define LOG_UNIT "("NETSTACK_LOG_UNIT") "
+#endif
+
 typedef uint8_t loglvl_t;
 
 /* 2^n where n is size of loglvl_t, times 8 bits per byte */
@@ -112,7 +118,7 @@ void log_default(struct log_config *conf);
 /*!
  * Generate log entry
  */
-void LOG(loglvl_t level, const char *fmt, ...)
+extern void _LOG(loglvl_t level, const char *fmt, ...)
         __attribute__((__format__ (__printf__, 2, 3)));
 
 void VLOG(loglvl_t level, const char *fmt, va_list args)
@@ -125,27 +131,6 @@ void VTLOG(loglvl_t level, struct timespec *t, const char *fmt, va_list args)
         __attribute__((__format__ (__printf__, 3, 0)));
 
 /*!
- * Equivalent of perror(3)
- * Calls LOGFN() to add file, line and function to log entry
- */
-#define LOGERR(fmt, ...) \
-    LOGFN(LERR,  fmt ": %s", ##__VA_ARGS__, strerror(errno))
-
-/*!
- * Performs the same action as LOGERR() but takes the log level as a
- * parameter instead of defaulting to LERR
- */
-#define LOGE(lvl, fmt, ...) \
-    LOGFN((lvl), fmt ": %s", ##__VA_ARGS__, strerror(errno))
-
-/*!
- * Peforms the same action as LOGE() except takes the error value for
- * strerror(3) as a parameter, instead of using errno(3)
- */
-#define LOGSE(lvl, fmt, err, ...) \
-    LOGFN((lvl), fmt ": %s", ##__VA_ARGS__, strerror(err))
-
-/*!
  * Appends filename, line number and function name to the end of the entry
  * Example:
  *
@@ -155,8 +140,30 @@ void VTLOG(loglvl_t level, struct timespec *t, const char *fmt, va_list args)
  *            line -> 25
  *            func -> thread_start
  */
-#define LOGFN(lvl, fmt, ...) \
-    LOG((lvl), fmt ": %s:%u<%s>", ##__VA_ARGS__, __FILE__, __LINE__, __func__)
+#define LOG(lvl, fmt, ...) \
+    _LOG((lvl), "%s" fmt ": %s:%u<%s>", LOG_UNIT, ##__VA_ARGS__, \
+            __FILE__, __LINE__, __func__)
+
+/*!
+ * Equivalent of perror(3)
+ * Calls LOG() to add file, line and function to log entry
+ */
+#define LOGERR(fmt, ...) \
+    LOG(LERR,  fmt ": %s", ##__VA_ARGS__, strerror(errno))
+
+/*!
+ * Performs the same action as LOGERR() but takes the log level as a
+ * parameter instead of defaulting to LERR
+ */
+#define LOGE(lvl, fmt, ...) \
+    LOG((lvl), fmt ": %s", ##__VA_ARGS__, strerror(errno))
+
+/*!
+ * Peforms the same action as LOGE() except takes the error value for
+ * strerror(3) as a parameter, instead of using errno(3)
+ */
+#define LOGSE(lvl, fmt, err, ...) \
+    LOG((lvl), fmt ": %s", ##__VA_ARGS__, strerror(err))
 
 /*!
  * Generate log entry and write it to file
@@ -183,8 +190,6 @@ void LOGT(struct log_trans *trans, const char *fmt, ...)
 void VLOGT(struct log_trans *trans, const char *fmt, va_list args)
         __attribute__((__format__ (__printf__, 2, 0)));
 
-#define LOGTFN(t, fmt, ...) \
-    LOGT((t), fmt ": %s:%u<%s>", ##__VA_ARGS__, __FILE__, __LINE__, __func__)
 
 /*
  * Transactional logging
@@ -195,19 +200,19 @@ void VLOGT(struct log_trans *trans, const char *fmt, va_list args)
  * @param level log level to use
  * @return a transaction structure
  */
-#define LOG_TRANS(lvl) { .level = (lvl), .time = {0}, .str = NULL, .strsize = 0 }
+#define LOG_TRANS(lvl) { .level = (lvl), .time = {0}, .str = strdup(LOG_UNIT), .strsize = 0 }
 #define PKT_TRANS(lvl) { .t = LOG_TRANS(lvl), .filter = LLIST_INITIALISER }
 
 /*!
  * Commit log transaction to the standard streams
  * @param trans transaction to commit
  */
-void LOGT_COMMIT(struct log_trans *trans);
+extern void _LOGT_COMMIT(struct log_trans *trans);
 
-#define LOGT_COMMITFN(t) \
+#define LOGT_COMMIT(t) \
     do { \
         LOGT((t), ": %s:%u<%s>", __FILE__, __LINE__, __func__); \
-        LOGT_COMMIT(t); \
+        _LOGT_COMMIT(t); \
     } while (0)
 
 /*!
@@ -228,7 +233,7 @@ void LOGT_DISPOSE(struct log_trans *trans);
  */
 #define LOGT_OPT_COMMIT(opt, trans) \
     do { \
-    if (opt) LOGT_COMMIT(trans); \
+    if (opt) _LOGT_COMMIT(trans); \
     else LOGT_DISPOSE(trans); \
     } while (0)
 

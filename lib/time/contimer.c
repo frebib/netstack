@@ -3,6 +3,7 @@
 #include <malloc.h>
 #include <signal.h>
 
+#define NETSTACK_LOG_UNIT "CONTMR"
 #include <netstack/log.h>
 #include <netstack/time/contimer.h>
 #include <netstack/time/util.h>
@@ -34,7 +35,7 @@ static void *_contimer_run(void *arg) {
 
         // If there is no event in the queue, wait for one to be added
         if (event == NULL) {
-            LOG(LVERB, "[CONTIMER] no timers left. Waiting for one");
+            LOG(LVERB, "no timers left. Waiting for one");
             ret = pthread_cond_wait(&t->wait, &t->timeouts.lock);
             if (ret != 0) {
                 LOGSE(LERR, "pthread_cond_wait", ret);
@@ -64,7 +65,7 @@ static void *_contimer_run(void *arg) {
 
             // We were woken by a signal. Go back to sleep
             if (ret == EINTR) {
-                LOG(LVERB, "[CONTIMER] clock_nanosleep woken by a signal.");
+                LOG(LVERB, "clock_nanosleep woken by a signal.");
                 continue;
             }
             else if (ret != 0) {
@@ -74,7 +75,7 @@ static void *_contimer_run(void *arg) {
             // 0 is time elapsed
         } while (ret != 0);
 
-        LOG(LTRCE, "[CONTIMER] timer elapsed. calling callback");
+        LOG(LTRCE, "timer elapsed. calling callback");
 
         contimeout_change_state(event, CALLING);
 
@@ -86,7 +87,7 @@ static void *_contimer_run(void *arg) {
     event_cleanup:
         llist_remove_nolock(&t->timeouts, event);
 
-        LOGFN(LVERB, "free(%p)'ing contimer event %u", event, event->id);
+        LOG(LVERB, "free(%p)'ing contimer event %u", event, event->id);
         free(event);
     }
 
@@ -182,7 +183,7 @@ int contimer_cancel(contimer_t *timer, contimer_event_t id) {
     // Only free the event when it is still in the WAITING state
     // Events in any other state will be free'd by the timer
     if (should_free) {
-        LOGFN(LVERB, "[CONTIMER] free(%p)'ing event %u", event, event->id);
+        LOG(LVERB, "free(%p)'ing event %u", event, event->id);
         free(event);
     }
 

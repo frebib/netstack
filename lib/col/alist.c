@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <errno.h>
 
+#define NETSTACK_LOG_UNIT "ALIST"
 #include <netstack/log.h>
 #include <netstack/col/alist.h>
 

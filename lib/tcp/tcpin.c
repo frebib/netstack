@@ -5,6 +5,7 @@
 #include <sys/param.h>
 #include <netinet/in.h>
 
+#define NETSTACK_LOG_UNIT "TCP"
 #include <netstack/tcp/tcp.h>
 
 
@@ -43,10 +44,10 @@ void tcp_recv_closed(struct frame *frame, struct tcp_hdr *seg) {
 
     // If the state is CLOSED (i.e., TCB does not exist) then
     struct log_trans t = LOG_TRANS(LDBUG);
-    LOGT(&t, "[TCP] Reached TCP_CLOSED on ");
+    LOGT(&t, "Reached TCP_CLOSED on ");
     LOGT(&t, "%s:%hu -> ", straddr(&frame->remaddr), frame->remport);
     LOGT(&t, "%s:%hu", straddr(&frame->locaddr), frame->locport);
-    LOGT_COMMITFN(&t);
+    LOGT_COMMIT(&t);
 
     // all data in the incoming segment is discarded.  An incoming
     // segment containing a RST is discarded.  An incoming segment not
@@ -70,12 +71,12 @@ void tcp_recv_closed(struct frame *frame, struct tcp_hdr *seg) {
     if (seg->flags.ack != 1) {
         // If the ACK bit is off, sequence number zero is used,
         // <SEQ=0><ACK=SEG.SEQ+SEG.LEN><CTL=RST,ACK>
-        LOGFN(LDBUG, "[TCP] Sending RST/ACK");
+        LOG(LDBUG, "Sending RST/ACK");
         tcp_send_rstack(&sock, 0, ntohl(seg->seqn) + frame_data_len(frame) + 1);
     } else {
         // If the ACK bit is on,
         // <SEQ=SEG.ACK><CTL=RST>
-        LOGFN(LDBUG, "[TCP] Sending RST");
+        LOG(LDBUG, "Sending RST");
         tcp_send_rst(&sock, ntohl(seg->ackn));
     }
 }
@@ -83,7 +84,7 @@ void tcp_recv_closed(struct frame *frame, struct tcp_hdr *seg) {
 void tcp_recv_listen(struct frame *frame, struct tcp_sock *parent,
                      struct tcp_hdr *seg) {
 
-    LOGFN(LDBUG, "[TCP] Reached TCP_LISTEN on %s:%hu",
+    LOG(LDBUG, "Reached TCP_LISTEN on %s:%hu",
           straddr(&frame->remaddr), frame->remport);
 
     // tcp_send_* functions only use sock->inet
@@ -117,7 +118,7 @@ void tcp_recv_listen(struct frame *frame, struct tcp_sock *parent,
         Return.
     */
     if (seg->flags.ack == 1) {
-        LOGFN(LDBUG, "[TCP] Sending RST");
+        LOG(LDBUG, "Sending RST");
         tcp_send_rst(&sock, ntohl(seg->ackn));
         return;
     }
@@ -195,7 +196,7 @@ void tcp_recv_listen(struct frame *frame, struct tcp_sock *parent,
     llist_append(&parent->passive->backlog, client);
 
     // Send SYN/ACK and drop incoming segment
-    LOGFN(LDBUG, "[TCP] Sending SYN/ACK");
+    LOG(LDBUG, "Sending SYN/ACK");
     tcp_send_synack(client);
 
     /*
@@ -248,7 +249,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     bool in_order = (seg_seq == tcb->rcv.nxt);
 
     if (sock->state == TCP_SYN_SENT) {
-        LOGFN(LDBUG, "[TCP] Reached SYN-SENT on %s:%hu",
+        LOG(LDBUG, "Reached SYN-SENT on %s:%hu",
               straddr(&inet->remaddr), inet->remport);
         /*
           first check the ACK bit
@@ -268,7 +269,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             if (tcp_seq_lt(seg_ack, tcb->iss) ||
                 tcp_seq_gt(seg_ack, tcb->snd.nxt)) {
                 if (seg->flags.rst != 1) {
-                    LOGFN(LDBUG, "[TCP] Sending RST");
+                    LOG(LDBUG, "Sending RST");
                     ret = tcp_send_rst(sock, seg_ack);
                 }
                 goto drop_pkt;
@@ -372,7 +373,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                 // Initialise established connection
                 tcp_established(sock, seg_seq + 1);
 
-                LOGFN(LDBUG, "[TCP] Sending ACK");
+                LOG(LDBUG, "Sending ACK");
                 // TODO: Send pending data it the sndbuf
                 ret = tcp_send_ack(sock);
 
@@ -394,7 +395,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             has been reached, return.
         */
         tcp_setstate(sock, TCP_SYN_RECEIVED);
-        LOGFN(LDBUG, "[TCP] Sending SYN/ACK");
+        LOG(LDBUG, "Sending SYN/ACK");
         ret = tcp_send_synack(sock);
 
         // TODO: If there are other controls or text in the segment,
@@ -449,17 +450,17 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     bool valid = true;
     if (seg_len > 0 && tcb->rcv.wnd == 0) {
         valid = false;
-        LOG(LINFO, "[TCP] data sent but RCV.WND is 0");
+        LOG(LINFO, "data sent but RCV.WND is 0");
     }
     if (!tcp_seq_inwnd(seg_seq, tcb->rcv.nxt, tcb->rcv.wnd) ||
             !tcp_seq_inwnd(seg_end, tcb->rcv.nxt, tcb->rcv.wnd)) {
         valid = false;
-        LOG(LINFO, "[TCP] Recv'd out-of-sequence segment: SEQ %u < RCV.NXT %u",
+        LOG(LINFO, "Recv'd out-of-sequence segment: SEQ %u < RCV.NXT %u",
             seg_seq, tcb->rcv.nxt);
     }
     if (!tcp_seq_inwnd(seg_end, tcb->rcv.nxt, tcb->rcv.wnd)) {
         valid = false;
-        LOG(LINFO, "[TCP] more data was sent than can fit in RCV.WND: "
+        LOG(LINFO, "more data was sent than can fit in RCV.WND: "
                     "SEQ %u, END %u, LEN %hu, RCV.NXT %u, RCV.WND %hu",
             seg_seq, seg_end, seg_len, tcb->rcv.nxt, tcb->rcv.wnd);
     }
@@ -475,7 +476,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     */
     if (!valid) {
         if (seg->flags.rst == 0) {
-            LOGFN(LDBUG, "[TCP] Sending ACK");
+            LOG(LDBUG, "Sending ACK");
             ret = tcp_send_ack(sock);
         }
         goto drop_pkt;
@@ -628,7 +629,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                                         seg_seq > tcb->rcv.nxt + tcb->rcv.wnd)) {
 
                 retlock_broadcast_bare(&sock->wait, -ECONNRESET);
-                LOGFN(LDBUG, "[TCP] Sending RST");
+                LOG(LDBUG, "Sending RST");
                 ret = tcp_send_rst(sock, seg_ack);
                 // TODO: Clear retransmission queue
                 tcp_sock_decref(sock);
@@ -672,7 +673,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             if (tcp_ack_acceptable(tcb, seg_ack)) {
                 tcp_established(sock, seg_seq);
             } else {
-                LOGFN(LDBUG, "[TCP] Sending RST");
+                LOG(LDBUG, "Sending RST");
                 ret = tcp_send_rst(sock, seg_ack);
 
                 // SYN-RECEIVED is always PASSIVE_OPEN
@@ -722,8 +723,8 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             }
             if (seg_ack > tcb->snd.nxt) {
                 // TODO: Is sending an ACK here necessary?
-                LOG(LDBUG, "[TCP] ACK received for something not yet sent");
-                LOGFN(LDBUG, "[TCP] Sending ACK");
+                LOG(LDBUG, "ACK received for something not yet sent");
+                LOG(LDBUG, "Sending ACK");
                 ret = tcp_send_ack(sock);
                 goto drop_pkt;
             }
@@ -886,7 +887,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             pthread_mutex_unlock(&sock->recvqueue.lock);
 
             if (tcp_seq_gt(sock->recvptr, sock->tcb.rcv.nxt))
-                LOGFN(LERR, "You dun goofed: recvptr (%u) > RCV.NXT (%u)",
+                LOG(LERR, "You dun goofed: recvptr (%u) > RCV.NXT (%u)",
                       sock->recvptr - irs, sock->tcb.rcv.nxt - irs);
 
             // Only send an acknowledgement for the segment if it is the next
@@ -898,7 +899,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             }
 
             // Always send an ACK for the largest contiguous segment we've queued.
-            LOGFN(LDBUG, "[TCP] Sending ACK");
+            LOG(LDBUG, "Sending ACK");
             ret = tcp_send_ack(sock);
 
             break;
@@ -934,8 +935,8 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         }
     } else {
         if (seg_seq != tcb->rcv.nxt) {
-            LOG(LWARN, "[TCP] Recv'd out-of-order FIN. Dropping");
-            LOG(LWARN, "[TCP] SEQ %u, RCV.NXT %u", seg_seq, tcb->rcv.nxt);
+            LOG(LWARN, "Recv'd out-of-order FIN. Dropping");
+            LOG(LWARN, "SEQ %u, RCV.NXT %u", seg_seq, tcb->rcv.nxt);
             goto drop_pkt;
         }
     /*
@@ -1015,7 +1016,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         retlock_broadcast_bare(&sock->wait, 0);
 
         tcb->rcv.nxt = seg_seq + 1;
-        LOGFN(LDBUG, "[TCP] Sending ACK");
+        LOG(LDBUG, "Sending ACK");
         ret = tcp_send_ack(sock);
     }
 

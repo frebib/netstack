@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <pthread.h>
 
+#define NETSTACK_LOG_UNIT "INTF"
 #include <netstack/log.h>
 #include <netstack/eth/ether.h>
 #include <netstack/ip/ipv4.h>
@@ -69,11 +70,11 @@ void _intf_recv_thread(struct intf *intf) {
         // TODO: Implement rx 'software' timestamping
 
         if (count < 1) {
-            LOGFN(LERR, "interface returned an empty frame");
+            LOG(LERR, "interface returned an empty frame");
             continue;
         }
         if (rawframe->buffer == NULL || rawframe->buf_sz < 1) {
-            LOGFN(LERR, "recv'd frame has no data");
+            LOG(LERR, "recv'd frame has no data");
             continue;
         }
 

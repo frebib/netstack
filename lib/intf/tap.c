@@ -10,6 +10,7 @@
 #include <net/if.h>
 #include <linux/if_tun.h>
 
+#define NETSTACK_LOG_UNIT "TAP"
 #include <netstack/log.h>
 #include <netstack/intf/tap.h>
 #include <netstack/eth/ether.h>
@@ -33,7 +34,7 @@ int tap_new(struct intf *interface) {
     strncpy(req.ifr_name, devname, IFNAMSIZ);
 
     if (ioctl(fd, TUNSETIFF, &req)) {
-        LOGERR("[TAP] ioctl TUNSETIFF");
+        LOGERR("ioctl TUNSETIFF");
         close(fd);
         return errno;
     }
@@ -42,7 +43,7 @@ int tap_new(struct intf *interface) {
     strncpy(req.ifr_name, devname, IFNAMSIZ);
 
     if (ioctl(fd, SIOCGIFMTU, &req)) {
-        LOGERR("[TAP] ioctl SIOCGIFMTU");
+        LOGERR("ioctl SIOCGIFMTU");
 //        close(fd);
 //        return errno;
     }
@@ -54,7 +55,7 @@ int tap_new(struct intf *interface) {
         req.ifr_ifindex, devname, mtu);
 
     if (ioctl(fd, SIOCGIFHWADDR, &req) < 0) {
-        LOGERR("[TAP] ioctl SIOCGIFHWADDR");
+        LOGERR("ioctl SIOCGIFHWADDR");
         return errno;
     }
 
@@ -119,12 +120,12 @@ long tap_send_frame(struct frame *frame) {
     size_t len = frame_pkt_len(frame);
 
     if ((count = write(sock, frame->head, len)) == -1) {
-        LOGERR("[TAP] write");
+        LOGERR("write");
         return errno;
     }
 
     if (count != len)
-        LOGFN(LWARN, "[TAP] write() -> count != len");
+        LOG(LWARN, "write() -> count != len");
 
     return 0;
 }

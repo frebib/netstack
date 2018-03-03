@@ -7,6 +7,7 @@
 
 #include <sys/wait.h>
 
+#define NETSTACK_LOG_UNIT "NETD"
 #include <netstack.h>
 #include <netstack/log.h>
 #include <netstack/ip/route.h>

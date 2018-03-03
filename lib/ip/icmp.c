@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <netinet/in.h>
 
+#define NETSTACK_LOG_UNIT "ICMP"
 #include <netstack/checksum.h>
 #include <netstack/ip/icmp.h>
 #include <netstack/ip/ipv4.h>
@@ -51,7 +52,7 @@ void icmp_recv(struct frame *frame) {
     frame->data += sizeof(struct icmp_hdr);
 
     if (in_csum(frame->head, frame_pkt_len(frame), 0) != 0) {
-        LOG(LWARN, "ICMP checksum is invalid!");
+        LOG(LWARN, "checksum is invalid!");
         return;
     }
 
@@ -85,7 +86,7 @@ int send_icmp_reply(struct frame *ctrl) {
     // Go up 2 layers as the outer of this is the ICMP header
     struct frame_layer *outer = frame_layer_outer(ctrl, 2);
     if (outer == NULL) {
-        LOGFN(LERR, "ICMP echo layer has no parent!");
+        LOG(LERR, "echo layer has no parent!");
         return -1;
     }
     // TODO: Don't assume IPv4 parent
@@ -96,7 +97,7 @@ int send_icmp_reply(struct frame *ctrl) {
             // TODO: Find ICMP route
             break;
         default:
-            LOGFN(LWARN, "ICMP echo parent isn't a recognised protocol (%x)",
+            LOG(LWARN, "echo parent isn't a recognised protocol (%x)",
                  outer->proto);
     }
     struct icmp_echo *ping = icmp_echo_hdr(ctrl);

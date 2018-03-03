@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <errno.h>
 
+#define NETSTACK_LOG_UNIT "LLIST"
 #include <netstack/log.h>
 #include <netstack/col/llist.h>
 

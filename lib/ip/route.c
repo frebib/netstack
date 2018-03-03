@@ -1,4 +1,7 @@
 #include <stdio.h>
+
+#define NETSTACK_LOG_UNIT "ROUTE"
+#include <netstack/log.h>
 #include <netstack/ip/route.h>
 
 llist_t route_tbl = LLIST_INITIALISER;

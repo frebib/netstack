@@ -4,11 +4,13 @@
 
 #include <netinet/in.h>
 
+#define NETSTACK_LOG_UNIT "TCP"
 #include <netstack/tcp/tcp.h>
 #include <netstack/checksum.h>
 #include <netstack/ip/route.h>
 
 llist_t tcp_sockets = LLIST_INITIALISER;
+
 
 bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum,
              addr_t saddr, addr_t daddr) {
@@ -39,7 +41,7 @@ bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum,
             irs = sock->tcb.iss;
             iss = sock->tcb.irs;
         } else {
-            LOGFN(LTRCE, "unrecognised socket");
+            LOG(LTRCE, "unrecognised socket");
         }
     }
     uint32_t seqn = ntohl(hdr->seqn) - irs;
@@ -73,14 +75,14 @@ void tcp_log_recvqueue(struct tcp_sock *sock) {
             uint32_t seqn = ntohl(hdr->seqn);
             uint32_t relseq = seqn - sock->tcb.irs;
             if (seqn > ctr)
-                LOGT(&t, "[TCP] recvqueue    < GAP OF %u bytes>\n", seqn - ctr);
-            LOGT(&t, "[TCP] recvqueue[%u] seq %u-%u\n",
+                LOGT(&t, "recvqueue    < GAP OF %u bytes>\n", seqn - ctr);
+            LOGT(&t, "recvqueue[%u] seq %u-%u\n",
                  i++, relseq, relseq + frame_data_len(qframe) - 1);
             ctr = seqn + frame_data_len(qframe);
         }
         LOGT_COMMIT(&t);
     } else {
-        LOG(LVERB, "[TCP] recvqueue is empty");
+        LOG(LVERB, "recvqueue is empty");
     }
 }
 
@@ -97,9 +99,9 @@ void tcp_ipv4_recv(struct frame *frame, struct ipv4_hdr *hdr) {
 
     // No (part/complete) established connection was found
     if (sock == NULL) {
-        LOGFN(LWARN, "[IPv4] Unrecognised incoming TCP connection");
+        LOG(LWARN, "Unrecognised incoming TCP connection");
     } else {
-        LOGFN(LWARN, "[TCP] Socket in state %s", tcp_strstate(sock->state));
+        LOG(LWARN, "Socket in state %s", tcp_strstate(sock->state));
         tcp_sock_incref(sock);
     }
     /* Pass initial network csum as TCP packet csum seed */
@@ -130,7 +132,7 @@ void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {
 
     // TODO: Check for TSO and GRO and account for it, somehow..
     if (in_csum(frame->head, frame_pkt_len(frame), net_csum) != 0) {
-        LOGFN(LTRCE, "Dropping TCP packet with invalid checksum!");
+        LOG(LTRCE, "Dropping TCP packet with invalid checksum!");
         goto drop_pkt;
     }
 
@@ -169,7 +171,7 @@ void _tcp_setstate(struct tcp_sock *sock, enum tcp_state state) {
         case TCP_CLOSING:
         case TCP_CLOSE_WAIT:
             // Signal EOF to any waiting recv() calls
-            LOGFN(LTRCE, "[TCP] Waking all waiting user calls");
+            LOG(LTRCE, "Waking all waiting user calls");
             retlock_broadcast_bare(&sock->wait, 0);
             break;
         default:
@@ -183,12 +185,12 @@ void tcp_established(struct tcp_sock *sock, uint32_t firstbyte) {
 
     // Set the initial recv value to the first byte in stream
     sock->recvptr = firstbyte;
-    LOG(LTRCE, "[TCP] set recvptr to %u", sock->recvptr);
+    LOG(LTRCE, "set recvptr to %u", sock->recvptr);
 
     // Allocate send/receive buffers
 //    rbuf_init(&sock->rcvbuf, sock->tcb.rcv.wnd, BYTE);
     rbuf_init(&sock->sndbuf, sock->tcb.snd.wnd, BYTE);
-    LOG(LDBUG, "[TCP] Allocated SND.WND %hu, RCV.WND %hu",
+    LOG(LDBUG, "Allocated SND.WND %hu, RCV.WND %hu",
         sock->tcb.snd.wnd, sock->tcb.rcv.wnd);
 
     // If socket was PASSIVE open, notify the parent socket if waiting on accept()
@@ -211,7 +213,7 @@ struct tcp_sock *tcp_sock_init(struct tcp_sock *sock) {
 inline void tcp_sock_free(struct tcp_sock *sock) {
 
     if (tcp_sock_trylock(sock) != EBUSY) {
-        LOGFN(LERR, "[TCP] tcp_sock_free() called on unlocked socket!");
+        LOG(LERR, "tcp_sock_free() called on unlocked socket!");
         return;
     }
 
@@ -282,7 +284,7 @@ int _tcp_sock_decref(struct tcp_sock *sock, const char *file, int line, const ch
     // Subtract and destroy socket if no more refs held
     int refcnt;
     if ((refcnt = atomic_fetch_sub(&sock->refcount, 1)) == 1) {
-        LOG(LDBUG, "[TCP] deref'ing sock %p (ref %d): %s:%u<%s>", sock,
+        LOG(LDBUG, "deref'ing sock %p (ref %d): %s:%u<%s>", sock,
             refcnt - 1, file, line, func);
         tcp_sock_trylock(sock);
         tcp_sock_destroy(sock);

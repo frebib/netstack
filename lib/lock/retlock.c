@@ -1,5 +1,6 @@
 #include <string.h>
 
+#define NETSTACK_LOG_UNIT "RETLCK"
 #include <netstack/log.h>
 #include <netstack/lock/retlock.h>
 #include <netstack/time/util.h>

@@ -1,6 +1,7 @@
 #include <sys/param.h>
 #include <netinet/in.h>
 
+#define NETSTACK_LOG_UNIT "TCP"
 #include <netstack/checksum.h>
 #include <netstack/ip/route.h>
 #include <netstack/tcp/tcp.h>
@@ -172,7 +173,7 @@ size_t tcp_options(struct tcp_sock *sock, uint8_t tcp_flags, uint8_t *opt) {
     if ((tcp_flags & TCP_FLAG_SYN) && (mss != TCP_DEF_MSS)) {
         // Maximum Segment Size option is 1+1+2 bytes:
         // https://tools.ietf.org/html/rfc793#page-19
-        LOG(LDBUG, "[TCP] MSS option enabled with mss = %u", mss);
+        LOG(LDBUG, "MSS option enabled with mss = %u", mss);
 
         *opt++ = TCP_OPT_MSS;
         *opt++ = TCP_OPT_MSS_LEN;
@@ -182,7 +183,7 @@ size_t tcp_options(struct tcp_sock *sock, uint8_t tcp_flags, uint8_t *opt) {
 
     // Length of options is delta
     uint64_t len = opt - optstart;
-    LOGFN(LVERB, "[TCP] options length %lu", len);
+    LOG(LVERB, "options length %lu", len);
 
     return len;
 }

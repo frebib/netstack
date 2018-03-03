@@ -1,15 +1,16 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
 
 #include <netinet/in.h>
 
+#define NETSTACK_LOG_UNIT "IPv4"
 #include <netstack/eth/arp.h>
 #include <netstack/ip/ipv4.h>
 #include <netstack/ip/icmp.h>
 #include <netstack/ip/route.h>
 #include <netstack/tcp/tcp.h>
 #include <netstack/checksum.h>
-#include <stdlib.h>
 
 
 bool ipv4_log(struct pkt_log *log, struct frame *frame) {
@@ -100,19 +101,19 @@ void ipv4_recv(struct frame *frame) {
     // TODO: Keep track of invalid packets
 
     if (hdr_len < sizeof(struct ipv4_hdr)) {
-        LOG(LWARN, "Error: IPv4 packet header is too short!");
+        LOG(LWARN, "packet header is too short!");
         return;
     }
 
     if (hdr->version != 4) {
-        LOG(LWARN, "Error: IPv4 packet version is wrong: %d", hdr->version);
+        LOG(LWARN, "packet version is wrong: %d", hdr->version);
         return;
     }
 
     // TODO: Take options into account here
 
     if (in_csum(frame->head, (size_t) hdr_len, 0) != 0) {
-        LOG(LWARN, "Error: IPv4 packet checksum is corrupt");
+        LOG(LWARN, "packet checksum is corrupt");
         return;
     }
 
