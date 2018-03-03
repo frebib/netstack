@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
     // Main thread captures signals, waiting for program termination
     int signum;
     while (sigwait(&sigs, &signum) == 0) {
-        LOG(LINFO, "Caught signal: %s\n", strsignal(signum));
+        LOG(LINFO, "Caught signal: %s", strsignal(signum));
 
         switch (signum) {
             // Cleanup and exit, responsibly

@@ -212,7 +212,7 @@ bool arp_update_entry(struct intf *intf, addr_t *hwaddr, addr_t *protoaddr) {
 
 bool arp_cache_entry(struct intf *intf, addr_t *hwaddr, addr_t *protoaddr) {
 
-    LOG(LINFO, "Storing new ARP entry for %s\n", straddr(protoaddr));
+    LOG(LINFO, "Storing new ARP entry for %s", straddr(protoaddr));
 
     struct arp_entry *entry = malloc(sizeof(struct arp_entry));
     entry->state = ARP_RESOLVED;
