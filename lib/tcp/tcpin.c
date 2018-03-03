@@ -676,7 +676,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                 ret = tcp_send_rst(sock, seg_ack);
 
                 // SYN-RECEIVED is always PASSIVE_OPEN
-                tcp_restore_listen(sock);
+//                tcp_restore_listen(sock);
             }
             break;
     /*
@@ -1029,14 +1029,4 @@ void tcp_update_wnd(struct tcb *tcb, struct tcp_hdr *seg) {
     tcb->snd.wnd = ntohs(seg->wind);
     tcb->snd.wl1 = ntohl(seg->seqn);
     tcb->snd.wl2 = ntohl(seg->ackn);
-}
-
-void tcp_restore_listen(struct tcp_sock *sock) {
-    // TODO: Implement locking
-    // TODO: Restore previous local address if it was set
-    sock->inet.locaddr = (addr_t) {.proto = sock->inet.locaddr.proto};
-    sock->inet.remaddr = (addr_t) {.proto = sock->inet.remaddr.proto};
-    sock->inet.remport = 0;
-    LOG(LDBUG, "[TCP] Returning connection to LISTEN state");
-    tcp_setstate(sock, TCP_LISTEN);
 }

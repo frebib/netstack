@@ -16,7 +16,7 @@
 
 ## [include/netstack/tcp/tcp.h](include/netstack/tcp/tcp.h)
   - Line 47: Take endianness into account in tcp_hdr
-  - Line 174: Fix endianness in tcp.h
+  - Line 173: Fix endianness in tcp.h
 
 ## [lib/eth/arp.c](lib/eth/arp.c)
   - Line 161: Use hashtable for ARP lookups on IPv4
@@ -81,8 +81,8 @@
   - Line 140: Other integrity checks
   - Line 143: Parse incoming TCP segment options
   - Line 165: Perform queued actions when reaching certain states
-  - Line 292: Choose a random unused outgoing port
-  - Line 297: Choose a secure initial sequence number
+  - Line 298: Choose a random unused outgoing port
+  - Line 303: Choose a secure initial sequence number
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
   - Line 58: Optionally don't send TCP RST packets
@@ -106,8 +106,6 @@
   - Line 968: Work out if 'our FIN has been ACKed'
   - Line 972: stop other TCP timers in FIN-WAIT-2
   - Line 986: stop other TCP timers in FIN-WAIT-2
-  - Line 1035: Implement locking
-  - Line 1036: Restore previous local address if it was set
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
   - Line 13: Don't assume IPv4 L3, choose based on sock->saddr

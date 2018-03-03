@@ -224,6 +224,12 @@ inline void tcp_sock_free(struct tcp_sock *sock) {
     if (sock->sndbuf.size > 0)
         rbuf_destroy(&sock->sndbuf);
 
+    if (sock->passive) {
+        llist_iter(&sock->passive->backlog, tcp_sock_free);
+        llist_clear(&sock->passive->backlog);
+        free(sock->passive);
+    }
+
     // This shouldn't do anything as we currently hold the lock
     retlock_broadcast_bare(&sock->wait, 0);
 

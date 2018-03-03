@@ -148,12 +148,11 @@ struct tcp_sock {
     struct inet_sock inet;
     enum tcp_state state;
     struct tcb tcb;
-    union {
-        struct tcp_passive *passive;// Non-NULL when the connection is PASSIVE (LISTEN)
-        struct tcp_sock *parent;
-    };
     uint16_t mss;               // Defaults to TCP_DEF_MSS if not "negotiated"
                                 // MSS for _outgoing_ send() calls only!
+
+    struct tcp_passive *passive;// Non-NULL when the connection is PASSIVE (LISTEN)
+    struct tcp_sock *parent;
 
     // Data buffers
     rbuf sndbuf;
@@ -418,14 +417,6 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock);
  * Updates the TCP send window from an incoming segment
  */
 void tcp_update_wnd(struct tcb *tcb, struct tcp_hdr *seg);
-
-/*!
- * Restores a previously LISTENing socket to LISTEN state
- * Use this function when an TCP_PASSIVE_OPEN connection attempt fails and
- * the socket should be reset to allow other connections.
- * @param sock
- */
-void tcp_restore_listen(struct tcp_sock *sock);
 
 
 /*
