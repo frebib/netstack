@@ -44,10 +44,6 @@ struct intf {
     // Outbound queue for packets to neighbouring hosts (see neigh.c)
     llist_t neigh_outqueue;
 
-    // Concurrency locking for send queue
-    sem_t sendctr;
-    llist_t sendq;
-
     // Interface send/recv thread ids
     pthread_t threads[INTF_THR_MAX];
 

@@ -131,8 +131,6 @@ void rawsock_free(struct intf *intf) {
     llist_clear(&intf->arptbl);
     llist_iter(&intf->inet, free);
     llist_clear(&intf->inet);
-    // TODO: Ensure frames are destroyed, even if they still have references
-    llist_iter(&intf->sendq, frame_decref);
 }
 
 long rawsock_recv_frame(struct frame *frame) {

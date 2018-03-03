@@ -36,16 +36,15 @@
   - Line 20: Use hashtbl instead of list to lookup sockets
 
 ## [lib/intf/intf.c](lib/intf/intf.c)
-  - Line 110: Implement rx 'software' timestamping
-  - Line 130: Conditionally print debugging information
-  - Line 209: Check intf hwtype to calculate max frame size
-  - Line 239: Selectively choose an appropriate address from intf
+  - Line 69: Implement rx 'software' timestamping
+  - Line 89: Conditionally print debugging information
+  - Line 161: Check intf hwtype to calculate max frame size
+  - Line 191: Selectively choose an appropriate address from intf
 
 ## [lib/intf/rawsock.c](lib/intf/rawsock.c)
   - Line 125: Move some of this cleanup logic into a generic intf_free() function
-  - Line 134: Ensure frames are destroyed, even if they still have references
-  - Line 159: Allocate a buffer from the interface for frame storage
-  - Line 164: Find an appropriate size for the control buffer
+  - Line 157: Allocate a buffer from the interface for frame storage
+  - Line 162: Find an appropriate size for the control buffer
 
 ## [lib/intf/tap.c](lib/intf/tap.c)
   - Line 31: Allow TUN/TAP name configuration

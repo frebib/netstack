@@ -10,21 +10,29 @@
 
 
 // Private functions
-void _intf_send_thread(struct intf *intf);
 void _intf_recv_thread(struct intf *intf);
 
 
 int intf_dispatch(struct frame *frame) {
-    // Ensure send() has a reference, keeping the frame alive
-    frame_incref(frame);
-    frame_unlock(frame);
+    // Send the frame
+    long ret = frame->intf->send_frame(frame);
 
-    // Push the frame into the queue
-    queue_push(&frame->intf->sendq, frame);
-    // Signal the sendctr sem
-    sem_post(&frame->intf->sendctr);
+    // Log outgoing packets
+    struct pkt_log log = PKT_TRANS(LFRAME);
 
-    return 0;
+    switch (frame->intf->proto) {
+        case PROTO_ETHER:
+            LOGT_OPT_COMMIT(ether_log(&log, frame), &log.t);
+            break;
+        case PROTO_IP:
+        case PROTO_IPV4:
+            LOGT_OPT_COMMIT(ipv4_log(&log, frame), &log.t);
+            break;
+        default:
+            break;
+    }
+
+    return (int) ((ret < 0) ? ret : 0);
 }
 
 struct frame *intf_frame_new(struct intf *intf, size_t buf_size) {
@@ -45,57 +53,8 @@ void intf_free_buffer(struct intf *intf, void *buffer) {
 
 
 /*
- *  Send/Receive threads used internally in the interface
+ *  Receive thread used internally in the interface
  */
-void _intf_send_thread(struct intf *intf) {
-
-    // Manually determine when the thread can be cancelled
-    pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
-    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
-
-    // Wait on the sendctr for something to send
-    while (sem_wait(&intf->sendctr) == 0) {
-
-        // Wait until send is complete before allowing cancellation
-        pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
-
-        struct frame *frame = queue_pop(&intf->sendq);
-
-        // Only attempt to send a non-null frame
-        if (frame && frame->buffer != NULL && frame->buf_sz > 0) {
-            frame_lock(frame, SHARED_RD);
-
-            // Send the frame!
-            int ret = (int) intf->send_frame(frame);
-            if (ret < 0)
-                LOGSE(LINFO, "send_frame() returned %d", ret, ret);
-
-            // Log outgoing packets
-            struct pkt_log log = PKT_TRANS(LFRAME);
-            struct frame *logframe = frame_clone(frame, SHARED_RD);
-
-            switch (intf->proto) {
-                case PROTO_ETHER:
-                    LOGT_OPT_COMMIT(ether_log(&log, logframe), &log.t);
-                    break;
-                case PROTO_IP:
-                case PROTO_IPV4:
-                    LOGT_OPT_COMMIT(ipv4_log(&log, logframe), &log.t);
-                    break;
-                default:
-                    break;
-            }
-
-            frame_decref_unlock(logframe);
-
-            // Frame sent, disown it (incremented in intf_dispatch)
-            frame_decref_unlock(frame);
-        }
-
-        pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
-    }
-}
-
 void _intf_recv_thread(struct intf *intf) {
     struct frame *rawframe = NULL;
     ssize_t count;
@@ -181,11 +140,7 @@ int intf_init(struct intf *intf) {
     if (intf == NULL)
         return EINVAL;
 
-    /* Create a semaphore for locking the send queue */
-    sem_init(&intf->sendctr, 0, 0);
-
     intf->arptbl = (llist_t) LLIST_INITIALISER;
-    intf->sendq = (llist_t) LLIST_INITIALISER;
 
     LOG(LDBUG, "Creating threads");
 
@@ -195,9 +150,6 @@ int intf_init(struct intf *intf) {
     int end = snprintf(temp, len, "%s/", intf->name);
     // Create threads
     pthread_t *th_ids = intf->threads;
-    pthread_create_named(&th_ids[INTF_THR_SEND], strncat(temp, "snd", len),
-                         &_intf_send_thread, intf);
-    temp[end] = '\0';   // Reset string end
     pthread_create_named(&th_ids[INTF_THR_RECV], strncat(temp, "rcv", len),
                          &_intf_recv_thread, intf);
     temp[end] = '\0';
