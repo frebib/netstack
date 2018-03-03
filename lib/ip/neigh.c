@@ -261,6 +261,9 @@ void neigh_update_hwaddr(struct intf *intf, addr_t *daddr, addr_t *hwaddr) {
             if ((err = retlock_broadcast_nolock(&tosend->retwait, ret)))
                 LOGSE(LERR, "retlock_broadcast_nolock", -err);
 
+            // Deallocate memory
+            free(tosend);
+
             return;
         }
         // Unlock regardless and continue
