@@ -2,6 +2,7 @@
 
 #include <netstack/log.h>
 #include <netstack/lock/retlock.h>
+#include <netstack/time/util.h>
 
 void retlock_init(retlock_t *lock) {
     pthread_mutex_init(&lock->lock, NULL);
@@ -103,16 +104,10 @@ int pthread_cond_reltimedwait(pthread_cond_t *__restrict cond,
                               pthread_mutex_t *__restrict mutex,
                               const struct timespec *__restrict reltime) {
 
-    // Add adsolute time onto the relative timeout
+    // Add absolute time onto the relative timeout
     struct timespec abs;
     clock_gettime(CLOCK_REALTIME, &abs);
-    abs.tv_sec += reltime->tv_sec;
-    abs.tv_nsec += reltime->tv_nsec;
-    // Prevent nanoseconds being >= 1 billion
-    if (abs.tv_nsec >= 1000000000) {
-        abs.tv_nsec -= 1000000000;
-        abs.tv_sec++;
-    }
+    timespecadd(&abs, reltime);
 
     return pthread_cond_timedwait(cond, mutex, &abs);
 }
