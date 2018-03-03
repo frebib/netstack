@@ -63,6 +63,7 @@ void tcp_recv_closed(struct frame *frame, struct tcp_hdr *seg) {
             .locaddr = frame->locaddr,
             .remport = frame->remport,
             .remaddr = frame->remaddr,
+            .flags = O_NONBLOCK,
             .intf = frame->intf
     } };
 
@@ -91,6 +92,7 @@ void tcp_recv_listen(struct frame *frame, struct tcp_sock *parent,
             .locaddr = frame->locaddr,
             .remport = frame->remport,
             .remaddr = frame->remaddr,
+            .flags = O_NONBLOCK,
             .intf = frame->intf
     } };
 
