@@ -61,6 +61,15 @@ int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
 
 int tcp_send_data(struct tcp_sock *sock, uint8_t flags) {
 
+    // Ensure the socket isn't closed before each packet send
+    tcp_sock_lock(sock);
+    if (sock->state != TCP_ESTABLISHED && sock->state != TCP_CLOSE_WAIT) {
+        tcp_sock_unlock(sock);
+        // TODO: Return socket close reason to user
+        return -ECONNRESET;
+    }
+    tcp_sock_unlock(sock);
+
     // Find route to next-hop
     int err;
     struct neigh_route route = {

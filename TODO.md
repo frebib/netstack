@@ -113,9 +113,10 @@
   - Line 13: Don't assume IPv4 L3, choose based on sock->saddr
   - Line 23: Don't assume IPv4 pseudo-header for checksumming
   - Line 29: Implement functionality to specify IP flags (different for IP4/6?)
-  - Line 95: Start the retransmission timeout
-  - Line 118: Calculate IP layer options in tcp_send_data()
-  - Line 121: Take into account ethernet header variations, such as VLAN tags
+  - Line 68: Return socket close reason to user
+  - Line 104: Start the retransmission timeout
+  - Line 127: Calculate IP layer options in tcp_send_data()
+  - Line 130: Take into account ethernet header variations, such as VLAN tags
 
 ## [lib/tcp/tcpuser.c](lib/tcp/tcpuser.c)
   - Line 13: Handle sending SIGPIPE for dead connections to calling process
