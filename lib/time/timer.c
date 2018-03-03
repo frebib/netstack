@@ -29,7 +29,7 @@ int timeout_set(timeout_t *t, void (*fn)(void *), void *arg,
     te.sigev_notify = SIGEV_SIGNAL;
     te.sigev_signo = TIMER_SIGNAL;
     te.sigev_value.sival_ptr = t;
-    if (timer_create(CLOCK_REALTIME, &te, &t->timer)) {
+    if (timer_create(CLOCK_MONOTONIC, &te, &t->timer)) {
         LOGERR("timer_create");
         free(t);
         return -1;
@@ -66,7 +66,7 @@ int timeout_restart(timeout_t *t, time_t sec, time_t nsec) {
     return timeout_set(t, t->func, t->arg, sec, nsec);
 }
 
-void netstack_timer_handler(int sig, siginfo_t *si, void *uc) {
+static void netstack_timer_handler(int sig, siginfo_t *si, void *uc) {
     LOG(LDBUG, "%s() caught signal: %s", __func__, strsignal(sig));
 
     if (sig == TIMER_SIGNAL) {
