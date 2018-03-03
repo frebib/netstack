@@ -448,10 +448,9 @@ int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
  * Constructs and sends a TCP packet with the largest payload available to send,
  * or as much as can fit in a single packet, from the socket data send queue.
  * @param sock TCP socket to send a packet for
- * @param flags TCP state flags to set in the header
  * @return >= 0: number of bytes sent, negative error otherwise
  */
-int tcp_send_data(struct tcp_sock *sock, uint8_t flags);
+int tcp_send_data(struct tcp_sock *sock);
 
 /*!
  * Given an uninitialised frame, a TCP segment is formed, allocating space for

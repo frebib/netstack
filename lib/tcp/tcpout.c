@@ -60,7 +60,7 @@ int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
     return ret;
 }
 
-int tcp_send_data(struct tcp_sock *sock, uint8_t flags) {
+int tcp_send_data(struct tcp_sock *sock) {
 
     // Ensure the socket isn't closed before each packet send
     tcp_sock_lock(sock);
@@ -89,11 +89,15 @@ int tcp_send_data(struct tcp_sock *sock, uint8_t flags) {
     size_t tosend = rbuf_count(&sock->sndbuf);
     uint32_t seqn = htonl(sock->tcb.snd.nxt);
     uint32_t ackn = htonl(sock->tcb.rcv.nxt);
-    long count = tcp_init_header(seg, sock, seqn, ackn, flags, tosend);
+    int count = tcp_init_header(seg, sock, seqn, ackn, TCP_FLAG_ACK, tosend);
     // < 0 indicates error
     if (count < 0)
         return (int) count;
     sock->tcb.snd.nxt += count;
+
+    // Set the PUSH flag if we're sending the last data in the buffer
+    if (count >= tosend)
+        tcp_hdr(seg)->flags.psh = 1;
 
     // https://tools.ietf.org/html/rfc793#section-3.7
     // Calculate data size to send, limited by MSS (- options)

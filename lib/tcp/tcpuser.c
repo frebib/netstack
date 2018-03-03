@@ -147,7 +147,7 @@ int tcp_user_send(struct tcp_sock *sock, void *data, size_t len, int flags) {
     // TODO: Check for MSG_MORE flag and don't trigger for a short while
     while (sent < len) {
 
-        int ret = tcp_send_data(sock, TCP_FLAG_PSH | TCP_FLAG_ACK);
+        int ret = tcp_send_data(sock);
         if (ret <= 0) {
             LOGSE(LINFO, "tcp_send_data returned", -ret);
             sent = ret;
