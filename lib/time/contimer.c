@@ -210,6 +210,8 @@ int contimer_stop(contimer_t *timer) {
         }
     }
 
+    // Wake the condition variable, if it is sleeping
+    pthread_cond_signal(&timer->wait);
     pthread_mutex_unlock(&timer->timeouts.lock);
 
     // Wake clock_nanosleep if it is sleeping
