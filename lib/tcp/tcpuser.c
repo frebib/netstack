@@ -117,10 +117,11 @@ int tcp_user_send(struct tcp_sock *sock, void *data, size_t len, int flags) {
     tcp_sock_incref(sock);
 
     int sent = 0;
-    bool send = true;
     switch (sock->state) {
         case TCP_CLOSED:
         case TCP_LISTEN:
+        case TCP_SYN_SENT:
+        case TCP_SYN_RECEIVED:
             tcp_sock_decref_unlock(sock);
             return -ENOTCONN;
         case TCP_FIN_WAIT_1:
@@ -130,9 +131,6 @@ int tcp_user_send(struct tcp_sock *sock, void *data, size_t len, int flags) {
         case TCP_TIME_WAIT:
             tcp_sock_decref_unlock(sock);
             return -ESHUTDOWN;
-        case TCP_SYN_SENT:
-        case TCP_SYN_RECEIVED:
-            send = false;
         default:
             // ESTABLISHED or CLOSE-WAIT
             break;
@@ -148,25 +146,24 @@ int tcp_user_send(struct tcp_sock *sock, void *data, size_t len, int flags) {
     // TODO: Write to sndbuf and output directly at the same time
     rbuf_write(&sock->sndbuf, data, len);
 
-    if (send != true) {
-        tcp_sock_decref_unlock(sock);
-        return sent;
-    }
-
+    // tcp_send_data performs it's own locking. this reduces contention
     tcp_sock_unlock(sock);
 
     // TODO: Signal sending thread and offload segmentation/transmission
     // TODO: Check for MSG_MORE flag and don't trigger for a short while
     while (sent < len) {
+
         int ret = tcp_send_data(sock, TCP_FLAG_PSH | TCP_FLAG_ACK);
-        if (ret < 0) {
-            LOGSE(LINFO, "[TCP] tcp_send_data returned", ret);
+        if (ret <= 0) {
+            LOGSE(LINFO, "[TCP] tcp_send_data returned", -ret);
             sent = ret;
             break;
         }
         sent += ret;
+        LOGFN(LVERB, "[TCP] Sent %i bytes (%i/%zu)", ret, sent, len);
     }
-    LOG(LDBUG, "[TCP] Sent %i bytes", sent);
+    if (sent > 0)
+        LOGFN(LDBUG, "[TCP] Sent in total %i bytes", sent);
 
     tcp_sock_decref(sock);
     return sent;
@@ -190,7 +187,7 @@ int tcp_user_recv(struct tcp_sock *sock, void* data, size_t len, int flags) {
         case TCP_SYN_SENT:
         case TCP_SYN_RECEIVED:
             // TODO: Wait here until there is something to recv
-            retlock_wait(&sock->wait, &err);
+            retlock_wait_bare(&sock->wait, &err);
             ret = _tcp_user_recv_data(sock, data, len);
             break;
         case TCP_ESTABLISHED:
@@ -199,7 +196,6 @@ int tcp_user_recv(struct tcp_sock *sock, void* data, size_t len, int flags) {
             // TODO: Send ACKs for data passed to the user (if specified)
             // Fall-through to CLOSE-WAIT
         case TCP_CLOSE_WAIT:
-            tcp_sock_unlock(sock);
             // Return value is # of bytes read
             ret = _tcp_user_recv_data(sock, data, len);
             break;
@@ -224,7 +220,6 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
 
         // First check if there is something to recv
         struct frame *seg = llist_peek(&sock->recvqueue);
-        tcp_sock_lock(sock);
         uint32_t irs = sock->tcb.irs;
         tcp_sock_unlock(sock);
 
@@ -263,7 +258,7 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
                 // We have already read some data and the queue is now empty
                 // Return back the data to the user
                 tcp_sock_unlock(sock);
-                break;
+                return count;
             }
 
             if (sock->state == TCP_CLOSE_WAIT) {
@@ -276,7 +271,7 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
 
             // Wait for some data then continue when some arrives
             LOGFN(LDBUG, "recvqueue has nothing ready. waiting to be woken up");
-            if ((ret = retlock_wait_nolock(&sock->wait, &err)))
+            if ((ret = retlock_wait_bare(&sock->wait, &err)))
                 LOGE(LERR, "retlock_wait %s: ", strerror((int) ret));
 
             LOGFN(LDBUG, "tcp_user_recv woken with %d", err);
@@ -288,8 +283,9 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
 
             // Return to start of loop to obtain next segment to recv
             continue;
-        } else
+        } else {
             tcp_sock_unlock(sock);
+        }
 
         pthread_mutex_lock(&sock->recvqueue.lock);
         LOGFN(LDBUG, "recvqueue->length = %lu", sock->recvqueue.length);
@@ -332,7 +328,7 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
 
             // Break from loop and return
             frame_unlock(seg);
-            break;
+            return count;
         } else {
 
             // Copy remainder of frame then dispose of it
@@ -388,30 +384,29 @@ int tcp_user_close(struct tcp_sock *sock) {
             // TODO: Check for pending send() calls
             // Fall through to TCP_ESTABLISHED
         case TCP_ESTABLISHED:
-            tcp_sock_incref(sock);
             tcp_setstate(sock, TCP_FIN_WAIT_1);
             tcp_send_finack(sock);
             retlock_wait_bare(&sock->wait, &ret);
             break;
         case TCP_CLOSE_WAIT:
             // TODO: If unsent data, queue sending FIN/ACK on CLOSING
-            tcp_sock_incref(sock);
             // RFC 1122: Section 4.2.2.20 (a)
             // TCP event processing corrections
             // https://tools.ietf.org/html/rfc1122#page-93
             tcp_setstate(sock, TCP_LAST_ACK);
             tcp_send_finack(sock);
-            retlock_wait_bare(&sock->wait, &ret);
+            while (sock->state != TCP_CLOSED)
+                retlock_wait_bare(&sock->wait, &ret);
             break;
         case TCP_CLOSING:
         case TCP_LAST_ACK:
         case TCP_TIME_WAIT:
             // Connection already closing
-            tcp_sock_decref(sock);
-            return -EALREADY;
+            ret = -EALREADY;
+            break;
         case TCP_CLOSED:
-            tcp_sock_decref(sock);
-            return -ENOTCONN;
+            ret = -ENOTCONN;
+            break;
         default:
             break;
     }

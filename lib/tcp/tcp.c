@@ -142,9 +142,17 @@ void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {
     // Parse segment TCP options
     // TODO: Parse incoming TCP segment options
 
-    if (sock == NULL || sock->state == TCP_CLOSED)
+    // Obtain socket state within the mutex lock
+    enum tcp_state state = TCP_CLOSED;
+    if (sock != NULL) {
+        tcp_sock_lock(sock);
+        state = sock->state;
+        tcp_sock_unlock(sock);
+    }
+
+    if (sock == NULL || state == TCP_CLOSED)
         tcp_recv_closed(frame, hdr);
-    else if (sock->state == TCP_LISTEN)
+    else if (state == TCP_LISTEN)
         tcp_recv_listen(frame, sock, hdr);
     else
         tcp_seg_arr(frame, sock);
@@ -201,6 +209,12 @@ struct tcp_sock *tcp_sock_init(struct tcp_sock *sock) {
 }
 
 inline void tcp_sock_free(struct tcp_sock *sock) {
+
+    if (tcp_sock_trylock(sock) != EBUSY) {
+        LOGFN(LERR, "[TCP] tcp_sock_free() called on unlocked socket!");
+        return;
+    }
+
     // Cancel all running timers
     tcp_timewait_cancel(sock);
 
@@ -210,10 +224,9 @@ inline void tcp_sock_free(struct tcp_sock *sock) {
     if (sock->sndbuf.size > 0)
         rbuf_destroy(&sock->sndbuf);
 
-    if (tcp_sock_trylock(sock) != EBUSY) {
-        LOGFN(LERR, "[TCP] tcp_sock_free() called on unlocked socket!");
-        return;
-    }
+    // This shouldn't do anything as we currently hold the lock
+    retlock_broadcast_bare(&sock->wait, 0);
+
     tcp_sock_unlock(sock);
 
     free(sock);
@@ -254,16 +267,18 @@ void tcp_sock_cleanup(struct tcp_sock *sock) {
     tcp_sock_destroy(sock);
 }
 
-uint tcp_sock_incref(struct tcp_sock *sock) {
-    return atomic_fetch_add(&sock->refcount, 1);
+int _tcp_sock_incref(struct tcp_sock *sock, const char *file, int line, const char *func) {
+    int refcnt =  atomic_fetch_add(&sock->refcount, 1);
+    return refcnt;
 }
 
-uint _tcp_sock_decref(struct tcp_sock *sock, const char *file, int line, const char *func) {
+int _tcp_sock_decref(struct tcp_sock *sock, const char *file, int line, const char *func) {
     // Subtract and destroy socket if no more refs held
-    uint refcnt;
+    int refcnt;
     if ((refcnt = atomic_fetch_sub(&sock->refcount, 1)) == 1) {
-        LOG(LDBUG, "[TCP] dereferencing sock %p" ": %s:%u<%s>", sock,
-            file, line, func);
+        LOG(LDBUG, "[TCP] deref'ing sock %p (ref %d): %s:%u<%s>", sock,
+            refcnt - 1, file, line, func);
+        tcp_sock_trylock(sock);
         tcp_sock_destroy(sock);
     }
     return refcnt - 1;

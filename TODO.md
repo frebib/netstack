@@ -80,34 +80,34 @@
   - Line 131: Check for TSO and GRO and account for it, somehow..
   - Line 140: Other integrity checks
   - Line 143: Parse incoming TCP segment options
-  - Line 157: Perform queued actions when reaching certain states
-  - Line 277: Choose a random unused outgoing port
-  - Line 282: Choose a secure initial sequence number
+  - Line 165: Perform queued actions when reaching certain states
+  - Line 292: Choose a random unused outgoing port
+  - Line 297: Choose a secure initial sequence number
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
   - Line 58: Optionally don't send TCP RST packets
   - Line 141: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
-  - Line 294: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
-  - Line 349: Remove acknowledged segments from the retransmission queue
-  - Line 364: Parse incoming TCP options for MSS value
-  - Line 375: Send pending data it the sndbuf
-  - Line 399: If there are other controls or text in the segment,
-  - Line 491: Store out-of-order segments that are >RCV.NXT for later processing
-  - Line 517: Clear retransmission queue
-  - Line 542: Clear retransmission queue
-  - Line 562: Clear retransmission queue
-  - Line 632: Clear retransmission queue
-  - Line 634: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
-  - Line 715: Remove any segments from the rtq that are ack'd
-  - Line 716: Inform any waiting send() calls when acknowledgements
-  - Line 723: Is sending an ACK here necessary?
-  - Line 732: Work out if our FIN was ACK'ed
-  - Line 753: Send success to waiting close() calls
-  - Line 967: Work out if 'our FIN has been ACKed'
-  - Line 971: stop other TCP timers in FIN-WAIT-2
-  - Line 985: stop other TCP timers in FIN-WAIT-2
-  - Line 1034: Implement locking
-  - Line 1035: Restore previous local address if it was set
+  - Line 295: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
+  - Line 350: Remove acknowledged segments from the retransmission queue
+  - Line 365: Parse incoming TCP options for MSS value
+  - Line 376: Send pending data it the sndbuf
+  - Line 400: If there are other controls or text in the segment,
+  - Line 492: Store out-of-order segments that are >RCV.NXT for later processing
+  - Line 518: Clear retransmission queue
+  - Line 543: Clear retransmission queue
+  - Line 563: Clear retransmission queue
+  - Line 633: Clear retransmission queue
+  - Line 635: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
+  - Line 716: Remove any segments from the rtq that are ack'd
+  - Line 717: Inform any waiting send() calls when acknowledgements
+  - Line 724: Is sending an ACK here necessary?
+  - Line 733: Work out if our FIN was ACK'ed
+  - Line 754: Send success to waiting close() calls
+  - Line 968: Work out if 'our FIN has been ACKed'
+  - Line 972: stop other TCP timers in FIN-WAIT-2
+  - Line 986: stop other TCP timers in FIN-WAIT-2
+  - Line 1035: Implement locking
+  - Line 1036: Restore previous local address if it was set
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
   - Line 13: Don't assume IPv4 L3, choose based on sock->saddr
@@ -123,18 +123,18 @@
   - Line 64: Fill out 'user timeout' information
   - Line 90: Check for O_NONBLOCK
   - Line 92: Obtain timespec value for timedwait
-  - Line 141: Wait on send() for something? (Buffer is full, wait for space?)
-  - Line 148: Write to sndbuf and output directly at the same time
-  - Line 158: Signal sending thread and offload segmentation/transmission
-  - Line 159: Check for MSG_MORE flag and don't trigger for a short while
-  - Line 192: Wait here until there is something to recv
-  - Line 199: Send ACKs for data passed to the user (if specified)
-  - Line 220: Don't return EOF until recv'd up to FIN seqn
-  - Line 352: Check for MSG_PEEK and conditionally don't do this
-  - Line 374: tcp_close() request until all send() calls have completed
-  - Line 388: Check for pending send() calls
-  - Line 397: If unsent data, queue sending FIN/ACK on CLOSING
-  - Line 502: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
+  - Line 139: Wait on send() for something? (Buffer is full, wait for space?)
+  - Line 146: Write to sndbuf and output directly at the same time
+  - Line 152: Signal sending thread and offload segmentation/transmission
+  - Line 153: Check for MSG_MORE flag and don't trigger for a short while
+  - Line 189: Wait here until there is something to recv
+  - Line 196: Send ACKs for data passed to the user (if specified)
+  - Line 216: Don't return EOF until recv'd up to FIN seqn
+  - Line 348: Check for MSG_PEEK and conditionally don't do this
+  - Line 370: tcp_close() request until all send() calls have completed
+  - Line 384: Check for pending send() calls
+  - Line 392: If unsent data, queue sending FIN/ACK on CLOSING
+  - Line 497: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
   - Line 16: Add many configurable interfaces

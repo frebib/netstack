@@ -229,6 +229,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     // Ensure we always hold the frame as long as we need it
     frame_incref(frame);
     tcp_sock_lock(sock);
+    tcp_sock_incref(sock);
 
     struct tcb *tcb = &sock->tcb;
     struct inet_sock *inet = &sock->inet;
@@ -1019,7 +1020,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     }
 
 drop_pkt:
-    tcp_sock_unlock(sock);
+    tcp_sock_decref_unlock(sock);
     frame_decref(frame);
     return ret;
 }
