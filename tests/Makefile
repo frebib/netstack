@@ -19,7 +19,7 @@ default: all
 all: build run
 
 lib:
-	@make -C $(LIBDIR) $(LIB_TARGET) >/dev/null
+	@$(MAKE) -C $(LIBDIR) $(LIB_TARGET) >/dev/null
 
 build: lib $(BIN)
 $(BINDIR)/%: $(SRCDIR)/%.c $(INC)

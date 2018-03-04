@@ -46,18 +46,18 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c $(INC)
 # Tools
 netd: $(NETD)
 $(NETD):
-	@make -C $(NETD_DIR)
+	@$(MAKE) -C $(NETD_DIR)
 	@ln -sfv $(NETD) netd
 
 $(RBUF):
-	@make -C $(@D) dynamic
+	@$(MAKE) -C $(@D) dynamic
 
 # Misc
 .PHONY: test doc install uninstall clean
 test: $(TARGET_LIB)
-	@make -C $(TEST_DIR) all
-	@make -C $(RBUF_DIR) test
-	@make -C $(NETD_DIR) test
+	@$(MAKE) -C $(TEST_DIR) all
+	@$(MAKE) -C $(RBUF_DIR) test
+	@$(MAKE) -C $(NETD_DIR) test
 
 doc:
 	@echo 'No documentation to build yet'
@@ -65,16 +65,16 @@ doc:
 install: $(TARGET_LIB) tools
 	install -Dm644 $(TARGET_LIB) $(DESTDIR)$(PREFIX)/lib/$(TARGET_LIB)
 	install -m644  $(RBUF)       $(DESTDIR)$(PREFIX)/lib/$(notdir $(RBUF))
-	@make -C $(NETD_DIR) install
+	@$(MAKE) -C $(NETD_DIR) install
 
 uninstall:
 	$(RM) $(DESTDIR)/$(PREFIX)/lib/$(TARGET_LIB)
 	$(RM) $(DESTDIR)$(PREFIX)/lib/$(notdir $(RBUF))
-	@make -C $(NETD_DIR) uninstall
+	@$(MAKE) -C $(NETD_DIR) uninstall
 
 clean:
 	$(RM) -r $(OBJDIR) $(TARGET_LIB)
 	$(RM) ./netd
-	@make -C $(RBUF_DIR) clean
-	@make -C $(TEST_DIR) clean
-	@make -C $(NETD_DIR) clean
+	@$(MAKE) -C $(RBUF_DIR) clean
+	@$(MAKE) -C $(TEST_DIR) clean
+	@$(MAKE) -C $(NETD_DIR) clean

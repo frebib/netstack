@@ -36,7 +36,7 @@ $(TARGET_BIN): $(TARGET_LIB_PATH) $(OBJ)
 	$(CC) $(LDFLAGS) $(OBJ) $(LDLIBS) -o $@
 
 $(TARGET_LIB_PATH):
-	@make -C $(LIBDIR) $(TARGET_LIB)
+	@$(MAKE) -C $(LIBDIR) $(TARGET_LIB)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c $(INC)
 	@mkdir -p $(@D)
