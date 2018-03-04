@@ -69,7 +69,7 @@ long seqbuf_read(seqbuf_t *buf, size_t from, void *dest, size_t len) {
         total += left;
         elem = elem->next;
         // Offset within each buffer frame. mod bufsize prevents over-reading
-        bufofs = total % buf->bufsize;
+        bufofs = (bufofs + total) % buf->bufsize;
     }
 
     return total;
