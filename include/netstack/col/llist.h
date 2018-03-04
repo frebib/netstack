@@ -2,6 +2,7 @@
 #define NETSTACK_LLIST_H
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <pthread.h>
 
 #define LLIST_INITIALISER { \

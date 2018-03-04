@@ -130,15 +130,8 @@ int tcp_user_send(struct tcp_sock *sock, void *data, size_t len, int flags) {
             break;
     }
 
-    // TODO: Wait on send() for something? (Buffer is full, wait for space?)
-
-    if (len >= rbuf_free(&sock->sndbuf)) {
-        tcp_sock_decref_unlock(sock);
-        return -ENOSPC;
-    }
-
     // TODO: Write to sndbuf and output directly at the same time
-    rbuf_write(&sock->sndbuf, data, len);
+    seqbuf_write(&sock->sndbuf, data, len);
 
     // tcp_send_data performs it's own locking. this reduces contention
     tcp_sock_unlock(sock);

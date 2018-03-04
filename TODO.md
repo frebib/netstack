@@ -15,8 +15,11 @@
   - Line 13: Make LOG_MAX configurable
 
 ## [include/netstack/tcp/tcp.h](include/netstack/tcp/tcp.h)
-  - Line 47: Take endianness into account in tcp_hdr
-  - Line 173: Fix endianness in tcp.h
+  - Line 45: Take endianness into account in tcp_hdr
+  - Line 171: Fix endianness in tcp.h
+
+## [lib/col/seqbuf.c](lib/col/seqbuf.c)
+  - Line 59: Try mmap() buffers into one contiguous region with one memcpy call
 
 ## [lib/eth/arp.c](lib/eth/arp.c)
   - Line 162: Use hashtable for ARP lookups on IPv4
@@ -76,13 +79,13 @@
   - Line 33: Define how routes with the same metric should behave?
 
 ## [lib/tcp/tcp.c](lib/tcp/tcp.c)
-  - Line 31: Use frame->sock for socket lookup
-  - Line 133: Check for TSO and GRO and account for it, somehow..
-  - Line 142: Other integrity checks
-  - Line 145: Parse incoming TCP segment options
-  - Line 167: Perform queued actions when reaching certain states
-  - Line 300: Choose a random unused outgoing port
-  - Line 305: Choose a secure initial sequence number
+  - Line 32: Use frame->sock for socket lookup
+  - Line 134: Check for TSO and GRO and account for it, somehow..
+  - Line 143: Other integrity checks
+  - Line 146: Parse incoming TCP segment options
+  - Line 168: Perform queued actions when reaching certain states
+  - Line 298: Choose a random unused outgoing port
+  - Line 303: Choose a secure initial sequence number
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
   - Line 59: Optionally don't send TCP RST packets
@@ -112,26 +115,25 @@
   - Line 24: Don't assume IPv4 pseudo-header for checksumming
   - Line 30: Implement functionality to specify IP flags (different for IP4/6?)
   - Line 69: Return socket close reason to user
-  - Line 109: Start the retransmission timeout
-  - Line 132: Calculate IP layer options in tcp_send_data()
-  - Line 135: Take into account ethernet header variations, such as VLAN tags
+  - Line 119: Start the retransmission timeout
+  - Line 142: Calculate IP layer options in tcp_send_data()
+  - Line 145: Take into account ethernet header variations, such as VLAN tags
 
 ## [lib/tcp/tcpuser.c](lib/tcp/tcpuser.c)
   - Line 14: Handle sending SIGPIPE for dead connections to calling process
   - Line 65: Fill out 'user timeout' information
   - Line 85: Check for O_NONBLOCK
   - Line 87: Obtain timespec value for timedwait
-  - Line 133: Wait on send() for something? (Buffer is full, wait for space?)
-  - Line 140: Write to sndbuf and output directly at the same time
-  - Line 146: Signal sending thread and offload segmentation/transmission
-  - Line 147: Check for MSG_MORE flag and don't trigger for a short while
-  - Line 175: Send ACKs for data passed to the user (if specified)
-  - Line 188: Don't return EOF until recv'd up to FIN seqn
-  - Line 320: Check for MSG_PEEK and conditionally don't do this
-  - Line 342: tcp_close() request until all send() calls have completed
-  - Line 356: Check for pending send() calls
-  - Line 364: If unsent data, queue sending FIN/ACK on CLOSING
-  - Line 471: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
+  - Line 133: Write to sndbuf and output directly at the same time
+  - Line 139: Signal sending thread and offload segmentation/transmission
+  - Line 140: Check for MSG_MORE flag and don't trigger for a short while
+  - Line 168: Send ACKs for data passed to the user (if specified)
+  - Line 181: Don't return EOF until recv'd up to FIN seqn
+  - Line 313: Check for MSG_PEEK and conditionally don't do this
+  - Line 335: tcp_close() request until all send() calls have completed
+  - Line 349: Check for pending send() calls
+  - Line 357: If unsent data, queue sending FIN/ACK on CLOSING
+  - Line 464: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
   - Line 17: Add many configurable interfaces

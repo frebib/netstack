@@ -2,12 +2,10 @@ SRCDIR = src
 OBJDIR = obj
 LIBDIR = ../..
 INCDIR = $(LIBDIR)/include
-RBUF_DIR = $(LIBDIR)/ext/ring_buffer
-RBUF_INCDIR = $(RBUF_DIR)/src
 
 CFLAGS  ?= -I$(INCDIR) -Wall -Werror -Wno-unused-variable -Wno-unused-function -Wno-missing-braces -fstack-protector -O3 -g
-CFLAGS  += -I$(INCDIR) -I$(RBUF_INCDIR)
-LDFLAGS += -L$(LIBDIR) -Wl,--as-needed -Wl,-enable-new-dtags,-rpath,"$(LIBDIR)",-rpath,"$(RBUF_DIR)",-rpath,.
+CFLAGS  += -I$(INCDIR)
+LDFLAGS += -L$(LIBDIR) -Wl,--as-needed,-enable-new-dtags,-rpath,"$(LIBDIR)",-rpath,.
 LDLIBS  += -lnetstack -lcap -ldl -lpthread
 
 # Source and header files

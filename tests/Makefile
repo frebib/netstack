@@ -7,7 +7,7 @@ LIB_TARGET = libnetstack.so
 
 override CFLAGS  += -I$(INCDIR) -Wall -Werror -Wpedantic -Wno-variadic-macros
 override LDFLAGS += -L$(LIBDIR) -Wl,-enable-new-dtags,-rpath,"$(LIBDIR)"
-override LDLIBS  += -lnetstack -lcheck
+override LDLIBS  += -lnetstack -lcheck -lcap
 
 # Source and header files
 SRC = $(shell find $(SRCDIR) -type f -name '*.c')

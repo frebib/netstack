@@ -81,19 +81,21 @@ int tcp_send_data(struct tcp_sock *sock) {
     if ((err = neigh_find_route(&route)))
         return err;
 
+    struct tcb *tcb = &sock->tcb;
     struct intf *intf = route.intf;
     struct frame *seg = intf_frame_new(intf, intf_max_frame_size(intf));
 
     tcp_sock_lock(sock);
 
-    size_t tosend = rbuf_count(&sock->sndbuf);
-    uint32_t seqn = htonl(sock->tcb.snd.nxt);
-    uint32_t ackn = htonl(sock->tcb.rcv.nxt);
+    uint32_t seqn = htonl(tcb->snd.nxt);
+    uint32_t ackn = htonl(tcb->rcv.nxt);
+    long tosend = seqbuf_available(&sock->sndbuf, tcb->snd.nxt);
+
     int count = tcp_init_header(seg, sock, seqn, ackn, TCP_FLAG_ACK, tosend);
     // < 0 indicates error
     if (count < 0)
-        return (int) count;
-    sock->tcb.snd.nxt += count;
+        return count;
+    tcb->snd.nxt += count;
 
     // Set the PUSH flag if we're sending the last data in the buffer
     if (count >= tosend)
@@ -101,8 +103,16 @@ int tcp_send_data(struct tcp_sock *sock) {
 
     // https://tools.ietf.org/html/rfc793#section-3.7
     // Calculate data size to send, limited by MSS (- options)
-    // rbuf_read already does a count upper-bounds check to prevent over-reading
-    rbuf_read(&sock->sndbuf, seg->data, (size_t) count);
+    long readerr = seqbuf_read(&sock->sndbuf, tcb->snd.nxt, seg->data, (size_t) count);
+    if (readerr < 0) {
+        LOGSE(LERR, "seqbuf_read (%li)", -readerr, readerr);
+        tcp_sock_unlock(sock);
+        return (int) readerr;
+    } else if (readerr == 0) {
+        LOG(LWARN, "No data to send");
+        tcp_sock_unlock(sock);
+        return -1;
+    }
 
     tcp_sock_unlock(sock);
 

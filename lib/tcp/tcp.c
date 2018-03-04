@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <errno.h>
 
 #include <netinet/in.h>
@@ -179,17 +180,17 @@ void _tcp_setstate(struct tcp_sock *sock, enum tcp_state state) {
     }
 }
 
-void tcp_established(struct tcp_sock *sock, uint32_t firstbyte) {
+void tcp_established(struct tcp_sock *sock, uint32_t recvnext) {
 
     tcp_setstate(sock, TCP_ESTABLISHED);
 
     // Set the initial recv value to the first byte in stream
-    sock->recvptr = firstbyte;
+    sock->recvptr = recvnext;
     LOG(LTRCE, "set recvptr to %u", sock->recvptr);
 
     // Allocate send/receive buffers
-//    rbuf_init(&sock->rcvbuf, sock->tcb.rcv.wnd, BYTE);
-    rbuf_init(&sock->sndbuf, sock->tcb.snd.wnd, BYTE);
+    seqbuf_init(&sock->sndbuf, (size_t) sysconf(_SC_PAGESIZE), sock->tcb.iss + 1);
+
     LOG(LDBUG, "Allocated SND.WND %hu, RCV.WND %hu",
         sock->tcb.snd.wnd, sock->tcb.rcv.wnd);
 
@@ -221,10 +222,7 @@ inline void tcp_sock_free(struct tcp_sock *sock) {
     tcp_timewait_cancel(sock);
 
     // Deallocate dynamically allocated data buffers
-//    if (sock->rcvbuf.size > 0)
-//        rbuf_destroy(&sock->rcvbuf);
-    if (sock->sndbuf.size > 0)
-        rbuf_destroy(&sock->sndbuf);
+    seqbuf_free(&sock->sndbuf);
 
     if (sock->passive) {
         llist_iter(&sock->passive->backlog, tcp_sock_free);

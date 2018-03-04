@@ -5,7 +5,8 @@ set(CMAKE_C_STANDARD 11)
 ##   netstack   ##
 ##################
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wno-unused-variable -Wno-unused-function -Wno-missing-braces -fstack-protector -O3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -O3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -Wno-unused-function -Wno-unused-parameter -Wno-missing-braces -fstack-protector")
 
 project(netstack)
 
@@ -25,13 +26,6 @@ endif()
 file(GLOB_RECURSE NETSTACK_SOURCE_FILES lib/**)
 add_library(netstack SHARED ${NETSTACK_SOURCE_FILES})
 include_directories(include)
-include_directories(ext/ring_buffer/src)
-
-add_custom_target(rbuf
-        COMMAND make dynamic
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/ext/ring_buffer
-)
-add_dependencies(netstack rbuf)
 
 # include netd
 add_subdirectory(tools/netd)
@@ -39,5 +33,4 @@ add_subdirectory(tools/netd)
 target_link_libraries(netstack
         pthread  # POSIX threads
         rt       # realtime for timer_* and semaphores
-        ${CMAKE_CURRENT_SOURCE_DIR}/ext/ring_buffer/librbuf.so     # Ring Buffers
 )

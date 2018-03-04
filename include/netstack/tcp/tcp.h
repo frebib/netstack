@@ -5,14 +5,12 @@
 #include <stddef.h>
 #include <stdatomic.h>
 
-// Ring buffer library
-#include <rbuf.h>
-
 #include <netstack/log.h>
-#include <netstack/col/llist.h>
 #include <netstack/inet.h>
 #include <netstack/ip/neigh.h>
 #include <netstack/intf/intf.h>
+#include <netstack/col/llist.h>
+#include <netstack/col/seqbuf.h>
 #include <netstack/time/timer.h>
 #include <netstack/lock/retlock.h>
 
@@ -155,7 +153,7 @@ struct tcp_sock {
     struct tcp_sock *parent;
 
     // Data buffers
-    rbuf sndbuf;
+    seqbuf_t sndbuf;           // Sent data, stored in case of retransmissions
     llist_t recvqueue;          // llist<struct frame> of recv'd tcp frames
     uint32_t recvptr;           // Pointer to next byte to be recv'd
 
