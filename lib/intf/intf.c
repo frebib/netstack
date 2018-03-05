@@ -104,13 +104,13 @@ void _intf_recv_thread(struct intf *intf) {
         // Push received data into the stack
         switch (intf->proto) {
             case PROTO_ETHER:
-                LOGT_OPT_COMMIT(ether_log(&log, logframe), &log.t);
                 ether_recv(rawframe);
+                LOGT_OPT_COMMIT(ether_log(&log, logframe), &log.t);
                 break;
             case PROTO_IP:
             case PROTO_IPV4:
-                LOGT_OPT_COMMIT(ipv4_log(&log, logframe), &log.t);
                 ipv4_recv(rawframe);
+                LOGT_OPT_COMMIT(ipv4_log(&log, logframe), &log.t);
                 break;
             default:
                 LOG(LWARN, "Interface protocol %d unsupported\t", intf->proto);

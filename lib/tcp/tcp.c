@@ -27,16 +27,19 @@ bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum,
     uint32_t irs = 0, iss = 0;
     struct tcp_sock *sock = NULL;
 
-    if (!hdr->flags.syn && !hdr->flags.rst) {
-        if ((sock = tcp_sock_lookup(&saddr, &daddr, sport, dport)) != NULL) {
+    if ((sock = tcp_sock_lookup(&saddr, &daddr, sport, dport)) != NULL) {
+        if (!hdr->flags.syn && !hdr->flags.rst) {
             irs = sock->tcb.irs;
             iss = sock->tcb.iss;
-        } else if ((sock = tcp_sock_lookup(&daddr, &saddr, dport, sport)) != NULL) {
+        }
+    } else if ((sock = tcp_sock_lookup(&daddr, &saddr, dport, sport)) != NULL) {
+        if (!hdr->flags.syn && !hdr->flags.rst) {
+            // Send/Receive are inverted for packets going out
             irs = sock->tcb.iss;
             iss = sock->tcb.irs;
-        } else {
-            LOG(LTRCE, "unrecognised socket");
         }
+    } else {
+        LOG(LTRCE, "unrecognised socket");
     }
 
     if (sock != NULL)

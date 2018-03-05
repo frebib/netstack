@@ -80,12 +80,12 @@
 
 ## [lib/tcp/tcp.c](lib/tcp/tcp.c)
   - Line 24: Use frame->sock for socket lookup
-  - Line 142: Check for TSO and GRO and account for it, somehow..
-  - Line 151: Other integrity checks
-  - Line 154: Parse incoming TCP segment options
-  - Line 176: Perform queued actions when reaching certain states
-  - Line 318: Choose a random unused outgoing port
-  - Line 323: Choose a secure initial sequence number
+  - Line 145: Check for TSO and GRO and account for it, somehow..
+  - Line 154: Other integrity checks
+  - Line 157: Parse incoming TCP segment options
+  - Line 179: Perform queued actions when reaching certain states
+  - Line 321: Choose a random unused outgoing port
+  - Line 326: Choose a secure initial sequence number
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
   - Line 60: Optionally don't send TCP RST packets
