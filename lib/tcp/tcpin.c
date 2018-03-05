@@ -713,6 +713,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         case TCP_FIN_WAIT_2:
         case TCP_CLOSE_WAIT:
         case TCP_CLOSING:
+        case TCP_LAST_ACK:
             // RFC 1122: Section 4.2.2.20 (g)
             // TCP event processing corrections
             // https://tools.ietf.org/html/rfc1122#page-94
