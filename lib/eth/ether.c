@@ -99,11 +99,13 @@ void ether_recv(struct frame *frame) {
 
 int ether_send(struct frame *frame, uint16_t ethertype, eth_addr_t mac) {
 
+    frame_lock(frame, SHARED_RW);
     struct intf *intf = frame->intf;
     struct eth_hdr *hdr = frame_head_alloc(frame, sizeof(struct eth_hdr));
     memcpy(hdr->saddr, intf->ll_addr, ETH_ADDR_LEN);
     memcpy(hdr->daddr, mac, ETH_ADDR_LEN);
     hdr->ethertype = htons(ethertype);
+    frame_unlock(frame);
 
     return intf_dispatch(frame);
 }

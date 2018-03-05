@@ -36,10 +36,10 @@
   - Line 21: Use hashtbl instead of list to lookup sockets
 
 ## [lib/intf/intf.c](lib/intf/intf.c)
-  - Line 70: Implement rx 'software' timestamping
-  - Line 90: Conditionally print debugging information
-  - Line 162: Check intf hwtype to calculate max frame size
-  - Line 192: Selectively choose an appropriate address from intf
+  - Line 83: Implement rx 'software' timestamping
+  - Line 103: Conditionally print debugging information
+  - Line 175: Check intf hwtype to calculate max frame size
+  - Line 205: Selectively choose an appropriate address from intf
 
 ## [lib/intf/rawsock.c](lib/intf/rawsock.c)
   - Line 126: Move some of this cleanup logic into a generic intf_free() function
@@ -108,13 +108,12 @@
   - Line 987: stop other TCP timers in FIN-WAIT-2
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
-  - Line 14: Don't assume IPv4 L3, choose based on sock->saddr
-  - Line 24: Don't assume IPv4 pseudo-header for checksumming
-  - Line 30: Implement functionality to specify IP flags (different for IP4/6?)
-  - Line 69: Return socket close reason to user
-  - Line 119: Start the retransmission timeout
-  - Line 142: Calculate IP layer options in tcp_send_data()
-  - Line 145: Take into account ethernet header variations, such as VLAN tags
+  - Line 18: Don't assume IPv4 L3, choose based on sock->saddr
+  - Line 28: Don't assume IPv4 pseudo-header for checksumming
+  - Line 34: Implement functionality to specify IP flags (different for IP4/6?)
+  - Line 76: Return socket close reason to user
+  - Line 146: Calculate IP layer options in tcp_send_data()
+  - Line 149: Take into account ethernet header variations, such as VLAN tags
 
 ## [lib/tcp/tcpuser.c](lib/tcp/tcpuser.c)
   - Line 14: Handle sending SIGPIPE for dead connections to calling process

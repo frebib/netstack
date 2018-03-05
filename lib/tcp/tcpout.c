@@ -11,11 +11,15 @@
 int tcp_send(struct inet_sock *inet, struct frame *frame, struct neigh_route *rt) {
     struct tcp_hdr *hdr = tcp_hdr(frame);
 
+    frame_lock(frame, SHARED_RD);
+    uint16_t pktlen = frame_pkt_len(frame);
+    frame_unlock(frame);
+
     // TODO: Don't assume IPv4 L3, choose based on sock->saddr
     struct inet_ipv4_phdr phdr = {
             .saddr = htonl(inet->locaddr.ipv4),
             .daddr = htonl(inet->remaddr.ipv4),
-            .hlen  = htons(frame_pkt_len(frame)),
+            .hlen  = htons(pktlen),
             .proto = IP_P_TCP,
             .rsvd = 0
     };
@@ -23,12 +27,15 @@ int tcp_send(struct inet_sock *inet, struct frame *frame, struct neigh_route *rt
     // Calculate TCP checksum, including IP layer
     // TODO: Don't assume IPv4 pseudo-header for checksumming
     uint16_t ph_csum = in_csum(&phdr, sizeof(phdr), 0);
-    hdr->csum = in_csum(hdr, frame_pkt_len(frame), ~ph_csum);
+    hdr->csum = in_csum(hdr, pktlen, ~ph_csum);
 
-    frame_unlock(frame);
+    frame_incref(frame);
 
     // TODO: Implement functionality to specify IP flags (different for IP4/6?)
-    return neigh_send_to(rt, frame, IP_P_TCP, 0, 0);
+    int ret = neigh_send_to(rt, frame, IP_P_TCP, 0, 0);
+
+    frame_decref(frame);
+    return ret;
 }
 
 int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
@@ -54,7 +61,7 @@ int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
         return (int) count;
 
     int ret = tcp_send(&sock->inet, seg, &route);
-    // We created the frame so ensure it's unlocked if it never sent
+
     frame_decref(seg);
 
     return ret;
@@ -115,14 +122,11 @@ int tcp_send_data(struct tcp_sock *sock) {
     }
 
     tcp_sock_unlock(sock);
-
-    // TODO: Start the retransmission timeout
+    frame_unlock(seg);
 
     // Send to neigh, passing IP options
     int ret = tcp_send(&sock->inet, seg, &route);
-    // We created the frame so ensure it's unlocked if it never sent
-    if (ret)
-        frame_unlock(seg);
+    
     frame_decref(seg);
 
     return (ret < 0 ? ret : (int) count);

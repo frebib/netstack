@@ -15,22 +15,35 @@ void _intf_recv_thread(struct intf *intf);
 
 
 int intf_dispatch(struct frame *frame) {
-    // Send the frame
-    long ret = frame->intf->send_frame(frame);
 
-    // Log outgoing packets
-    struct pkt_log log = PKT_TRANS(LFRAME);
+    long ret = 0;
 
-    switch (frame->intf->proto) {
-        case PROTO_ETHER:
-            LOGT_OPT_COMMIT(ether_log(&log, frame), &log.t);
-            break;
-        case PROTO_IP:
-        case PROTO_IPV4:
-            LOGT_OPT_COMMIT(ipv4_log(&log, frame), &log.t);
-            break;
-        default:
-            break;
+    // Only attempt to send a non-null frame
+    if (frame && frame->buffer != NULL && frame->buf_sz > 0) {
+        frame_incref(frame);
+        frame_lock(frame, SHARED_RD);
+
+        // Send the frame
+        ret = frame->intf->send_frame(frame);
+        if (ret < 0)
+           LOGSE(LINFO, "send_frame() returned %ld", ret, ret);
+
+        // Log outgoing packets
+        struct pkt_log log = PKT_TRANS(LFRAME);
+
+        switch (frame->intf->proto) {
+            case PROTO_ETHER:
+                LOGT_OPT_COMMIT(ether_log(&log, frame), &log.t);
+                break;
+            case PROTO_IP:
+            case PROTO_IPV4:
+                LOGT_OPT_COMMIT(ipv4_log(&log, frame), &log.t);
+                break;
+            default:
+                break;
+        }
+
+        frame_decref_unlock(frame);
     }
 
     return (int) ((ret < 0) ? ret : 0);
