@@ -25,6 +25,8 @@ long seqbuf_write(seqbuf_t *buf, void *src, size_t len);
 
 void seqbuf_consume(seqbuf_t *buf, size_t len);
 
+void seqbuf_consume_to(seqbuf_t *buf, size_t newstart);
+
 /*!
  * Returns the number of bytes available to read from the buffer starting at
  * (and including) from

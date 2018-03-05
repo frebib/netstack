@@ -148,6 +148,32 @@ void seqbuf_consume(seqbuf_t *buf, size_t len) {
         free(llist_pop_nolock(&buf->buffers));
 }
 
+void seqbuf_consume_to(seqbuf_t *buf, size_t newstart) {
+    if (buf == NULL)
+        return;
+
+    long diff = (long) (newstart - buf->start);
+
+    if (diff <= 0) {
+        if (diff < 0)
+            LOG(LERR, "consume_to(%zu) is %ld before current %zu",
+                newstart, -diff, buf->start);
+        return;
+    }
+
+    LOG(LTRCE, "consuming bytes: %ld", diff);
+
+    // Move the start to the next unconsumed byte
+    buf->start = newstart;
+    buf->count -= diff;
+
+    diff /= buf->bufsize;
+
+    // Remove whole buffers
+    while (diff-- > 0)
+        free(llist_pop_nolock(&buf->buffers));
+}
+
 long seqbuf_available(seqbuf_t *buf, size_t from) {
     if (buf == NULL)
         return -EINVAL;

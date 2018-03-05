@@ -39,7 +39,6 @@ struct contimer_event {
     struct timespec wake;
     enum contimer_state state;
     contimer_event_t id;
-    uint8_t arg;
 };
 
 /*!
@@ -71,6 +70,18 @@ contimer_event_t contimer_queue(contimer_t *timer, struct timespec *abs,
  */
 contimer_event_t contimer_queue_rel(contimer_t *t, struct timespec *rel,
                                     void *arg, size_t len);
+
+/*!
+ * Gets whether the event identified by id is a valid event that has not
+ * expired or cancelled. If the return value is true, and a state pointer is
+ * provided, additionally the state is passed back too.
+ * @param timer timer that the event belongs to
+ * @param id    id of the event in question
+ * @param state pointer to a state storage
+ * @return true if the event is alive, false otherwise
+ */
+bool contimer_isevent(contimer_t *timer, contimer_event_t *id,
+                      enum contimer_state *state);
 
 /*!
  * Cancels an enqueued timer event

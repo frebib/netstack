@@ -12,6 +12,7 @@
 #include <netstack/col/llist.h>
 #include <netstack/col/seqbuf.h>
 #include <netstack/time/timer.h>
+#include <netstack/time/contimer.h>
 #include <netstack/lock/retlock.h>
 
 // Global TCP states list
@@ -157,6 +158,13 @@ struct tcp_sock {
     llist_t recvqueue;          // llist<struct frame> of recv'd tcp frames
     uint32_t recvptr;           // Pointer to next byte to be recv'd
 
+    // Retransmission
+    contimer_t rtimer;           // Retransmission timeout
+    contimer_event_t rto_event;  // Timer event corresponding to rto
+    llist_t unacked;             // Sequence numbers of unacknowledged segments
+
+    struct timespec rto;         // Retransmit timeout value. Calculated from rtt
+
     // TCP timers
     timeout_t timewait;
 
@@ -259,9 +267,9 @@ void _tcp_setstate(struct tcp_sock *sock, enum tcp_state state);
  * Called on a newly established connection. It allocates required buffers
  * for data transmission
  * @param sock  socket to initialise
- * @param firstbyte sequence number to expect the first byte at
+ * @param recvnext sequence number to expect the first byte at
  */
-void tcp_established(struct tcp_sock *sock, uint32_t firstbyte);
+void tcp_established(struct tcp_sock *sock, uint32_t recvnext);
 
 /*!
  * Finds a matching tcp_sock with address/port quad, including matching
@@ -446,9 +454,12 @@ int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
  * Constructs and sends a TCP packet with the largest payload available to send,
  * or as much as can fit in a single packet, from the socket data send queue.
  * @param sock TCP socket to send a packet for
+ * @param seqn sequence number to send data from
+ * @param count hint for amount of bytes to send. 0 indicates automatic (as
+ *              much as will fit in one packet)
  * @return >= 0: number of bytes sent, negative error otherwise
  */
-int tcp_send_data(struct tcp_sock *sock);
+int tcp_send_data(struct tcp_sock *sock, uint32_t seqn, size_t count);
 
 /*!
  * Given an uninitialised frame, a TCP segment is formed, allocating space for
@@ -461,7 +472,7 @@ int tcp_send_data(struct tcp_sock *sock);
  * @param datalen largest payload size to allocate space for
  * @return >= 0: number of bytes allocated for segment payload, negative error otherwise
  */
-long tcp_init_header(struct frame *seg, struct tcp_sock *sock, uint32_t seqn,
+int tcp_init_header(struct frame *seg, struct tcp_sock *sock, uint32_t seqn,
                      uint32_t ackn, uint8_t flags, size_t datalen);
 
 /*!

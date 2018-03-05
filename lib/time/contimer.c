@@ -81,7 +81,7 @@ static void *_contimer_run(void *arg) {
 
         // Now the t has elapsed, call the callback, cleanup, and loop again
         pthread_mutex_unlock(&t->timeouts.lock);
-        t->callback(&event->arg);
+        t->callback(event + 1);
         pthread_mutex_lock(&t->timeouts.lock);
 
     event_cleanup:
@@ -111,7 +111,7 @@ contimer_event_t contimer_queue(contimer_t *t, struct timespec *abs,
 
     pthread_mutex_lock(&t->timeouts.lock);
 
-    struct contimer_event *event = malloc(sizeof(struct contimer_event) + len - 1);
+    struct contimer_event *event = malloc(sizeof(struct contimer_event) + len);
     event->id = t->nextid++;
     event->wake.tv_sec = abs->tv_sec;
     event->wake.tv_nsec = abs->tv_nsec;
@@ -119,7 +119,7 @@ contimer_event_t contimer_queue(contimer_t *t, struct timespec *abs,
 
     // Copy arbitrary sized argument
     if (arg != NULL && len > 0) {
-        memcpy(&event->arg, arg, len);
+        memcpy(event + 1, arg, len);
     }
 
     llist_append_nolock(&t->timeouts, event);
@@ -143,6 +143,28 @@ contimer_event_t contimer_queue_rel(contimer_t *t, struct timespec *rel,
 
     // Enqueue the event
     return contimer_queue(t, &abs, arg, len);
+}
+
+bool contimer_isevent(contimer_t *timer, contimer_event_t *id,
+                      enum contimer_state *state) {
+    if (timer == NULL)
+        return -EINVAL;
+
+    pthread_mutex_lock(&timer->timeouts.lock);
+
+    struct contimer_event *event;
+    bool (*pred)(void *, void *) = contimer_event_id_pred;
+
+    if ((event = llist_first_nolock(&timer->timeouts, pred, &id)) == NULL) {
+        pthread_mutex_unlock(&timer->timeouts.lock);
+        return false;
+    }
+
+    if (state != NULL)
+        *state = event->state;
+
+    pthread_mutex_unlock(&timer->timeouts.lock);
+    return true;
 }
 
 int contimer_cancel(contimer_t *timer, contimer_event_t id) {

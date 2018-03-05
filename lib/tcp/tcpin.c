@@ -7,6 +7,7 @@
 
 #define NETSTACK_LOG_UNIT "TCP"
 #include <netstack/tcp/tcp.h>
+#include <netstack/tcp/retransmission.h>
 
 
 void expand_escapes(char *dest, const char *src, size_t len) {
@@ -177,6 +178,7 @@ void tcp_recv_listen(struct frame *frame, struct tcp_sock *parent,
     // as to not cause deadlocks
     client->inet.flags = O_NONBLOCK,
     client->inet.intf = frame->intf;
+    client->mss = 1460;
     client->tcb = (struct tcb) {
             .irs = seg_seq,
             .iss = iss,
@@ -348,7 +350,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             if (tcp_ack_acceptable(tcb, seg_ack))
                 tcb->snd.una = seg_ack;
 
-            // TODO: Remove acknowledged segments from the retransmission queue
+            tcp_update_rtq(sock);
 
             /*
                 If SND.UNA > ISS (our SYN has been ACKed), change the connection
@@ -364,6 +366,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             if (tcb->snd.una > tcb->iss) {
 
                 // TODO: Parse incoming TCP options for MSS value
+                sock->mss = 1460;
 
                 // RFC 1122: Section 4.2.2.20 (c)
                 // TCP event processing corrections
@@ -516,7 +519,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                 // If backlog list is NULL, socket is ACTIVE open
                 if (sock->passive == NULL) {
                     retlock_broadcast_bare(&sock->wait, -ECONNREFUSED);
-                    // TODO: Clear retransmission queue
+                    contimer_stop(&sock->rtimer);
                     ret = -ECONNREFUSED;
                 }
                 tcp_sock_decref(sock);
@@ -541,7 +544,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         case TCP_FIN_WAIT_2:
         case TCP_CLOSE_WAIT:
             if (seg->flags.rst == 1) {
-                // TODO: Clear retransmission queue
+                contimer_stop(&sock->rtimer);
                 tcp_setstate(sock, TCP_CLOSED);
                 retlock_broadcast_bare(&sock->wait, -ECONNRESET);
                 tcp_sock_decref(sock);
@@ -561,7 +564,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         case TCP_LAST_ACK:
         case TCP_TIME_WAIT:
             if (seg->flags.rst == 1) {
-                // TODO: Clear retransmission queue
+                contimer_stop(&sock->rtimer);
                 tcp_sock_decref(sock);
                 goto drop_pkt;
             }
@@ -631,7 +634,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                 retlock_broadcast_bare(&sock->wait, -ECONNRESET);
                 LOG(LDBUG, "Sending RST");
                 ret = tcp_send_rst(sock, seg_ack);
-                // TODO: Clear retransmission queue
+                contimer_stop(&sock->rtimer);
                 tcp_sock_decref(sock);
                 // TODO: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
                 // https://tools.ietf.org/html/rfc5961#page-9
@@ -693,7 +696,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
           something not yet sent (SEG.ACK > SND.NXT) then send an ACK,
           drop the segment, and return.
 
-          If SND.UNA < SEG.ACK =< SND.NXT, the send window should be
+          If SND.UNA =< SEG.ACK =< SND.NXT, the send window should be
           updated.  If (SND.WL1 < SEG.SEQ or (SND.WL1 = SEG.SEQ and
           SND.WL2 =< SEG.ACK)), set SND.WND <- SEG.WND, set
           SND.WL1 <- SEG.SEQ, and set SND.WL2 <- SEG.ACK.
@@ -713,21 +716,37 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             // TCP event processing corrections
             // https://tools.ietf.org/html/rfc1122#page-94
             if (tcp_ack_acceptable(tcb, seg_ack)) {
+
+                // Consume and update send buffer
+                LOG(LTRCE, "Consuming sent bytes: %u", seg_ack - tcb->snd.una);
                 tcb->snd.una = seg_ack;
-                // TODO: Remove any segments from the rtq that are ack'd
+                seqbuf_consume_to(&sock->sndbuf, tcb->snd.una);
+
+                // Remove any segments from the rtq that are ack'd
+                tcp_update_rtq(sock);
+
                 // TODO: Inform any waiting send() calls when acknowledgements
                 // arrive for data they are waiting to be sent.
 
-                // Update send window
+                if (tcp_seq_gt(seg_ack, tcb->snd.nxt) &&
+                    !tcp_seq_lt(seg_ack, tcb->snd.una)) {
+                    // TODO: Is sending an ACK here necessary?
+                    LOG(LDBUG, "ACK received for something not yet sent");
+                    LOG(LDBUG, "Sending ACK");
+                    ret = tcp_send_ack(sock);
+                    goto drop_pkt;
+                }
+            }
+            // If (SND.WL1 < SEG.SEQ or (SND.WL1 = SEG.SEQ and SND.WL2 =< SEG.ACK))
+            if (tcp_seq_lt(tcb->snd.wl1, seg_seq) ||
+                (tcb->snd.wl1 == seg_seq &&
+                 tcp_seq_leq(tcb->snd.wl2, seg_ack))) {
                 tcp_update_wnd(tcb, seg);
+            } else {
+                // Just update send window
+                tcb->snd.wnd = ntohs(seg->wind);
             }
-            if (seg_ack > tcb->snd.nxt) {
-                // TODO: Is sending an ACK here necessary?
-                LOG(LDBUG, "ACK received for something not yet sent");
-                LOG(LDBUG, "Sending ACK");
-                ret = tcp_send_ack(sock);
-                goto drop_pkt;
-            }
+
         default:
             break;
     }

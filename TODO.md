@@ -15,8 +15,8 @@
   - Line 13: Make LOG_MAX configurable
 
 ## [include/netstack/tcp/tcp.h](include/netstack/tcp/tcp.h)
-  - Line 45: Take endianness into account in tcp_hdr
-  - Line 171: Fix endianness in tcp.h
+  - Line 46: Take endianness into account in tcp_hdr
+  - Line 179: Fix endianness in tcp.h
 
 ## [lib/col/seqbuf.c](lib/col/seqbuf.c)
   - Line 59: Try mmap() buffers into one contiguous region with one memcpy call
@@ -75,45 +75,44 @@
 ## [lib/ip/route.c](lib/ip/route.c)
   - Line 33: Define how routes with the same metric should behave?
 
+## [lib/tcp/retransmission.c](lib/tcp/retransmission.c)
+  - Line 28: Optionally only send the missing bytes instead of just a full segment worth
+
 ## [lib/tcp/tcp.c](lib/tcp/tcp.c)
-  - Line 32: Use frame->sock for socket lookup
-  - Line 134: Check for TSO and GRO and account for it, somehow..
-  - Line 143: Other integrity checks
-  - Line 146: Parse incoming TCP segment options
-  - Line 168: Perform queued actions when reaching certain states
-  - Line 298: Choose a random unused outgoing port
-  - Line 303: Choose a secure initial sequence number
+  - Line 34: Use frame->sock for socket lookup
+  - Line 136: Check for TSO and GRO and account for it, somehow..
+  - Line 145: Other integrity checks
+  - Line 148: Parse incoming TCP segment options
+  - Line 170: Perform queued actions when reaching certain states
+  - Line 312: Choose a random unused outgoing port
+  - Line 317: Choose a secure initial sequence number
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
-  - Line 59: Optionally don't send TCP RST packets
-  - Line 142: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
-  - Line 296: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
-  - Line 351: Remove acknowledged segments from the retransmission queue
-  - Line 366: Parse incoming TCP options for MSS value
-  - Line 377: Send pending data it the sndbuf
-  - Line 401: If there are other controls or text in the segment,
-  - Line 493: Store out-of-order segments that are >RCV.NXT for later processing
-  - Line 519: Clear retransmission queue
-  - Line 544: Clear retransmission queue
-  - Line 564: Clear retransmission queue
-  - Line 634: Clear retransmission queue
-  - Line 636: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
-  - Line 717: Remove any segments from the rtq that are ack'd
-  - Line 718: Inform any waiting send() calls when acknowledgements
-  - Line 725: Is sending an ACK here necessary?
-  - Line 734: Work out if our FIN was ACK'ed
-  - Line 755: Send success to waiting close() calls
-  - Line 969: Work out if 'our FIN has been ACKed'
-  - Line 973: stop other TCP timers in FIN-WAIT-2
-  - Line 987: stop other TCP timers in FIN-WAIT-2
+  - Line 60: Optionally don't send TCP RST packets
+  - Line 143: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
+  - Line 298: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
+  - Line 368: Parse incoming TCP options for MSS value
+  - Line 380: Send pending data it the sndbuf
+  - Line 404: If there are other controls or text in the segment,
+  - Line 496: Store out-of-order segments that are >RCV.NXT for later processing
+  - Line 639: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
+  - Line 728: Inform any waiting send() calls when acknowledgements
+  - Line 733: Is sending an ACK here necessary?
+  - Line 753: Work out if our FIN was ACK'ed
+  - Line 774: Send success to waiting close() calls
+  - Line 988: Work out if 'our FIN has been ACKed'
+  - Line 992: stop other TCP timers in FIN-WAIT-2
+  - Line 1006: stop other TCP timers in FIN-WAIT-2
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
-  - Line 18: Don't assume IPv4 L3, choose based on sock->saddr
-  - Line 28: Don't assume IPv4 pseudo-header for checksumming
-  - Line 34: Implement functionality to specify IP flags (different for IP4/6?)
-  - Line 76: Return socket close reason to user
-  - Line 146: Calculate IP layer options in tcp_send_data()
-  - Line 149: Take into account ethernet header variations, such as VLAN tags
+  - Line 23: Don't assume IPv4 L3, choose based on sock->saddr
+  - Line 33: Don't assume IPv4 pseudo-header for checksumming
+  - Line 39: Implement functionality to specify IP flags (different for IP4/6?)
+  - Line 40: Send socket flags to neigh_send_to() in tcp_send()
+  - Line 82: Return socket close reason to user
+  - Line 140: Use sock->rtt for retransmission timeout
+  - Line 192: Calculate IP layer options in tcp_send_data()
+  - Line 195: Take into account ethernet header variations, such as VLAN tags
 
 ## [lib/tcp/tcpuser.c](lib/tcp/tcpuser.c)
   - Line 14: Handle sending SIGPIPE for dead connections to calling process

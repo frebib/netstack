@@ -7,8 +7,10 @@
 
 #define NETSTACK_LOG_UNIT "TCP"
 #include <netstack/tcp/tcp.h>
+#include <netstack/tcp/retransmission.h>
 #include <netstack/checksum.h>
 #include <netstack/ip/route.h>
+#include <netstack/time/util.h>
 
 llist_t tcp_sockets = LLIST_INITIALISER;
 
@@ -208,6 +210,14 @@ struct tcp_sock *tcp_sock_init(struct tcp_sock *sock) {
     sock->mss = TCP_DEF_MSS;
     atomic_init(&sock->refcount, 1);
     retlock_init(&sock->wait);
+
+    // Retransmission
+    contimer_init(&sock->rtimer, tcp_retransmission_timeout);
+    sock->unacked = (llist_t) LLIST_INITIALISER;
+    // https://tools.ietf.org/html/rfc6298#page-7 (section 7)
+    // Default RTO is 1 second, unless SYN or following ACK is lost, then 3 secs
+    sock->rto = (struct timespec) { 1, 0 };
+
     return sock;
 }
 
@@ -220,6 +230,7 @@ inline void tcp_sock_free(struct tcp_sock *sock) {
 
     // Cancel all running timers
     tcp_timewait_cancel(sock);
+    contimer_stop(&sock->rtimer);
 
     // Deallocate dynamically allocated data buffers
     seqbuf_free(&sock->sndbuf);
@@ -229,6 +240,9 @@ inline void tcp_sock_free(struct tcp_sock *sock) {
         llist_clear(&sock->passive->backlog);
         free(sock->passive);
     }
+
+    llist_iter(&sock->unacked, free);
+    llist_clear(&sock->unacked);
 
     // This shouldn't do anything as we currently hold the lock
     retlock_broadcast_bare(&sock->wait, 0);

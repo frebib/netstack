@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include <sys/param.h>
 #include <netinet/in.h>
 
@@ -6,6 +8,9 @@
 #include <netstack/ip/route.h>
 #include <netstack/tcp/tcp.h>
 #include <netstack/tcp/tcpopt.h>
+#include <netstack/tcp/retransmission.h>
+#include <netstack/time/contimer.h>
+#include <netstack/time/util.h>
 
 
 int tcp_send(struct inet_sock *inet, struct frame *frame, struct neigh_route *rt) {
@@ -32,7 +37,8 @@ int tcp_send(struct inet_sock *inet, struct frame *frame, struct neigh_route *rt
     frame_incref(frame);
 
     // TODO: Implement functionality to specify IP flags (different for IP4/6?)
-    int ret = neigh_send_to(rt, frame, IP_P_TCP, 0, 0);
+    // TODO: Send socket flags to neigh_send_to() in tcp_send()
+    int ret = neigh_send_to(rt, frame, IP_P_TCP, 0, inet->flags);
 
     frame_decref(frame);
     return ret;
@@ -67,7 +73,7 @@ int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
     return ret;
 }
 
-int tcp_send_data(struct tcp_sock *sock) {
+int tcp_send_data(struct tcp_sock *sock, uint32_t seqn, size_t len) {
 
     // Ensure the socket isn't closed before each packet send
     tcp_sock_lock(sock);
@@ -90,27 +96,67 @@ int tcp_send_data(struct tcp_sock *sock) {
 
     struct tcb *tcb = &sock->tcb;
     struct intf *intf = route.intf;
+    // Initialise a new frame to carry outgoing segment
     struct frame *seg = intf_frame_new(intf, intf_max_frame_size(intf));
 
     tcp_sock_lock(sock);
 
-    uint32_t seqn = htonl(tcb->snd.nxt);
-    uint32_t ackn = htonl(tcb->rcv.nxt);
-    long tosend = seqbuf_available(&sock->sndbuf, tcb->snd.nxt);
+    long tosend = seqbuf_available(&sock->sndbuf, seqn);
+    if (len > 0) {
+        // Bound payload size by requested length
+        tosend = MIN(tosend, len);
+    }
 
-    int count = tcp_init_header(seg, sock, seqn, ackn, TCP_FLAG_ACK, tosend);
-    // < 0 indicates error
-    if (count < 0)
+    uint8_t flags = TCP_FLAG_ACK;
+    uint32_t ackn = htonl(sock->tcb.rcv.nxt);
+    size_t datalen = (size_t) tosend;
+    int count = tcp_init_header(seg, sock, htonl(seqn), ackn, flags, datalen);
+    if (count < 0) {
+        // < 0 indicates error
         return count;
-    tcb->snd.nxt += count;
+    }
 
     // Set the PUSH flag if we're sending the last data in the buffer
     if (count >= tosend)
         tcp_hdr(seg)->flags.psh = 1;
 
-    // https://tools.ietf.org/html/rfc793#section-3.7
-    // Calculate data size to send, limited by MSS (- options)
-    long readerr = seqbuf_read(&sock->sndbuf, tcb->snd.nxt, seg->data, (size_t) count);
+    // Only push seg_data if segment is in-order (not retransmitting)
+    if (seqn == tcb->snd.nxt) {
+
+        LOG(LTRCE, "adding seq_data %u to unacked queue", seqn);
+
+        // Store sequence information for the rto
+        struct tcp_seq_data *seg_data = malloc(sizeof(struct tcp_seq_data));
+        seg_data->seq = tcb->snd.nxt;
+        seg_data->len = (uint16_t) count;
+
+        // Log unsent/unacked segment data for potential later retransmission
+        pthread_mutex_lock(&sock->unacked.lock);
+        llist_append_nolock(&sock->unacked, seg_data);
+
+        // Start the retransmission timeout
+        if (sock->unacked.length == 1) {
+
+            // TODO: Use sock->rtt for retransmission timeout
+            struct timespec to = {0, mstons(200) };
+            struct tcp_rto_data rtd = {
+                    .sock = sock,
+                    .seq = tcb->snd.nxt,
+                    .len = (uint16_t) count
+            };
+            // Hold another reference to the socket to prevent it being free'd
+            tcp_sock_incref(sock);
+            LOG(LVERB, "starting rtimer for sock %p (%u, %i)", sock, rtd.seq, count);
+            sock->rto_event = contimer_queue_rel(&sock->rtimer, &to, &rtd, sizeof(rtd));
+        }
+        pthread_mutex_unlock(&sock->unacked.lock);
+
+        // Advance SND.NXT past this segment
+        tcb->snd.nxt += count;
+    }
+
+    // Read data from the send buffer into the segment payload
+    long readerr = seqbuf_read(&sock->sndbuf, seqn, seg->data, (size_t) count);
     if (readerr < 0) {
         LOGSE(LERR, "seqbuf_read (%li)", -readerr, readerr);
         tcp_sock_unlock(sock);
@@ -129,10 +175,10 @@ int tcp_send_data(struct tcp_sock *sock) {
     
     frame_decref(seg);
 
-    return (ret < 0 ? ret : (int) count);
+    return (ret < 0 ? ret : count);
 }
 
-long tcp_init_header(struct frame *seg, struct tcp_sock *sock, uint32_t seqn,
+int tcp_init_header(struct frame *seg, struct tcp_sock *sock, uint32_t seqn,
                      uint32_t ackn, uint8_t flags, size_t datalen) {
 
     // Obtain TCP options + hdrlen
@@ -150,6 +196,7 @@ long tcp_init_header(struct frame *seg, struct tcp_sock *sock, uint32_t seqn,
 
     // Find the largest possible segment payload with headers taken into account
     // then clamp the value to at most the requested payload size
+    // https://tools.ietf.org/html/rfc793#section-3.7
     // (see https://tools.ietf.org/html/rfc879 for details)
     size_t count = MIN((sock->mss - tcp_optlen - ip_optlen), datalen);
 

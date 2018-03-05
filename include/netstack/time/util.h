@@ -10,6 +10,9 @@
 // Milliseconds in one second
 #define MSPERSEC 1000
 
+// Nanoseconds in one millisecond
+#define NSPERMS  1000000
+
 // Convert seconds to nanoseconds
 #define sectons(sec)    ((sec) * NSPERSEC)
 
@@ -21,6 +24,12 @@
 
 // Convert nanoseconds to seconds
 #define mstosec(ms)     ((ms) / MSPERSEC)
+
+// Convert milliseconds to nanoseconds
+#define mstons(ms)      ((ms) * NSPERMS)
+
+// Convert nanoseconds to milliseconds
+#define nstoms(ns)      ((ns) / NSPERMS)
 
 /*!
  * Adds seconds and nanoseconds into t1, accounting for nanosecond overflow
