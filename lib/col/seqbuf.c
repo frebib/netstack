@@ -154,9 +154,9 @@ long seqbuf_available(seqbuf_t *buf, size_t from) {
 
     if (from < buf->start) {
         LOG(LERR, "from (%zu) < buf->start (%zu)", from, buf->start);
-        return -ESPIPE;
+        return 0;
     }
 
     // Only return >= 0 available bytes
-    return MAX(buf->count - (from - buf->start), 0);
+    return MAX((long) (buf->start + buf->count - from), 0);
 }
