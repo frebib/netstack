@@ -123,11 +123,11 @@
   - Line 140: Check for MSG_MORE flag and don't trigger for a short while
   - Line 168: Send ACKs for data passed to the user (if specified)
   - Line 181: Don't return EOF until recv'd up to FIN seqn
-  - Line 313: Check for MSG_PEEK and conditionally don't do this
-  - Line 335: tcp_close() request until all send() calls have completed
-  - Line 349: Check for pending send() calls
-  - Line 357: If unsent data, queue sending FIN/ACK on CLOSING
-  - Line 464: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
+  - Line 321: Check for MSG_PEEK and conditionally don't do this
+  - Line 343: tcp_close() request until all send() calls have completed
+  - Line 357: Check for pending send() calls
+  - Line 365: If unsent data, queue sending FIN/ACK on CLOSING
+  - Line 472: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
   - Line 17: Add many configurable interfaces

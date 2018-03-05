@@ -226,12 +226,19 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
                 return count;
             }
 
-            if (sock->state == TCP_CLOSE_WAIT) {
-                LOG(LTRCE, "sock->state hit CLOSE-WAIT. Returning EOF");
-                // We have hit EOF. No more data to recv()
-                tcp_sock_unlock(sock);
-                // Zero signifies EOF
-                return 0;
+            switch (sock->state) {
+                case TCP_CLOSE_WAIT:
+                case TCP_LAST_ACK:
+                case TCP_TIME_WAIT:
+                    LOG(LTRCE, "sock->state hit %s. Returning EOF",
+                        tcp_strstate(sock->state));
+
+                    // We have hit EOF. No more data to recv()
+                    tcp_sock_unlock(sock);
+                    // Zero signifies EOF
+                    return 0;
+                default:
+                    break;
             }
 
             // Wait for some data then continue when some arrives
@@ -241,9 +248,10 @@ int _tcp_user_recv_data(struct tcp_sock *sock, void* out, size_t len) {
 
             LOG(LDBUG, "tcp_user_recv woken with %d", err);
 
-            // err is <0 for error, 0 for EOF and >0 for data available
-            if (err <= 0)
-                // return error or EOF
+            // Don't return EOF if 0 here, check properly above
+
+            // err is <0 for error
+            if (err < 0)
                 return err;
 
             // Return to start of loop to obtain next segment to recv
