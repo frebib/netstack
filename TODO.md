@@ -5,8 +5,8 @@
   - Line 68: infer interface and hwtype based on routing rules
 
 ## [include/netstack/intf/intf.h](include/netstack/intf/intf.h)
-  - Line 27: Implement 'virtual' network interfaces
-  - Line 41: Move arptbl into an 'ethernet' hardware struct into `void *ll`
+  - Line 29: Implement 'virtual' network interfaces
+  - Line 43: Move arptbl into an 'ethernet' hardware struct into `void *ll`
 
 ## [include/netstack/ip/ipv4.h](include/netstack/ip/ipv4.h)
   - Line 32: Take endianness into account in ipv4_hdr

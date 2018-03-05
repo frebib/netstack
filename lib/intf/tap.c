@@ -71,7 +71,7 @@ int tap_new(struct intf *interface) {
     // Zero then copy interface name
     memset(interface->name, 0, IFNAMSIZ);
     strncpy(interface->name, devname, IFNAMSIZ);
-    interface->type = INTF_RAWSOCK;
+    interface->type = INTF_TAP;
     interface->proto = PROTO_ETHER;
     interface->free = tap_free;
     interface->recv_frame = tap_recv_frame;

@@ -16,7 +16,9 @@ struct frame;
 
 // Interface types
 #define INTF_RAWSOCK    0x01
-#define INTF_TUNTAP     0x02
+#define INTF_TPACKET    0x01
+#define INTF_TAP        0x03
+#define INTF_TUN        0x04
 
 // Interface thread ids
 #define INTF_THR_RECV   0x00
