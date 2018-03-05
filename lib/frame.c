@@ -56,12 +56,14 @@ void frame_init_buf(struct frame *frame, void *buffer, size_t buf_size) {
     frame->data = frame->tail;
 }
 
-void frame_decref(struct frame *frame) {
+uint frame_decref(struct frame *frame) {
     if (frame == NULL)
-        return;
+        return 0;
+
+    uint val;
 
     // Subtract and check old value
-    if (atomic_fetch_sub(&frame->refcount, 1) == 1) {
+    if ((val = atomic_fetch_sub(&frame->refcount, 1)) == 1) {
         // refcount hit 0. Deallocate frame memory
         if (frame->buffer != NULL)
             frame->intf->free_buffer(frame->intf, frame->buffer);
@@ -72,28 +74,20 @@ void frame_decref(struct frame *frame) {
         // That thread needs to be holding a reference to prevent deallocation
         free(frame);
     }
+
+    return val - 1;
 }
 
-// TODO: Deduplicate frame_decref_unlock() code
-void frame_decref_unlock(struct frame *frame) {
-    if (frame == NULL)
-        return;
+uint frame_decref_unlock(struct frame *frame) {
+
+    uint val;
 
     // Subtract and check old value
-    if (atomic_fetch_sub(&frame->refcount, 1) == 1) {
-        // refcount hit 0. Deallocate frame memory
-        if (frame->buffer != NULL)
-            frame->intf->free_buffer(frame->intf, frame->buffer);
-        alist_free(&frame->layer);
-        // Unlock before free'ing
-        frame_unlock(frame);
-        // If another thread gains access here, after unlocking, it is a bug
-        // That thread needs to be holding a reference to prevent deallocation
-        free(frame);
-    } else {
+    if ((val = frame_decref(frame)) > 0)
         // Unlock anyway
         frame_unlock(frame);
-    }
+
+    return val;
 }
 
 int frame_layer_push_ptr(struct frame *f, proto_t prot, void *hdr, void *data) {

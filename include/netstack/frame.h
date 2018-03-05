@@ -118,13 +118,13 @@ void frame_init_buf(struct frame *frame, void *buffer, size_t buf_size);
  * Note: The shared frame->lock should be held before calling this
  * @param frame frame to dereference
  */
-void frame_decref(struct frame *frame);
+uint frame_decref(struct frame *frame);
 
 /*!
  * Performs the same action as frame_decref() but
  * ALWAYS releases the frame->lock
  */
-void frame_decref_unlock(struct frame *frame);
+uint frame_decref_unlock(struct frame *frame);
 
 /*!
  * Clones a frame

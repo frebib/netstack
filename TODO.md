@@ -32,9 +32,6 @@
 ## [lib/eth/ether.c](lib/eth/ether.c)
   - Line 20: Check and compare intf->vlan to hdr->vlan and reject if no match
 
-## [lib/frame.c](lib/frame.c)
-  - Line 77: Deduplicate frame_decref_unlock() code
-
 ## [lib/inet.c](lib/inet.c)
   - Line 21: Use hashtbl instead of list to lookup sockets
 
