@@ -98,11 +98,10 @@
   - Line 640: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
   - Line 730: Inform any waiting send() calls when acknowledgements
   - Line 735: Is sending an ACK here necessary?
-  - Line 755: Work out if our FIN was ACK'ed
-  - Line 776: Send success to waiting close() calls
-  - Line 990: Work out if 'our FIN has been ACKed'
-  - Line 994: stop other TCP timers in FIN-WAIT-2
-  - Line 1008: stop other TCP timers in FIN-WAIT-2
+  - Line 781: Send success to waiting close() calls
+  - Line 995: Work out if 'our FIN has been ACKed'
+  - Line 999: stop other TCP timers in FIN-WAIT-2
+  - Line 1013: stop other TCP timers in FIN-WAIT-2
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
   - Line 23: Don't assume IPv4 L3, choose based on sock->saddr
