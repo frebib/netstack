@@ -9,7 +9,7 @@ void tcp_retransmission_timeout(void *arg) {
     struct tcp_sock *sock = data->sock;
     struct tcb *tcb = &sock->tcb;
 
-    LOG(LWARN, "retransmission timeout for sock (%u, %hu) available %ld",
+    LOG(LVERB, "retransmission timeout for sock (%u, %hu) available %ld",
         data->seq - tcb->iss, data->len, seqbuf_available(&sock->sndbuf, data->seq));
 
     // https://tools.ietf.org/html/rfc6298
@@ -21,7 +21,7 @@ void tcp_retransmission_timeout(void *arg) {
 
     // Retransmit a new segment starting from the latest un-acked data
     if (tcp_seq_leq(una, end)) {
-        LOG(LCRIT, "RETRANSMITTING SEQ %u-%u", data->seq - tcb->iss, end - tcb->iss);
+        LOG(LDBUG, "RETRANSMITTING SEQ %u-%u", data->seq - tcb->iss, end - tcb->iss);
         tcp_sock_unlock(sock);
 
         // Retransmit the first bytes in the retransmission queue
@@ -39,7 +39,7 @@ void tcp_retransmission_timeout(void *arg) {
         data->len = unacked->len;
 
         // Restart the rto
-        LOG(LCRIT, "restarting rto for seq %u", data->seq - tcb->iss);
+        LOG(LTRCE, "restarting rto for seq %u", data->seq - tcb->iss);
         sock->rto_event = contimer_queue_rel(&sock->rtimer, &sock->rto,
                                              data, sizeof(struct tcp_rto_data));
 
@@ -61,8 +61,9 @@ void tcp_update_rtq(struct tcp_sock *sock) {
         uint32_t iss = sock->tcb.iss;
         uint32_t end = data->seq + data->len - 1;
 
-        if (tcp_seq_geq(sock->tcb.snd.una, end)) {
-            LOG(LINFO, "removing segment %u-%u", data->seq - iss, end - iss);
+        if (tcp_seq_gt(sock->tcb.snd.una, end)) {
+            LOG(LINFO, "removing acknowledged segment %u-%u",
+                data->seq - iss, end - iss);
             llist_remove_nolock(&sock->unacked, data);
             free(data);
         }
