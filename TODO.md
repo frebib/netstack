@@ -79,13 +79,13 @@
   - Line 28: Optionally only send the missing bytes instead of just a full segment worth
 
 ## [lib/tcp/tcp.c](lib/tcp/tcp.c)
-  - Line 34: Use frame->sock for socket lookup
-  - Line 136: Check for TSO and GRO and account for it, somehow..
-  - Line 145: Other integrity checks
-  - Line 148: Parse incoming TCP segment options
-  - Line 170: Perform queued actions when reaching certain states
-  - Line 312: Choose a random unused outgoing port
-  - Line 317: Choose a secure initial sequence number
+  - Line 24: Use frame->sock for socket lookup
+  - Line 142: Check for TSO and GRO and account for it, somehow..
+  - Line 151: Other integrity checks
+  - Line 154: Parse incoming TCP segment options
+  - Line 176: Perform queued actions when reaching certain states
+  - Line 318: Choose a random unused outgoing port
+  - Line 323: Choose a secure initial sequence number
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
   - Line 60: Optionally don't send TCP RST packets

@@ -21,21 +21,12 @@ bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum,
     frame->data = frame->head + tcp_hdr_len(hdr);
     struct log_trans *trans = &log->t;
 
-    // Print and check checksum
-    uint16_t pkt_csum = hdr->csum;
-    uint16_t calc_csum = in_csum(hdr, frame_pkt_len(frame), net_csum) + hdr->csum;
-    LOGT(trans, "csum 0x%04x", ntohs(pkt_csum));
-    if (pkt_csum != calc_csum)
-        LOGT(trans, " (invalid 0x%04x)", ntohs(calc_csum));
-
-    char sflags[9];
-    LOGT(trans, ", flags [%s]", fmt_tcp_flags(hdr->flagval, sflags));
-
     // TODO: Use frame->sock for socket lookup
     uint16_t sport = htons(hdr->sport);
     uint16_t dport = htons(hdr->dport);
     uint32_t irs = 0, iss = 0;
-    struct tcp_sock *sock;
+    struct tcp_sock *sock = NULL;
+
     if (!hdr->flags.syn && !hdr->flags.fin && !hdr->flags.rst) {
         if ((sock = tcp_sock_lookup(&saddr, &daddr, sport, dport)) != NULL) {
             irs = sock->tcb.irs;
@@ -47,6 +38,22 @@ bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum,
             LOG(LTRCE, "unrecognised socket");
         }
     }
+
+    if (sock != NULL)
+        LOGT(trans, "%s, ", tcp_strstate(sock->state));
+    else
+        LOGT(trans, "(unrecognised), ");
+
+    // Print and check checksum
+    uint16_t pkt_csum = hdr->csum;
+    uint16_t calc_csum = in_csum(hdr, frame_pkt_len(frame), net_csum) + hdr->csum;
+    LOGT(trans, "csum 0x%04x", ntohs(pkt_csum));
+    if (pkt_csum != calc_csum)
+        LOGT(trans, " (invalid 0x%04x)", ntohs(calc_csum));
+
+    char sflags[9];
+    LOGT(trans, ", flags [%s]", fmt_tcp_flags(hdr->flagval, sflags));
+
     uint32_t seqn = ntohl(hdr->seqn) - irs;
     uint32_t ackn = ntohl(hdr->ackn) - iss;
     uint16_t len = frame_data_len(frame);
@@ -104,7 +111,6 @@ void tcp_ipv4_recv(struct frame *frame, struct ipv4_hdr *hdr) {
     if (sock == NULL) {
         LOG(LWARN, "Unrecognised incoming TCP connection");
     } else {
-        LOG(LWARN, "Socket in state %s", tcp_strstate(sock->state));
         tcp_sock_incref(sock);
     }
     /* Pass initial network csum as TCP packet csum seed */
