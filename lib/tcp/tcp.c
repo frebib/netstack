@@ -27,7 +27,7 @@ bool tcp_log(struct pkt_log *log, struct frame *frame, uint16_t net_csum,
     uint32_t irs = 0, iss = 0;
     struct tcp_sock *sock = NULL;
 
-    if (!hdr->flags.syn && !hdr->flags.fin && !hdr->flags.rst) {
+    if (!hdr->flags.syn && !hdr->flags.rst) {
         if ((sock = tcp_sock_lookup(&saddr, &daddr, sport, dport)) != NULL) {
             irs = sock->tcb.irs;
             iss = sock->tcb.iss;
