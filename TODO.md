@@ -90,19 +90,19 @@
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
   - Line 60: Optionally don't send TCP RST packets
   - Line 143: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
-  - Line 298: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
-  - Line 368: Parse incoming TCP options for MSS value
-  - Line 380: Send pending data it the sndbuf
-  - Line 404: If there are other controls or text in the segment,
-  - Line 496: Store out-of-order segments that are >RCV.NXT for later processing
-  - Line 639: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
-  - Line 728: Inform any waiting send() calls when acknowledgements
-  - Line 733: Is sending an ACK here necessary?
-  - Line 753: Work out if our FIN was ACK'ed
-  - Line 774: Send success to waiting close() calls
-  - Line 988: Work out if 'our FIN has been ACKed'
-  - Line 992: stop other TCP timers in FIN-WAIT-2
-  - Line 1006: stop other TCP timers in FIN-WAIT-2
+  - Line 299: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
+  - Line 369: Parse incoming TCP options for MSS value
+  - Line 381: Send pending data it the sndbuf
+  - Line 405: If there are other controls or text in the segment,
+  - Line 497: Store out-of-order segments that are >RCV.NXT for later processing
+  - Line 640: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
+  - Line 729: Inform any waiting send() calls when acknowledgements
+  - Line 734: Is sending an ACK here necessary?
+  - Line 754: Work out if our FIN was ACK'ed
+  - Line 775: Send success to waiting close() calls
+  - Line 989: Work out if 'our FIN has been ACKed'
+  - Line 993: stop other TCP timers in FIN-WAIT-2
+  - Line 1007: stop other TCP timers in FIN-WAIT-2
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
   - Line 23: Don't assume IPv4 L3, choose based on sock->saddr

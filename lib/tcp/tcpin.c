@@ -249,6 +249,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     // A segment is "in-order" if the sequence number is
     // the next one we expect to receive
     bool in_order = (seg_seq == tcb->rcv.nxt);
+    bool ack_acceptable = tcp_ack_acceptable(tcb, seg_ack);
 
     if (sock->state == TCP_SYN_SENT) {
         LOG(LDBUG, "Reached SYN-SENT on %s:%hu",
@@ -288,7 +289,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
 
         */
         if (seg->flags.rst == 1) {
-            if (tcp_ack_acceptable(tcb, seg_ack)) {
+            if (ack_acceptable) {
                 tcp_setstate(sock, TCP_CLOSED);
                 retlock_signal(&sock->wait, -ECONNREFUSED);
             }
@@ -347,7 +348,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         if (seg->flags.syn == 1) {
             tcb->rcv.nxt = seg_seq + 1;
             tcb->irs = seg_seq;
-            if (tcp_ack_acceptable(tcb, seg_ack))
+            if (ack_acceptable)
                 tcb->snd.una = seg_ack;
 
             tcp_update_rtq(sock);
@@ -673,7 +674,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             and send it.
     */
         case TCP_SYN_RECEIVED:
-            if (tcp_ack_acceptable(tcb, seg_ack)) {
+            if (ack_acceptable) {
                 tcp_established(sock, seg_seq);
             } else {
                 LOG(LDBUG, "Sending RST");
@@ -715,7 +716,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             // RFC 1122: Section 4.2.2.20 (g)
             // TCP event processing corrections
             // https://tools.ietf.org/html/rfc1122#page-94
-            if (tcp_ack_acceptable(tcb, seg_ack)) {
+            if (ack_acceptable) {
 
                 // Consume and update send buffer
                 LOG(LTRCE, "Consuming sent bytes: %u", seg_ack - tcb->snd.una);
