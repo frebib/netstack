@@ -75,6 +75,9 @@ int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
 
 int tcp_send_data(struct tcp_sock *sock, uint32_t seqn, size_t len) {
 
+    int err;
+    uint16_t count;
+
     // Ensure the socket isn't closed before each packet send
     tcp_sock_lock(sock);
     if (sock->state != TCP_ESTABLISHED && sock->state != TCP_CLOSE_WAIT) {
@@ -85,7 +88,6 @@ int tcp_send_data(struct tcp_sock *sock, uint32_t seqn, size_t len) {
     tcp_sock_unlock(sock);
 
     // Find route to next-hop
-    int err;
     struct neigh_route route = {
             .intf = sock->inet.intf,
             .saddr = sock->inet.locaddr,
@@ -101,24 +103,38 @@ int tcp_send_data(struct tcp_sock *sock, uint32_t seqn, size_t len) {
 
     tcp_sock_lock(sock);
 
+    // Get the maximum available bytes to send
     long tosend = seqbuf_available(&sock->sndbuf, seqn);
-    if (len > 0) {
+    if (len > 0)
         // Bound payload size by requested length
         tosend = MIN(tosend, len);
-    }
 
     uint8_t flags = TCP_FLAG_ACK;
-    uint32_t ackn = htonl(sock->tcb.rcv.nxt);
+    uint32_t ackn = htonl(tcb->rcv.nxt);
     size_t datalen = (size_t) tosend;
-    int count = tcp_init_header(seg, sock, htonl(seqn), ackn, flags, datalen);
-    if (count < 0) {
+    err = tcp_init_header(seg, sock, htonl(seqn), ackn, flags, datalen);
+    if (err < 0)
         // < 0 indicates error
-        return count;
-    }
+        return err;
 
     // Set the PUSH flag if we're sending the last data in the buffer
+    count = (uint16_t) err;
     if (count >= tosend)
         tcp_hdr(seg)->flags.psh = 1;
+
+    // Start the retransmission timeout
+    if (sock->unacked.length == 1) {
+
+        // TODO: Use sock->rtt for retransmission timeout
+        struct timespec to = { 0, mstons(200) };
+        struct tcp_rto_data rtd = { .sock = sock, .seq = tcb->snd.nxt, .len = count };
+
+        // Hold another reference to the socket to prevent it being free'd
+        tcp_sock_incref(sock);
+
+        LOG(LVERB, "starting rtimer for sock %p (%u, %i)", sock, rtd.seq, count);
+        sock->rto_event = contimer_queue_rel(&sock->rtimer, &to, &rtd, sizeof(rtd));
+    }
 
     // Only push seg_data if segment is in-order (not retransmitting)
     if (seqn == tcb->snd.nxt) {
@@ -133,22 +149,6 @@ int tcp_send_data(struct tcp_sock *sock, uint32_t seqn, size_t len) {
         // Log unsent/unacked segment data for potential later retransmission
         pthread_mutex_lock(&sock->unacked.lock);
         llist_append_nolock(&sock->unacked, seg_data);
-
-        // Start the retransmission timeout
-        if (sock->unacked.length == 1) {
-
-            // TODO: Use sock->rtt for retransmission timeout
-            struct timespec to = {0, mstons(200) };
-            struct tcp_rto_data rtd = {
-                    .sock = sock,
-                    .seq = tcb->snd.nxt,
-                    .len = (uint16_t) count
-            };
-            // Hold another reference to the socket to prevent it being free'd
-            tcp_sock_incref(sock);
-            LOG(LVERB, "starting rtimer for sock %p (%u, %i)", sock, rtd.seq, count);
-            sock->rto_event = contimer_queue_rel(&sock->rtimer, &to, &rtd, sizeof(rtd));
-        }
         pthread_mutex_unlock(&sock->unacked.lock);
 
         // Advance SND.NXT past this segment

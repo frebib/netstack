@@ -109,8 +109,8 @@
   - Line 33: Don't assume IPv4 pseudo-header for checksumming
   - Line 39: Implement functionality to specify IP flags (different for IP4/6?)
   - Line 40: Send socket flags to neigh_send_to() in tcp_send()
-  - Line 82: Return socket close reason to user
-  - Line 140: Use sock->rtt for retransmission timeout
+  - Line 85: Return socket close reason to user
+  - Line 128: Use sock->rtt for retransmission timeout
   - Line 192: Calculate IP layer options in tcp_send_data()
   - Line 195: Take into account ethernet header variations, such as VLAN tags
 
