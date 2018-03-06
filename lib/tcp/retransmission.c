@@ -76,15 +76,20 @@ void tcp_update_rtq(struct tcp_sock *sock) {
     }
 
     // Cancel the rto if there are no unacked segments left
-    if (sock->unacked.length < 1 &&
-            contimer_isevent(&sock->rtimer, &sock->rto_event, NULL)) {
+    if (sock->unacked.length < 1) {
 
         LOG(LINFO, "No unacked segments outstanding. Cancelling the rto");
-        contimer_cancel(&sock->rtimer, sock->rto_event);
 
-        // Unlock then decrement held reference
+        // Ensure we don't decref the socket if no event was cancelled
+        if (contimer_cancel(&sock->rtimer, sock->rto_event) == 0) {
+            // Unlock then decrement held reference
+            pthread_mutex_unlock(&sock->unacked.lock);
+            tcp_sock_decref(sock);
+        }
+
+        // Just unlock. No event was cancelled
         pthread_mutex_unlock(&sock->unacked.lock);
-        tcp_sock_decref(sock);
+
     } else {
         // Just release lock. The timer is still running
         pthread_mutex_unlock(&sock->unacked.lock);
