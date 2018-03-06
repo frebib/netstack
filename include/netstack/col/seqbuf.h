@@ -3,19 +3,21 @@
 
 #include <stdint.h>
 
-#include <netstack/col/llist.h>
-
 
 typedef struct seqbuf {
-    llist_t buffers;
-    size_t bufsize;         // Fixed size of all memory buffers
+    struct seqbuf_block *head, *tail;
     size_t start;           // Sequence number of first byte in buffers->head
     size_t count;           // Number of bytes in all buffers, starting from
                             // start at the first byte of buffers->head
 } seqbuf_t;
 
+struct seqbuf_block {
+    struct seqbuf_block *next;
+    size_t len;
+    // Access the block payload with `block + 1`
+};
 
-int seqbuf_init(seqbuf_t *buf, size_t bufsize, size_t start);
+int seqbuf_init(seqbuf_t *buf, size_t start);
 
 void seqbuf_free(seqbuf_t *buf);
 
@@ -23,9 +25,9 @@ long seqbuf_read(seqbuf_t *buf, size_t from, void *dest, size_t len);
 
 long seqbuf_write(seqbuf_t *buf, void *src, size_t len);
 
-void seqbuf_consume(seqbuf_t *buf, size_t len);
+int seqbuf_consume(seqbuf_t *buf, size_t from, size_t len);
 
-void seqbuf_consume_to(seqbuf_t *buf, size_t newstart);
+int seqbuf_consume_to(seqbuf_t *buf, size_t newstart);
 
 /*!
  * Returns the number of bytes available to read from the buffer starting at

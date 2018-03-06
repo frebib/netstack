@@ -750,11 +750,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             break;
     }
 
-    // The ACK for the FIN is the sequence number _after_ the last byte sent.
-    // This can only be reached when SND.NXT is incremented when the FIN is sent
-    uint32_t fin_ack = (uint32_t) (sock->sndbuf.start + sock->sndbuf.count + 1);
-
-    if (in_order && tcb->snd.una == fin_ack) {
+    if (in_order && tcp_fin_was_acked(sock)) {
         switch (sock->state) {
     /*
         FIN-WAIT-1 STATE

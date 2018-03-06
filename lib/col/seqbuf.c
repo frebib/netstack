@@ -8,12 +8,12 @@
 #include <netstack/log.h>
 #include <netstack/col/seqbuf.h>
 
-int seqbuf_init(seqbuf_t *buf, size_t bufsize, size_t start) {
+int seqbuf_init(seqbuf_t *buf, size_t start) {
     if (buf == NULL)
         return -EINVAL;
 
-    buf->buffers = (llist_t) LLIST_INITIALISER;
-    buf->bufsize = bufsize;
+    buf->head = NULL;
+    buf->tail = NULL;
     buf->start = start;
     buf->count = 0;
 
@@ -22,7 +22,14 @@ int seqbuf_init(seqbuf_t *buf, size_t bufsize, size_t start) {
 
 void seqbuf_free(seqbuf_t *buf) {
     if (buf != NULL) {
-        llist_iter(&buf->buffers, free);
+
+        struct seqbuf_block *cur, *block = buf->head;
+        while (block != NULL) {
+            cur = block;
+            block = block->next;
+            free(cur);
+        }
+
         buf->count = 0;
         buf->start = 0;
     }
@@ -39,19 +46,20 @@ long seqbuf_read(seqbuf_t *buf, size_t from, void *dest, size_t len) {
     // We can only read at most what is available, or what is requested
     size_t toread = MIN(len, avail);
     // Offset by the initial byte
-    size_t bufofs = from - buf->start;
+    size_t blockofs = from - buf->start;
     // Cumulative sum of bytes read
-    size_t total = 0;
+    size_t total_read = 0;
     // Start at the first buffer and advance from there
-    struct llist_elem *elem = buf->buffers.head;
+    struct seqbuf_block *block = buf->head;
 
-    // Advance buffers until we reach the first one we need
-    while (bufofs > buf->bufsize) {
-        elem = elem->next;
-        bufofs -= buf->bufsize;
+    // Advance blocks until the offset resides within the block
+    while (blockofs > block->len) {
 
-        // The next buffer doesn't exist (this shouldn't ever happen)
-        if (elem == NULL) {
+        blockofs -= block->len;
+        block = block->next;
+
+        // The next block doesn't exist (this shouldn't ever happen)
+        if (block == NULL) {
             LOG(LERR, "buffer doesn't exist but it should.");
             return -1;
         }
@@ -59,120 +67,122 @@ long seqbuf_read(seqbuf_t *buf, size_t from, void *dest, size_t len) {
 
     // TODO: Try mmap() buffers into one contiguous region with one memcpy call
 
-    while (total < toread && elem != NULL) {
-        void *src = elem->data;
+    while (total_read < toread && block != NULL) {
+
+        void *data = block + 1;
+        size_t left_in_block = MIN(toread - total_read, block->len - blockofs);
 
         // Read up to the end of the current buffer
-        size_t left = MIN(toread - total, buf->bufsize - bufofs);
-        memcpy(dest + total, src + bufofs, left);
+        memcpy(dest + total_read, data + blockofs, left_in_block);
 
         // Advance counters and pointers
-        total += left;
-        elem = elem->next;
+        total_read += left_in_block;
         // Offset within each buffer frame. mod bufsize prevents over-reading
-        bufofs = (bufofs + total) % buf->bufsize;
+        blockofs = (blockofs + total_read) % block->len;
+
+        block = block->next;
     }
 
-    return total;
+    return total_read;
 }
 
 long seqbuf_write(seqbuf_t *buf, void *src, size_t len) {
     if (buf == NULL)
         return -EINVAL;
 
-    // We can only read at most what is available, or what is requested
-    size_t written = 0;
+    struct seqbuf_block *block;
 
-    // Write at count, offset by start position
-    size_t bufofs = buf->count;
-    struct llist_elem *elem = buf->buffers.head;
+    // Allocate a new buffer to write the entire segment into
+    block = malloc(sizeof(struct seqbuf_block) + len);
+    if (block == NULL)
+        return -ENOMEM;
 
-    // Advance buffers until we reach the first one we need
-    while (bufofs > buf->bufsize) {
-        // The next buffer doesn't exist yet. Allocate it
-        if (elem == NULL) {
-            void *data = malloc(buf->bufsize);
-            if (data == NULL)
-                return -ENOMEM;
+    // Copy the data into it
+    void *data = block + 1;
+    memcpy(data, src, len);
 
-            llist_append_nolock(&buf->buffers, data);
-            // The new buffer is the last one
-            elem = buf->buffers.tail;
-        } else {
-            elem = elem->next;
-        }
-        bufofs -= buf->bufsize;
-    }
+    // Update the buffer size
+    buf->count += len;
 
-    while (written < len) {
-        if (elem == NULL) {
-            // If we're out of buffers to write to, add another one
-            void *data = malloc(buf->bufsize);
-            if (data == NULL)
-                return -ENOMEM;
+    // There are no blocks in the buffer, this is the first
+    if (buf->head == NULL)
+        buf->head = block;
+    else
+        buf->tail->next = block;
 
-            llist_append_nolock(&buf->buffers, data);
-            // The new buffer is the last one
-            elem = buf->buffers.tail;
-        }
-        void *dest = elem->data;
+    block->len = len;
+    block->next = NULL;
+    // The tail of the buffer is always the newest block
+    buf->tail = block;
 
-        // Write up to the end of the current buffer
-        size_t left = len - written;
-        size_t tocopy = MIN(left, buf->bufsize - bufofs);
-        memcpy(dest + bufofs, src + written, tocopy);
+    LOG(LINFO, "added new seqbuf block %p, %zu bytes, %zu total",
+        block, len, buf->count);
 
-        // Advance counters and pointers
-        written += tocopy;
-        buf->count += tocopy;
-        elem = elem->next;
-        // Offset within each buffer frame. mod bufsize prevents over-reading
-        bufofs = buf->count % buf->bufsize;
-    }
-
-    return written;
+    return len;
 }
 
-void seqbuf_consume(seqbuf_t *buf, size_t len) {
+int seqbuf_consume(seqbuf_t *buf, size_t from, size_t len) {
     if (buf == NULL)
-        return;
+        return -EINVAL;
 
-    // Move the start to the next unconsumed byte
-    buf->start += len;
-    buf->count -= len;
+    if (from < buf->start) {
+        LOG(LERR, "from (%zu) < buf->start (%zu)", from, buf->start);
+        return -EOVERFLOW;
+    }
+    if ((buf->count - from - buf->start) < len) {
+        LOG(LERR, "len (%zu) > buf->count (%zu), from %zu", len, buf->count, from);
+        return -ERANGE;
+    }
 
-    // len is now # of iterations
-    len /= buf->bufsize;
+    LOG(LTRCE, "consuming %ld bytes from %zu (out of %ld)", len, from, buf->count);
 
-    // Remove whole buffers
-    while (len-- > 0)
-        free(llist_pop_nolock(&buf->buffers));
+    size_t blocksize = buf->head->len - (from - buf->start);
+
+    while (len >= blocksize) {
+
+        // Update # of bytes left to remove
+        len -= blocksize;
+
+        // Move the start to the next unconsumed block
+        buf->start += blocksize;
+        buf->count -= blocksize;
+
+        // Store the old head so we can update the new one
+        void *tofree = buf->head;
+
+        // Update the head to the next block before free'ing the pointer
+        buf->head = buf->head->next;
+
+        free(tofree);
+
+        // We've free'd every block. We're done now
+        if (buf->head == NULL)
+            break;
+
+        // Update the blocksize for the next iteration if buf->head isn't NULL
+        blocksize = buf->head->len;
+    }
+
+    if (buf->head == NULL)
+        buf->tail = NULL;
+
+    return 0;
 }
 
-void seqbuf_consume_to(seqbuf_t *buf, size_t newstart) {
+int seqbuf_consume_to(seqbuf_t *buf, size_t newstart) {
     if (buf == NULL)
-        return;
+        return -EINVAL;
 
     long diff = (long) (newstart - buf->start);
 
-    if (diff <= 0) {
-        if (diff < 0)
-            LOG(LERR, "consume_to(%zu) is %ld before current %zu",
-                newstart, -diff, buf->start);
-        return;
-    }
+    if (diff < 0) {
+        LOG(LNTCE, "consume_to(%zu) is %ld before current %zu",
+            newstart, -diff, buf->start);
+        return -ERANGE;
+    } if (diff <= 0)
+        return 0;
 
-    LOG(LTRCE, "consuming bytes: %ld", diff);
-
-    // Move the start to the next unconsumed byte
-    buf->start = newstart;
-    buf->count -= diff;
-
-    diff /= buf->bufsize;
-
-    // Remove whole buffers
-    while (diff-- > 0)
-        free(llist_pop_nolock(&buf->buffers));
+    return seqbuf_consume(buf, buf->start, (newstart - buf->start));
 }
 
 long seqbuf_available(seqbuf_t *buf, size_t from) {

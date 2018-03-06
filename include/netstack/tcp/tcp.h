@@ -395,6 +395,11 @@ uint32_t tcp_recvqueue_contigseq(struct tcp_sock *sock, uint32_t init);
 #define tcp_ack_acceptable(tcb, ackn) \
     tcp_seq_leq((tcb)->snd.una, (ackn)) && tcp_seq_leq((ackn), (tcb)->snd.nxt)
 
+// The ACK for the FIN is the sequence number _after_ the last byte sent.
+// This can only be reached when SND.NXT is incremented when the FIN is sent
+#define tcp_fin_was_acked(sock) \
+    (sock)->tcb.snd.una == (uint32_t) ((sock)->sndbuf.start + (sock)->sndbuf.count + 1)
+
 #define tcp_seq_lt(a, b) (((int32_t) (a)) - ((int32_t) (b)) < 0)
 #define tcp_seq_gt(a, b) (((int32_t) (a)) - ((int32_t) (b)) > 0)
 #define tcp_seq_leq(a, b) (((int32_t) (a)) - ((int32_t) (b)) <= 0)

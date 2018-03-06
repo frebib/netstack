@@ -57,8 +57,12 @@ void tcp_update_rtq(struct tcp_sock *sock) {
 
     pthread_mutex_lock(&sock->unacked.lock);
 
-    // Consume all acknowledged bytes from send buffer
-    seqbuf_consume_to(&sock->sndbuf, sock->tcb.snd.una);
+    // Ensure we don't try to consume the non-existent ACK byte for our FIN
+    if (tcp_fin_was_acked(sock))
+        seqbuf_consume_to(&sock->sndbuf, sock->tcb.snd.una);
+    else
+        // Consume all acknowledged bytes from send buffer
+        seqbuf_consume_to(&sock->sndbuf, sock->tcb.snd.una - 1);
 
     LOG(LVERB, "checking %zu unacked segments", sock->unacked.length);
     for_each_llist(&sock->unacked) {

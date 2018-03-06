@@ -200,7 +200,7 @@ void tcp_established(struct tcp_sock *sock, uint32_t recvnext) {
     LOG(LTRCE, "set recvptr to %u", sock->recvptr);
 
     // Allocate send/receive buffers
-    seqbuf_init(&sock->sndbuf, (size_t) sysconf(_SC_PAGESIZE), sock->tcb.iss + 1);
+    seqbuf_init(&sock->sndbuf, (size_t) sock->tcb.iss + 1);
 
     LOG(LDBUG, "Allocated SND.WND %hu, RCV.WND %hu",
         sock->tcb.snd.wnd, sock->tcb.rcv.wnd);
