@@ -326,16 +326,20 @@ int _tcp_sock_incref(struct tcp_sock *sock, const char *file, int line, const ch
 
 /*!
  * Releases the socket reference. When the refcount hits 0, the socket is
- * free'd. This function should be called with the sock->lock held.
- * Note: The shared lock sock->lock is released by this function
+ * free'd. This function does not release the mutex if it is held and assumes
+ * that no other thread will try to access the socket memory after it returns;
  */
 int _tcp_sock_decref(struct tcp_sock *sock, const char *file, int line, const char *func);
 #define tcp_sock_decref(sock) _tcp_sock_decref(sock, __FILE__, __LINE__, __func__)
 
-#define tcp_sock_decref_unlock(sock) \
-    if (tcp_sock_decref(sock) > 0) { \
-        tcp_sock_unlock_safe(sock); \
-    }
+/*!
+ * Releases the socket reference. When the refcount hits 0, the socket is
+ * free'd. This function should be called with the sock->lock held. It is assumed
+ * that no other thread will try to access the socket memory after it returns;
+ * Note: The shared lock sock->lock is released by this function in either case
+ */
+int _tcp_sock_decref_unlock(struct tcp_sock *sock, const char *file, int line, const char *func);
+#define tcp_sock_decref_unlock(sock) _tcp_sock_decref_unlock(sock, __FILE__, __LINE__, __func__)
 
 #define tcp_sock_lock(sock) pthread_mutex_lock(&(sock)->wait.lock)
 

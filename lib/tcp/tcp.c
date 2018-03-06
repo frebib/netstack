@@ -256,8 +256,6 @@ inline void tcp_sock_free(struct tcp_sock *sock) {
     // This shouldn't do anything as we currently hold the lock
     retlock_broadcast_bare(&sock->wait, 0);
 
-    tcp_sock_unlock(sock);
-
     free(sock);
 }
 
@@ -307,11 +305,26 @@ int _tcp_sock_decref(struct tcp_sock *sock, const char *file, int line, const ch
     if ((refcnt = atomic_fetch_sub(&sock->refcount, 1)) == 1) {
         LOG(LDBUG, "deref'ing sock %p (ref %d): %s:%u<%s>", sock,
             refcnt - 1, file, line, func);
-        tcp_sock_trylock(sock);
         tcp_sock_destroy(sock);
     }
     return refcnt - 1;
 }
+
+int _tcp_sock_decref_unlock(struct tcp_sock *sock, const char *file, int line, const char *func) {
+    // Subtract and destroy socket if no more refs held
+    int refcnt;
+    if ((refcnt = atomic_fetch_sub(&sock->refcount, 1)) == 1) {
+        LOG(LDBUG, "deref'ing sock %p (ref %d): %s:%u<%s>", sock,
+            refcnt - 1, file, line, func);
+
+        tcp_sock_unlock(sock);
+        tcp_sock_destroy(sock);
+    } else {
+        tcp_sock_unlock(sock);
+    }
+    return refcnt - 1;
+}
+
 
 /*
  * TCP Internet functions
