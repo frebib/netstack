@@ -123,7 +123,7 @@ int tcp_send_data(struct tcp_sock *sock, uint32_t seqn, size_t len) {
         tcp_hdr(seg)->flags.psh = 1;
 
     // Start the retransmission timeout
-    if (sock->unacked.length == 1) {
+    if (sock->unacked.length == 0) {
 
         // TODO: Use sock->rtt for retransmission timeout
         struct timespec to = { 0, mstons(200) };
