@@ -123,8 +123,16 @@ int tcp_send_data(struct tcp_sock *sock, uint32_t seqn, size_t len) {
 
     // Set the PUSH flag if we're sending the last data in the buffer
     count = (uint16_t) err;
-    if (count >= tosend)
+    if (count >= tosend) {
         tcp_hdr(seg)->flags.psh = 1;
+
+        // If this is the last packet and a FIN needs to be transmitted,
+        // tack on a FIN flag too
+        if (sock->state == TCP_LAST_ACK || sock->state == TCP_FIN_WAIT_2) {
+            LOG(LNTCE, "Tacking FIN onto existing data packet");
+            tcp_hdr(seg)->flags.fin = 1;
+        }
+    }
 
     // Start the retransmission timeout
     if (sock->unacked.length == 0) {
