@@ -47,13 +47,14 @@ long seqbuf_read(seqbuf_t *buf, size_t from, void *dest, size_t len) {
 
     // Advance buffers until we reach the first one we need
     while (bufofs > buf->bufsize) {
+        elem = elem->next;
+        bufofs -= buf->bufsize;
+
         // The next buffer doesn't exist (this shouldn't ever happen)
         if (elem == NULL) {
             LOG(LERR, "buffer doesn't exist but it should.");
             return -1;
         }
-        elem = elem->next;
-        bufofs -= buf->bufsize;
     }
 
     // TODO: Try mmap() buffers into one contiguous region with one memcpy call

@@ -19,7 +19,7 @@
   - Line 179: Fix endianness in tcp.h
 
 ## [lib/col/seqbuf.c](lib/col/seqbuf.c)
-  - Line 59: Try mmap() buffers into one contiguous region with one memcpy call
+  - Line 60: Try mmap() buffers into one contiguous region with one memcpy call
 
 ## [lib/eth/arp.c](lib/eth/arp.c)
   - Line 162: Use hashtable for ARP lookups on IPv4
