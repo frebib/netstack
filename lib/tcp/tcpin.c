@@ -719,11 +719,8 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             // https://tools.ietf.org/html/rfc1122#page-94
             if (ack_acceptable) {
 
-                // Consume and update send buffer
-                LOG(LTRCE, "Consuming sent bytes: %u", seg_ack - tcb->snd.una);
+                // Update send buffer
                 tcb->snd.una = seg_ack;
-                seqbuf_consume_to(&sock->sndbuf, tcb->snd.una);
-
                 // Remove any segments from the rtq that are ack'd
                 tcp_update_rtq(sock);
 
@@ -756,7 +753,6 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     // The ACK for the FIN is the sequence number _after_ the last byte sent.
     // This can only be reached when SND.NXT is incremented when the FIN is sent
     uint32_t fin_ack = (uint32_t) (sock->sndbuf.start + sock->sndbuf.count + 1);
-    LOG(LCRIT, "ack: %u, fin_ack: %u", seg_ack, fin_ack);
 
     if (in_order && tcb->snd.una == fin_ack) {
         switch (sock->state) {

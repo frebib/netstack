@@ -26,7 +26,9 @@ void tcp_retransmission_timeout(void *arg) {
 
         // Retransmit the first bytes in the retransmission queue
         // TODO: Optionally only send the missing bytes instead of just a full segment worth
-        tcp_send_data(sock, una, 0);
+        int ret;
+        if ((ret = tcp_send_data(sock, una, 0)) <= 0)
+            LOGSE(LWARN, "retransmitting with tcp_send_data(%u)", -ret, una - tcb->iss);
 
         // Relock the socket
         tcp_sock_lock(sock);
@@ -55,6 +57,10 @@ void tcp_update_rtq(struct tcp_sock *sock) {
 
     pthread_mutex_lock(&sock->unacked.lock);
 
+    // Consume all acknowledged bytes from send buffer
+    seqbuf_consume_to(&sock->sndbuf, sock->tcb.snd.una);
+
+    LOG(LVERB, "checking %zu unacked segments", sock->unacked.length);
     for_each_llist(&sock->unacked) {
         struct tcp_seq_data *data = llist_elem_data();
 
@@ -62,7 +68,7 @@ void tcp_update_rtq(struct tcp_sock *sock) {
         uint32_t end = data->seq + data->len - 1;
 
         if (tcp_seq_gt(sock->tcb.snd.una, end)) {
-            LOG(LINFO, "removing acknowledged segment %u-%u",
+            LOG(LTRCE, "removing acknowledged segment %u-%u",
                 data->seq - iss, end - iss);
             llist_remove_nolock(&sock->unacked, data);
             free(data);

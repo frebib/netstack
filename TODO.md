@@ -96,12 +96,12 @@
   - Line 405: If there are other controls or text in the segment,
   - Line 497: Store out-of-order segments that are >RCV.NXT for later processing
   - Line 640: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
-  - Line 730: Inform any waiting send() calls when acknowledgements
-  - Line 735: Is sending an ACK here necessary?
-  - Line 781: Send success to waiting close() calls
-  - Line 995: Work out if 'our FIN has been ACKed'
-  - Line 999: stop other TCP timers in FIN-WAIT-2
-  - Line 1013: stop other TCP timers in FIN-WAIT-2
+  - Line 727: Inform any waiting send() calls when acknowledgements
+  - Line 732: Is sending an ACK here necessary?
+  - Line 777: Send success to waiting close() calls
+  - Line 991: Work out if 'our FIN has been ACKed'
+  - Line 995: stop other TCP timers in FIN-WAIT-2
+  - Line 1009: stop other TCP timers in FIN-WAIT-2
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
   - Line 23: Don't assume IPv4 L3, choose based on sock->saddr
