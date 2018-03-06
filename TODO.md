@@ -90,18 +90,18 @@
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
   - Line 60: Optionally don't send TCP RST packets
   - Line 143: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
-  - Line 299: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
-  - Line 369: Parse incoming TCP options for MSS value
-  - Line 381: Send pending data it the sndbuf
-  - Line 405: If there are other controls or text in the segment,
-  - Line 497: Store out-of-order segments that are >RCV.NXT for later processing
-  - Line 640: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
-  - Line 727: Inform any waiting send() calls when acknowledgements
-  - Line 732: Is sending an ACK here necessary?
-  - Line 773: Send success to waiting close() calls
-  - Line 987: Work out if 'our FIN has been ACKed'
-  - Line 991: stop other TCP timers in FIN-WAIT-2
-  - Line 1005: stop other TCP timers in FIN-WAIT-2
+  - Line 300: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
+  - Line 370: Parse incoming TCP options for MSS value
+  - Line 382: Send pending data it the sndbuf
+  - Line 406: If there are other controls or text in the segment,
+  - Line 498: Store out-of-order segments that are >RCV.NXT for later processing
+  - Line 643: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
+  - Line 730: Inform any waiting send() calls when acknowledgements
+  - Line 735: Is sending an ACK here necessary?
+  - Line 776: Send success to waiting close() calls
+  - Line 990: Work out if 'our FIN has been ACKed'
+  - Line 994: stop other TCP timers in FIN-WAIT-2
+  - Line 1008: stop other TCP timers in FIN-WAIT-2
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
   - Line 23: Don't assume IPv4 L3, choose based on sock->saddr
@@ -126,7 +126,7 @@
   - Line 342: tcp_close() request until all send() calls have completed
   - Line 356: Check for pending send() calls
   - Line 364: If unsent data, queue sending FIN/ACK on CLOSING
-  - Line 471: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
+  - Line 474: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
   - Line 17: Add many configurable interfaces

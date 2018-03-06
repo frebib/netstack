@@ -292,6 +292,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             if (ack_acceptable) {
                 tcp_setstate(sock, TCP_CLOSED);
                 retlock_signal(&sock->wait, -ECONNREFUSED);
+                tcp_sock_decref(sock);
             }
             goto drop_pkt;
         }
@@ -565,6 +566,8 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         case TCP_LAST_ACK:
         case TCP_TIME_WAIT:
             if (seg->flags.rst == 1) {
+                tcp_setstate(sock, TCP_CLOSED);
+                retlock_broadcast_bare(&sock->wait, -ECONNRESET);
                 contimer_stop(&sock->rtimer);
                 tcp_sock_decref(sock);
                 goto drop_pkt;

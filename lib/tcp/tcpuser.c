@@ -367,8 +367,11 @@ int tcp_user_close(struct tcp_sock *sock) {
             // https://tools.ietf.org/html/rfc1122#page-93
             tcp_setstate(sock, TCP_LAST_ACK);
             tcp_send_finack(sock);
-            while (sock->state != TCP_CLOSED)
+
+            // Wait for the connection to be closed before returning
+            while (!(sock->state == TCP_TIME_WAIT || sock->state == TCP_CLOSED))
                 retlock_wait_bare(&sock->wait, &ret);
+
             break;
         case TCP_CLOSING:
         case TCP_LAST_ACK:
