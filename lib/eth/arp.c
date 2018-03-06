@@ -331,6 +331,8 @@ int arp_send_reply(struct intf *intf, uint16_t hwtype, ip4_addr_t sip,
     hdr->plen = (uint8_t) addrlen(PROTO_IPV4);
     hdr->op = htons(ARP_OP_REPLY);
 
+    frame_unlock(frame);
+
     int ret = ether_send(frame, ETH_P_ARP, daddr);
     frame_decref(frame);
 
