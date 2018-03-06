@@ -168,6 +168,8 @@ int ipv4_send(struct frame *frame, uint8_t proto, uint16_t flags,
     hdr->csum = 0;
     hdr->csum = in_csum(hdr, (size_t) sizeof(struct ipv4_hdr), 0);
 
+    frame_unlock(frame);
+
     switch(hwaddr->proto) {
         case PROTO_IP:
         case PROTO_IPV4:

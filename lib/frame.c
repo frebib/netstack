@@ -68,8 +68,10 @@ uint frame_decref(struct frame *frame) {
         if (frame->buffer != NULL)
             frame->intf->free_buffer(frame->intf, frame->buffer);
         alist_free(&frame->layer);
-        // Unlock before free'ing
-        frame_unlock(frame);
+
+        // There is no point in unlocking because if someone gets the lock after
+        // we unlock here it will cause errors anyway. This is why we refcount
+
         // If another thread gains access here, after unlocking, it is a bug
         // That thread needs to be holding a reference to prevent deallocation
         free(frame);
@@ -79,16 +81,31 @@ uint frame_decref(struct frame *frame) {
 }
 
 uint frame_decref_unlock(struct frame *frame) {
+    if (frame == NULL)
+        return 0;
 
     uint val;
 
     // Subtract and check old value
-    if ((val = frame_decref(frame)) > 0)
-        // Unlock anyway
+    if ((val = atomic_fetch_sub(&frame->refcount, 1)) == 1) {
+        // refcount hit 0. Deallocate frame memory
+        if (frame->buffer != NULL)
+            frame->intf->free_buffer(frame->intf, frame->buffer);
+        alist_free(&frame->layer);
+
         frame_unlock(frame);
 
-    return val;
+        // If another thread gains access here, after unlocking, it is a bug
+        // That thread needs to be holding a reference to prevent deallocation
+        free(frame);
+    } else{
+        // Just unlock
+        frame_unlock(frame);
+    }
+
+    return val - 1;
 }
+
 
 int frame_layer_push_ptr(struct frame *f, proto_t prot, void *hdr, void *data) {
     if (f == NULL || prot == 0 || hdr == NULL)

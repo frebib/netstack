@@ -66,6 +66,8 @@ int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
     if (count < 0)
         return (int) count;
 
+    frame_unlock(seg);
+
     int ret = tcp_send(&sock->inet, seg, &route);
 
     frame_decref(seg);
@@ -113,9 +115,11 @@ int tcp_send_data(struct tcp_sock *sock, uint32_t seqn, size_t len) {
     uint32_t ackn = htonl(tcb->rcv.nxt);
     size_t datalen = (size_t) tosend;
     err = tcp_init_header(seg, sock, htonl(seqn), ackn, flags, datalen);
-    if (err < 0)
+    if (err < 0) {
+        frame_decref_unlock(seg);
         // < 0 indicates error
         return err;
+    }
 
     // Set the PUSH flag if we're sending the last data in the buffer
     count = (uint16_t) err;
@@ -160,10 +164,12 @@ int tcp_send_data(struct tcp_sock *sock, uint32_t seqn, size_t len) {
     if (readerr < 0) {
         LOGSE(LERR, "seqbuf_read (%li)", -readerr, readerr);
         tcp_sock_unlock(sock);
+        frame_decref_unlock(seg);
         return (int) readerr;
     } else if (readerr == 0) {
         LOG(LWARN, "No data to send");
         tcp_sock_unlock(sock);
+        frame_decref_unlock(seg);
         return -1;
     }
 
