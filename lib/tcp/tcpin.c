@@ -987,12 +987,15 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
 
     */
             case TCP_FIN_WAIT_1:
-                // TODO: Work out if 'our FIN has been ACKed'
-                if (true) {
+                if (tcp_fin_was_acked(sock)) {
                     tcp_setstate(sock, TCP_TIME_WAIT);
                     tcp_timewait_start(sock);
+
+                    // Stop retransmission timer
                     // TODO: stop other TCP timers in FIN-WAIT-2
+                    contimer_stop(&sock->rtimer);
                 } else {
+                    // Just enter CLOSING and wait for ACK
                     tcp_setstate(sock, TCP_CLOSING);
                 }
                 break;

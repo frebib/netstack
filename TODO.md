@@ -99,9 +99,8 @@
   - Line 730: Inform any waiting send() calls when acknowledgements
   - Line 735: Is sending an ACK here necessary?
   - Line 776: Send success to waiting close() calls
-  - Line 990: Work out if 'our FIN has been ACKed'
-  - Line 994: stop other TCP timers in FIN-WAIT-2
-  - Line 1008: stop other TCP timers in FIN-WAIT-2
+  - Line 995: stop other TCP timers in FIN-WAIT-2
+  - Line 1011: stop other TCP timers in FIN-WAIT-2
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
   - Line 23: Don't assume IPv4 L3, choose based on sock->saddr
