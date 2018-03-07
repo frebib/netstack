@@ -109,8 +109,8 @@
   - Line 40: Send socket flags to neigh_send_to() in tcp_send()
   - Line 87: Return socket close reason to user
   - Line 140: Use sock->rtt for retransmission timeout
-  - Line 206: Calculate IP layer options in tcp_send_data()
-  - Line 209: Take into account ethernet header variations, such as VLAN tags
+  - Line 207: Calculate IP layer options in tcp_send_data()
+  - Line 210: Take into account ethernet header variations, such as VLAN tags
 
 ## [lib/tcp/tcpuser.c](lib/tcp/tcpuser.c)
   - Line 14: Handle sending SIGPIPE for dead connections to calling process

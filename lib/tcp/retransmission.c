@@ -42,7 +42,7 @@ void tcp_retransmission_timeout(void *arg) {
 
         // Restart the rto
         LOG(LTRCE, "restarting rto for seq %u", data->seq - tcb->iss);
-        sock->rto_event = contimer_queue_rel(&sock->rtimer, &sock->rto,
+        sock->rto_event = contimer_queue_rel(&sock->rtimer, &sock->rto, NULL,
                                              data, sizeof(struct tcp_rto_data));
 
         // Unlock but continue to hold reference for next timeout

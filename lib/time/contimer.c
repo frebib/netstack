@@ -79,9 +79,14 @@ static void *_contimer_run(void *arg) {
 
         contimeout_change_state(event, CALLING);
 
+        // If the event has an override callback, use that instead
+        void (*cb)(void *) = (event->callback != NULL)
+                                ? event->callback
+                                : t->callback;
+
         // Now the t has elapsed, call the callback, cleanup, and loop again
         pthread_mutex_unlock(&t->timeouts.lock);
-        t->callback(event + 1);
+        cb(event + 1);
         pthread_mutex_lock(&t->timeouts.lock);
 
     event_cleanup:
@@ -107,7 +112,7 @@ int contimer_init(contimer_t *t, void (*callback)(void *)) {
 }
 
 contimer_event_t contimer_queue(contimer_t *t, struct timespec *abs,
-                                void *arg, size_t len) {
+                                void (*cb)(void *), void *arg, size_t len) {
 
     pthread_mutex_lock(&t->timeouts.lock);
 
@@ -115,6 +120,7 @@ contimer_event_t contimer_queue(contimer_t *t, struct timespec *abs,
     event->id = t->nextid++;
     event->wake.tv_sec = abs->tv_sec;
     event->wake.tv_nsec = abs->tv_nsec;
+    event->callback = cb;
     event->state = WAITING;
 
     // Copy arbitrary sized argument
@@ -132,7 +138,7 @@ contimer_event_t contimer_queue(contimer_t *t, struct timespec *abs,
 }
 
 contimer_event_t contimer_queue_rel(contimer_t *t, struct timespec *rel,
-                                    void *arg, size_t len) {
+                                    void (*cb)(void *), void *arg, size_t len) {
     
     // Obtain the current time
     struct timespec abs = {0};
@@ -142,7 +148,7 @@ contimer_event_t contimer_queue_rel(contimer_t *t, struct timespec *rel,
     timespecadd(&abs, rel);
 
     // Enqueue the event
-    return contimer_queue(t, &abs, arg, len);
+    return contimer_queue(t, &abs, cb, arg, len);
 }
 
 bool contimer_isevent(contimer_t *timer, contimer_event_t *id,

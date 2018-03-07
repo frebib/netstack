@@ -145,7 +145,8 @@ int tcp_send_data(struct tcp_sock *sock, uint32_t seqn, size_t len) {
         tcp_sock_incref(sock);
 
         LOG(LVERB, "starting rtimer for sock %p (%u, %i)", sock, rtd.seq, count);
-        sock->rto_event = contimer_queue_rel(&sock->rtimer, &to, &rtd, sizeof(rtd));
+        sock->rto_event = contimer_queue_rel(&sock->rtimer, &to, NULL,
+                                             &rtd, sizeof(rtd));
     }
 
     // Only push seg_data if segment is in-order (not retransmitting)
