@@ -41,7 +41,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c $(INC)
 
 # Tools
 netd: $(NETD)
-$(NETD):
+$(NETD): $(TARGET_LIB)
 	@$(MAKE) -C $(NETD_DIR)
 	@ln -sfv $(NETD) netd
 
