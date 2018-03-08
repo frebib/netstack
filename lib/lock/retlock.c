@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <string.h>
 
 #define NETSTACK_LOG_UNIT "RETLCK"
@@ -12,15 +13,25 @@ void retlock_init(retlock_t *lock) {
 }
 
 int retlock_lock(retlock_t *lock) {
-    return -pthread_mutex_lock(&lock->lock);
+    int err;
+    if ((err = pthread_mutex_lock(&lock->lock))) {
+        LOGSE(LCRIT, "pthread_mutex_lock", err);
+        abort();
+    }
+    return 0;
 }
 
 int retlock_trylock(retlock_t *lock) {
-    return -pthread_mutex_trylock(&lock->lock);
+    return -pthread_mutex_lock(&lock->lock);
 }
 
 int retlock_unlock(retlock_t *lock) {
-    return -pthread_mutex_unlock(&lock->lock);
+    int err;
+    if ((err = pthread_mutex_unlock(&lock->lock))) {
+        LOGSE(LCRIT, "pthread_mutex_unlock", err);
+        abort();
+    }
+    return 0;
 }
 
 int retlock_wait_bare(retlock_t *lock, int *value) {
@@ -64,6 +75,18 @@ int retlock_timedwait_nolock(retlock_t *lock, struct timespec *t, int *value) {
     if (value != NULL)
         *value = lock->val;
     return retlock_unlock(lock);
+}
+
+int retlock_timedwait_bare(retlock_t *lock, struct timespec *t, int *value) {
+    int ret = pthread_cond_reltimedwait(&lock->wait, &lock->lock, t);
+    if (ret != 0) {
+        if (ret != ETIMEDOUT)
+            LOGSE(LERR, "pthread_cond_timedwait", ret);
+        return ret;
+    }
+    if (value != NULL)
+        *value = lock->val;
+    return ret;
 }
 
 int retlock_signal(retlock_t *lock, int value) {

@@ -69,8 +69,8 @@
   - Line 18: Take source address into route calculation
   - Line 33: Perform correct route/hardware address lookups when appropriate
   - Line 56: Make ARP/NDP request now, instead of later to reduce waiting time
-  - Line 166: Rate limit ARP requests to prevent flooding
-  - Line 176: Use inet_socket for passing options to neighbour
+  - Line 167: Rate limit ARP requests to prevent flooding
+  - Line 178: Use inet_socket for passing options to neighbour
 
 ## [lib/ip/route.c](lib/ip/route.c)
   - Line 33: Define how routes with the same metric should behave?

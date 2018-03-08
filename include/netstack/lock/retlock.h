@@ -82,6 +82,8 @@ int retlock_timedwait(retlock_t *lock, struct timespec *t, int *value);
  */
 int retlock_timedwait_nolock(retlock_t *lock, struct timespec *t, int *value);
 
+int retlock_timedwait_bare(retlock_t *lock, struct timespec *t, int *value);
+
 /*!
  * Signals one waiting thread with a value
  * Always locks and unlocks the lock before and after signalling the condition

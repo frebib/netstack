@@ -21,6 +21,7 @@
 
 struct queued_pkt {
     retlock_t retwait;
+    atomic_uchar refcount;
     timeout_t timeout;
     struct frame *frame;
     addr_t saddr;
@@ -93,5 +94,27 @@ void neigh_update_hwaddr(struct intf *intf, addr_t *daddr, addr_t *hwaddr);
  * @param pending pending packet to cleanup and deallocate
  */
 void neigh_queue_expire(struct queued_pkt *pending);
+
+#define neigh_queued_lock(qd) \
+    do { \
+        atomic_fetch_add(&(qd)->refcount, 1); \
+        retlock_lock(&(qd)->retwait); \
+    } while (0)
+
+#define neigh_queued_unlock(qd) \
+    do { \
+        atomic_fetch_sub(&(qd)->refcount, 1); \
+        retlock_unlock(&(qd)->retwait); \
+    } while (0)
+
+#define neigh_queued_free(qd) \
+    do { \
+        if (atomic_fetch_sub(&(qd)->refcount, 2) <= 2) { \
+            retlock_unlock(&(qd)->retwait); \
+            free(qd); \
+        } else { \
+            retlock_unlock(&(qd)->retwait); \
+        } \
+    } while (0)
 
 #endif //NETSTACK_NEIGH_H

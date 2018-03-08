@@ -150,6 +150,7 @@ int neigh_send_to(struct neigh_route *rt, struct frame *frame, uint8_t proto,
             struct queued_pkt *pending = malloc(sizeof(struct queued_pkt));
             pending->retwait = (retlock_t) RETLOCK_INITIALISER;
             pending->retwait.val = -1; // Start with initial error value
+            atomic_init(&pending->refcount, 1);
             pending->frame = frame;
             pending->saddr = rt->saddr;
             pending->daddr = rt->daddr;
@@ -159,7 +160,7 @@ int neigh_send_to(struct neigh_route *rt, struct frame *frame, uint8_t proto,
             pending->sock_flags = sock_flags;
 
             // Lock retlock atomically with respect to 'pending'
-            retlock_lock(&pending->retwait);
+            neigh_queued_lock(pending);
             LOG(LDBUG, "Queuing packet for later sending");
             llist_append(&intf->neigh_outqueue, pending);
 
@@ -169,6 +170,7 @@ int neigh_send_to(struct neigh_route *rt, struct frame *frame, uint8_t proto,
             uint16_t arphw = arp_proto_hw(intf->proto);
             int err = arp_send_req(intf, arphw, &rt->saddr, &rt->nexthop);
             if (err) {
+                neigh_queued_free(pending);
                 LOGE(LNTCE, "arp_send_req");
                 return err;
             }
@@ -184,7 +186,7 @@ int neigh_send_to(struct neigh_route *rt, struct frame *frame, uint8_t proto,
                 void *fn = (void (*)(void *)) neigh_queue_expire;
                 timeout_set(&pending->timeout, fn, pending, to.tv_sec, to.tv_nsec);
 
-                retlock_unlock(&pending->retwait);
+                neigh_queued_unlock(pending);
 
                 // Indicate that the packet was queued
                 ret = -EWOULDBLOCK;
@@ -193,7 +195,7 @@ int neigh_send_to(struct neigh_route *rt, struct frame *frame, uint8_t proto,
                       straddr(&rt->nexthop), to.tv_sec);
 
                 // Wait for packet to be sent, or timeout to occur
-                err = retlock_timedwait_nolock(&pending->retwait, &to, &ret);
+                err = retlock_timedwait_bare(&pending->retwait, &to, &ret);
 
                 LOG(LDBUG, "retlock_timed_wait returned %d", ret);
 
@@ -204,8 +206,7 @@ int neigh_send_to(struct neigh_route *rt, struct frame *frame, uint8_t proto,
                 else if (err)
                     ret = -err;
 
-                // Deallocate dynamic memory
-                free(pending);
+                neigh_queued_free(pending);
 
                 frame_lock(frame, SHARED_RD);
             }
@@ -228,7 +229,7 @@ void neigh_update_hwaddr(struct intf *intf, addr_t *daddr, addr_t *hwaddr) {
         struct queued_pkt *tosend = llist_elem_data();
 
         // Lock the tosend entry to check address
-        retlock_lock(&tosend->retwait);
+        neigh_queued_lock(tosend);
 
         // Found entry to update and send
         if (addreq(&tosend->nexthop, daddr)) {
@@ -259,16 +260,16 @@ void neigh_update_hwaddr(struct intf *intf, addr_t *daddr, addr_t *hwaddr) {
 
             // Signal all waiting threads with the return value
             int err;
-            if ((err = retlock_broadcast_nolock(&tosend->retwait, ret)))
+            if ((err = retlock_broadcast_bare(&tosend->retwait, ret)))
                 LOGSE(LERR, "retlock_broadcast_nolock", -err);
 
             // Deallocate memory
-            free(tosend);
+            neigh_queued_free(tosend);
 
             return;
         }
         // Unlock regardless and continue
-        retlock_unlock(&tosend->retwait);
+        neigh_queued_unlock(tosend);
     }
 
     pthread_mutex_unlock(&intf->neigh_outqueue.lock);
@@ -276,7 +277,7 @@ void neigh_update_hwaddr(struct intf *intf, addr_t *daddr, addr_t *hwaddr) {
 
 void neigh_queue_expire(struct queued_pkt *pending) {
     // Obtain the lock before attempting to clear any values
-    retlock_lock(&pending->retwait);
+    neigh_queued_lock(pending);
 
     LOG(LNTCE, "Queued packet for %s expired. Destroying it",
         straddr(&pending->daddr));
@@ -286,10 +287,7 @@ void neigh_queue_expire(struct queued_pkt *pending) {
     llist_remove(&intf->neigh_outqueue, pending);
     frame_decref(pending->frame);
 
-    retlock_unlock(&pending->retwait);
-    // Tough doo-doo if you manage to lock the queued packet now, sorry
-
     // Deallocate memory
     timeout_clear(&pending->timeout);
-    free(pending);
+    neigh_queued_free(pending);
 }
