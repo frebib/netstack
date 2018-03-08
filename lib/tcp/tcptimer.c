@@ -5,7 +5,5 @@
 void tcp_timewait_expire(struct tcp_sock *sock) {
     LOG(LINFO, "TIME-WAIT expired. Closing connection");
     tcp_setstate(sock, TCP_CLOSED);
-    // Clear this timeout
-    tcp_timewait_cancel(sock);
     tcp_sock_destroy(sock);
 }

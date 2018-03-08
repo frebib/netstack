@@ -164,6 +164,9 @@ struct tcp_sock {
     llist_t unacked;             // Sequence numbers of unacknowledged segments
 
     struct timespec rto;         // Retransmit timeout value. Calculated from rtt
+    struct timespec lasttime;    // Timestamp at which the last rto was started
+    uint64_t rtt, srtt, rttvar;  // Round-trip time values for retransmission
+    uint16_t backoff;
 
     // TCP timers
     timeout_t timewait;
@@ -201,6 +204,16 @@ struct tcp_sock {
 #define TCP_DEF_MSS     536     // MSS conservative default as per RFC879
                                 // https://tools.ietf.org/html/rfc879
 #define TCP_MSL         60      // Maximum Segment Lifetime (in seconds)
+
+// Initial connect timeout. Is doubled every retry
+#define TCP_SYN_RTO     mstons((uint64_t) 500U)
+// Amount of retries before giving up
+#define TCP_SYN_COUNT   6
+
+// Minimum RTO in nanoseconds. RFC 6298 (2.4) says: 'RTO _SHOULD_ be rounded up to 1 second'
+// https://tools.ietf.org/html/rfc6298#page-3
+// Linux uses a minimum RTO of 200 ms
+#define TCP_RTO_MIN     mstons((uint64_t) 100U)
 
 
 /* Returns a string of characters/dots representing a set/unset TCP flag */
@@ -466,9 +479,17 @@ int tcp_send_empty(struct tcp_sock *sock, uint32_t seqn, uint32_t ackn,
  * @param seqn sequence number to send data from
  * @param count hint for amount of bytes to send. 0 indicates automatic (as
  *              much as will fit in one packet)
+ * @param flags optionally extra flags for the segment. ACK is implicitly added
  * @return >= 0: number of bytes sent, negative error otherwise
  */
-int tcp_send_data(struct tcp_sock *sock, uint32_t seqn, size_t count);
+int tcp_send_data(struct tcp_sock *sock, uint32_t seqn, size_t count, uint8_t flags);
+
+/*!
+ * Adds an outgoing segment to the unacked queue in case it is required for
+ * later retransmission. This can be used for both data and control packets
+ */
+void tcp_queue_unacked(struct tcp_sock *sock, uint32_t seqn, uint16_t len,
+                       uint8_t flags);
 
 /*!
  * Given an uninitialised frame, a TCP segment is formed, allocating space for
@@ -506,8 +527,7 @@ size_t tcp_options(struct tcp_sock *sock, uint8_t flags, uint8_t *opt);
  * Send a TCP SYN segment in the form
  *    <SEQ=SND.NXT><ACK=RCV.NXT><CTL=ACK>
  */
-#define tcp_send_syn(sock) \
-    tcp_send_empty((sock), (sock)->tcb.iss, 0, TCP_FLAG_SYN)
+int tcp_send_syn(struct tcp_sock *sock);
 
 /*!
  * Send a TCP SYN/ACK segment in the form

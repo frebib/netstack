@@ -70,6 +70,8 @@ contimer_event_t contimer_queue(contimer_t *timer, struct timespec *abs,
 /*!
  * Enqueues an event exactly the same as contimer_queue except takes a timespec
  * relative to the time that this function is called.
+ * @param rel   Relative time from the current CLOCK_MONOTONIC time. Upon return
+ *              this value is set to the absolute time the timeout started
  */
 contimer_event_t contimer_queue_rel(contimer_t *t, struct timespec *rel,
                                     void (*cb)(void *), void *arg, size_t len);

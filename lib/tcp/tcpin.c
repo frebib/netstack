@@ -291,7 +291,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         if (seg->flags.rst == 1) {
             if (ack_acceptable) {
                 tcp_setstate(sock, TCP_CLOSED);
-                retlock_signal(&sock->wait, -ECONNREFUSED);
+                retlock_broadcast_bare(&sock->wait, -ECONNREFUSED);
                 tcp_sock_decref(sock);
             }
             goto drop_pkt;
@@ -379,8 +379,10 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                 tcp_established(sock, seg_seq + 1);
 
                 LOG(LDBUG, "Sending ACK");
-                // TODO: Send pending data it the sndbuf
-                ret = tcp_send_ack(sock);
+                if (seqbuf_available(&sock->sndbuf, seg_ack))
+                    ret = tcp_send_data(sock, seg_seq + 1, 0, 0);
+                else
+                    ret = tcp_send_ack(sock);
 
                 // Signal the open() call if it's waiting for us
                 if (retlock_broadcast_bare(&sock->wait, 0)) {
@@ -546,11 +548,9 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         case TCP_FIN_WAIT_2:
         case TCP_CLOSE_WAIT:
             if (seg->flags.rst == 1) {
-                contimer_stop(&sock->rtimer);
                 tcp_setstate(sock, TCP_CLOSED);
                 retlock_broadcast_bare(&sock->wait, -ECONNRESET);
                 tcp_sock_decref(sock);
-                ret = -ECONNRESET;
                 goto drop_pkt;
             }
             break;
@@ -568,7 +568,6 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             if (seg->flags.rst == 1) {
                 tcp_setstate(sock, TCP_CLOSED);
                 retlock_broadcast_bare(&sock->wait, -ECONNRESET);
-                contimer_stop(&sock->rtimer);
                 tcp_sock_decref(sock);
                 goto drop_pkt;
             }
@@ -724,8 +723,15 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
 
                 // Update send buffer
                 tcb->snd.una = seg_ack;
+
                 // Remove any segments from the rtq that are ack'd
                 tcp_update_rtq(sock);
+
+                // Exponential backoff should be reset upon receiving a valid ACK
+                // It should happen _AFTER_ updating the rtt/rtq so that segments
+                // acknowledged by this ACK segment aren't used to calculate the
+                // updated RTO. See: https://tools.ietf.org/html/rfc6298#page-4
+                sock->backoff = 0;
 
                 // TODO: Inform any waiting send() calls when acknowledgements
                 // arrive for data they are waiting to be sent.
@@ -1008,7 +1014,10 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             case TCP_FIN_WAIT_2:
                 tcp_setstate(sock, TCP_TIME_WAIT);
                 tcp_timewait_start(sock);
+
                  // TODO: stop other TCP timers in FIN-WAIT-2
+                // Stop retransmission timer
+                contimer_stop(&sock->rtimer);
                 break;
     /*
         TIME-WAIT STATE

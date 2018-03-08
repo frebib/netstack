@@ -70,14 +70,16 @@ int tcp_user_open(struct tcp_sock *sock) {
     sock->tcb.snd.nxt = iss + 1;
     sock->tcb.rcv.wnd = UINT16_MAX;
 
+    // Ensure the state is SYN-SENT _before_ calling tcp_send_syn() so that
+    // the correct retransmit timeout function is used
+    tcp_setstate(sock, TCP_SYN_SENT);
+
     int ret;
     if ((ret = tcp_send_syn(sock)) < 0) {
         LOG(LNTCE, "tcp_sock_decref() because tcp_send_syn() err");
         tcp_sock_decref_unlock(sock);
         return ret;
     }
-
-    tcp_setstate(sock, TCP_SYN_SENT);
 
     // Wait for the connection to be established
     while (sock->state != TCP_ESTABLISHED && ret >= 0) {
@@ -102,45 +104,53 @@ int tcp_user_open(struct tcp_sock *sock) {
     return ret;
 }
 
+#define tcp_user_send_state_check(sock) \
+    tcp_sock_lock(sock); \
+    switch ((sock)->state) { \
+        case TCP_CLOSED: \
+        case TCP_LISTEN: \
+        case TCP_SYN_SENT: \
+        case TCP_SYN_RECEIVED: \
+            tcp_sock_decref_unlock(sock); \
+            return -ENOTCONN; \
+        case TCP_FIN_WAIT_1: \
+        case TCP_FIN_WAIT_2: \
+        case TCP_CLOSING: \
+        case TCP_LAST_ACK: \
+        case TCP_TIME_WAIT: \
+            tcp_sock_decref_unlock(sock); \
+            return -ESHUTDOWN; \
+        default: \
+            /* ESTABLISHED or CLOSE-WAIT */ \
+            break; \
+    } \
+    tcp_sock_unlock(sock);
+
 int tcp_user_send(struct tcp_sock *sock, void *data, size_t len, int flags) {
     if (sock == NULL)
         return -ENOTSOCK;
 
     // Ensure socket cannot be free'd until this lock is released
-    tcp_sock_lock(sock);
     tcp_sock_incref(sock);
 
     int sent = 0;
-    switch (sock->state) {
-        case TCP_CLOSED:
-        case TCP_LISTEN:
-        case TCP_SYN_SENT:
-        case TCP_SYN_RECEIVED:
-            tcp_sock_decref_unlock(sock);
-            return -ENOTCONN;
-        case TCP_FIN_WAIT_1:
-        case TCP_FIN_WAIT_2:
-        case TCP_CLOSING:
-        case TCP_LAST_ACK:
-        case TCP_TIME_WAIT:
-            tcp_sock_decref_unlock(sock);
-            return -ESHUTDOWN;
-        default:
-            // ESTABLISHED or CLOSE-WAIT
-            break;
-    }
+
+    // Ensure the socket is in a valid sending state and return if not
+    tcp_user_send_state_check(sock);
 
     // TODO: Write to sndbuf and output directly at the same time
+    // TODO: Limit the size of the send buffer. Block if the buffer is full
     seqbuf_write(&sock->sndbuf, data, len);
-
-    // tcp_send_data performs it's own locking. this reduces contention
-    tcp_sock_unlock(sock);
 
     // TODO: Signal sending thread and offload segmentation/transmission
     // TODO: Check for MSG_MORE flag and don't trigger for a short while
     while (sent < len) {
 
-        int ret = tcp_send_data(sock, sock->tcb.snd.nxt, len);
+        // Check every send iteration too, just to make
+        // sure the state hasn't changed in between
+        tcp_user_send_state_check(sock);
+
+        int ret = tcp_send_data(sock, sock->tcb.snd.nxt, len, 0);
         if (ret <= 0) {
             LOGSE(LINFO, "tcp_send_data returned", -ret);
             sent = ret;
@@ -151,6 +161,9 @@ int tcp_user_send(struct tcp_sock *sock, void *data, size_t len, int flags) {
     }
     if (sent > 0)
         LOG(LDBUG, "Sent in total %i bytes", sent);
+
+    if (sent != len)
+        LOG(LCRIT, "Didn't send everything in the buffer :( %d < %zu", sent, len);
 
     tcp_sock_decref(sock);
     return sent;

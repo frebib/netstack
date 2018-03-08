@@ -186,6 +186,10 @@ void _tcp_setstate(struct tcp_sock *sock, enum tcp_state state) {
             LOG(LTRCE, "Waking all waiting user calls");
             retlock_broadcast_bare(&sock->wait, 0);
             break;
+        case TCP_CLOSED:
+            // Clear this timeout
+            tcp_timewait_cancel(sock);
+            contimer_stop(&sock->rtimer);
         default:
             break;
     }
@@ -223,9 +227,12 @@ struct tcp_sock *tcp_sock_init(struct tcp_sock *sock) {
     // Retransmission
     contimer_init(&sock->rtimer, tcp_retransmission_timeout);
     sock->unacked = (llist_t) LLIST_INITIALISER;
+
     // https://tools.ietf.org/html/rfc6298#page-7 (section 7)
     // Default RTO is 1 second, unless SYN or following ACK is lost, then 3 secs
     sock->rto = (struct timespec) { 1, 0 };
+    sock->rtt = sectons(1);   // Default RTT is 1 second
+    sock->rttvar = sock->srtt = 0;
 
     return sock;
 }

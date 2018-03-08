@@ -141,11 +141,15 @@ contimer_event_t contimer_queue_rel(contimer_t *t, struct timespec *rel,
                                     void (*cb)(void *), void *arg, size_t len) {
     
     // Obtain the current time
-    struct timespec abs = {0};
+    struct timespec now, abs = {0};
     clock_gettime(CLOCK_MONOTONIC, &abs);
     
     // Offset by the relative time
+    now = abs;
     timespecadd(&abs, rel);
+
+    // Return the absolute time that the timer was started
+    *rel = now;
 
     // Enqueue the event
     return contimer_queue(t, &abs, cb, arg, len);

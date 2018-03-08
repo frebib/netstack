@@ -16,7 +16,7 @@
 
 ## [include/netstack/tcp/tcp.h](include/netstack/tcp/tcp.h)
   - Line 46: Take endianness into account in tcp_hdr
-  - Line 179: Fix endianness in tcp.h
+  - Line 182: Fix endianness in tcp.h
 
 ## [lib/col/seqbuf.c](lib/col/seqbuf.c)
   - Line 68: Try mmap() buffers into one contiguous region with one memcpy call
@@ -76,7 +76,7 @@
   - Line 33: Define how routes with the same metric should behave?
 
 ## [lib/tcp/retransmission.c](lib/tcp/retransmission.c)
-  - Line 28: Optionally only send the missing bytes instead of just a full segment worth
+  - Line 98: Optionally only send the missing bytes instead of just a full segment worth
 
 ## [lib/tcp/tcp.c](lib/tcp/tcp.c)
   - Line 24: Use frame->sock for socket lookup
@@ -84,48 +84,46 @@
   - Line 154: Other integrity checks
   - Line 157: Parse incoming TCP segment options
   - Line 179: Perform queued actions when reaching certain states
-  - Line 334: Choose a random unused outgoing port
-  - Line 339: Choose a secure initial sequence number
+  - Line 341: Choose a random unused outgoing port
+  - Line 346: Choose a secure initial sequence number
 
 ## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
   - Line 60: Optionally don't send TCP RST packets
   - Line 143: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
   - Line 300: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
   - Line 370: Parse incoming TCP options for MSS value
-  - Line 382: Send pending data it the sndbuf
-  - Line 406: If there are other controls or text in the segment,
-  - Line 498: Store out-of-order segments that are >RCV.NXT for later processing
-  - Line 643: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
-  - Line 730: Inform any waiting send() calls when acknowledgements
-  - Line 735: Is sending an ACK here necessary?
-  - Line 776: Send success to waiting close() calls
-  - Line 995: stop other TCP timers in FIN-WAIT-2
-  - Line 1011: stop other TCP timers in FIN-WAIT-2
+  - Line 408: If there are other controls or text in the segment,
+  - Line 500: Store out-of-order segments that are >RCV.NXT for later processing
+  - Line 642: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
+  - Line 736: Inform any waiting send() calls when acknowledgements
+  - Line 741: Is sending an ACK here necessary?
+  - Line 782: Send success to waiting close() calls
+  - Line 1001: stop other TCP timers in FIN-WAIT-2
+  - Line 1018: stop other TCP timers in FIN-WAIT-2
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
   - Line 23: Don't assume IPv4 L3, choose based on sock->saddr
   - Line 33: Don't assume IPv4 pseudo-header for checksumming
   - Line 39: Implement functionality to specify IP flags (different for IP4/6?)
   - Line 40: Send socket flags to neigh_send_to() in tcp_send()
-  - Line 87: Return socket close reason to user
-  - Line 140: Use sock->rtt for retransmission timeout
-  - Line 207: Calculate IP layer options in tcp_send_data()
-  - Line 210: Take into account ethernet header variations, such as VLAN tags
+  - Line 257: Calculate IP layer options in tcp_send_data()
+  - Line 260: Take into account ethernet header variations, such as VLAN tags
 
 ## [lib/tcp/tcpuser.c](lib/tcp/tcpuser.c)
   - Line 14: Handle sending SIGPIPE for dead connections to calling process
   - Line 65: Fill out 'user timeout' information
-  - Line 85: Check for O_NONBLOCK
-  - Line 87: Obtain timespec value for timedwait
-  - Line 133: Write to sndbuf and output directly at the same time
-  - Line 139: Signal sending thread and offload segmentation/transmission
-  - Line 140: Check for MSG_MORE flag and don't trigger for a short while
-  - Line 169: Don't return EOF until recv'd up to FIN seqn
-  - Line 321: Check for MSG_PEEK and conditionally don't do this
-  - Line 342: tcp_close() request until all send() calls have completed
-  - Line 356: Check for pending send() calls
-  - Line 364: If unsent data, queue sending FIN/ACK on CLOSING
-  - Line 474: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
+  - Line 87: Check for O_NONBLOCK
+  - Line 89: Obtain timespec value for timedwait
+  - Line 141: Write to sndbuf and output directly at the same time
+  - Line 142: Limit the size of the send buffer. Block if the buffer is full
+  - Line 145: Signal sending thread and offload segmentation/transmission
+  - Line 146: Check for MSG_MORE flag and don't trigger for a short while
+  - Line 182: Don't return EOF until recv'd up to FIN seqn
+  - Line 334: Check for MSG_PEEK and conditionally don't do this
+  - Line 355: tcp_close() request until all send() calls have completed
+  - Line 369: Check for pending send() calls
+  - Line 377: If unsent data, queue sending FIN/ACK on CLOSING
+  - Line 487: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
   - Line 17: Add many configurable interfaces
