@@ -243,7 +243,8 @@ void tcp_update_rtt(struct tcp_sock *sock, struct tcp_seq_data *acked) {
         // SRTT <- (1 - alpha) * SRTT + alpha * R'
         const double beta = 0.25;
         const double alpha = 0.125;
-        sock->rttvar = (uint64_t) ((1 - beta) * sock->rttvar + beta * labs(sock->srtt - r));
+        sock->rttvar = (uint64_t) ((1 - beta) * sock->rttvar + beta *
+                                        labs((int64_t) (sock->srtt - r)));
         sock->srtt = (uint64_t) ((1 - alpha) * sock->srtt + alpha * r);
     }
 
