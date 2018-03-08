@@ -109,14 +109,17 @@ void tcp_retransmission_timeout(void *arg) {
         tcp_sock_lock(sock);
     }
 
+    pthread_mutex_lock(&sock->unacked.lock);
+
     if (sock->unacked.length > 0) {
         // Update the next unacknowledged segment for retransmit timeout
-        struct tcp_seq_data *unacked = llist_peek(&sock->unacked);
+        struct tcp_seq_data *unacked = llist_peek_nolock(&sock->unacked);
         data->seq = unacked->seq;
         data->len = unacked->len;
         data->flags = unacked->flags;
 
         LOG(LTRCE, "restarting rto for seq %u", unacked->seq - tcb->iss);
+        pthread_mutex_unlock(&sock->unacked.lock);
 
         // Back-off the retransmission timeout exponentially by the backoff value.
         // This ensures successive retransmissions of the same missing segment
@@ -140,6 +143,7 @@ void tcp_retransmission_timeout(void *arg) {
         // Unlock but continue to hold reference for next timeout
         tcp_sock_unlock(sock);
     } else {
+        pthread_mutex_unlock(&sock->unacked.lock);
         // Decrement held reference from when rto was started
         tcp_sock_decref_unlock(sock);
     }
