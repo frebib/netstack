@@ -6,7 +6,7 @@ INCDIR = $(LIBDIR)/include
 CFLAGS  ?= -I$(INCDIR) -Wall -Werror -Wno-unused-variable -Wno-unused-function -Wno-unused-parameter -Wno-missing-braces -fstack-protector -O3 -g
 CFLAGS  += -I$(INCDIR)
 LDFLAGS += -L$(LIBDIR) -Wl,--as-needed,-enable-new-dtags,-rpath,"$(LIBDIR)",-rpath,.
-LDLIBS  += -lnetstack -lcap -ldl -lpthread
+LDLIBS  += -lnetstack -lcap -ldl -pthread
 
 # Source and header files
 SRC = $(shell find $(SRCDIR) -type f -name '*.c')
