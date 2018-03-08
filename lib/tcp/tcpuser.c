@@ -1,10 +1,12 @@
 #include <stdlib.h>
 #include <errno.h>
+#include <sys/param.h>
 #include <netinet/in.h>
 
 #define NETSTACK_LOG_UNIT "TCP"
 #include <netstack/tcp/tcp.h>
 #include <netstack/lock/retlock.h>
+#include <netstack/tcp/retransmission.h>
 
 /*
  * As defined in RFC 793: Functional Specification (pg 54 - 64)
@@ -105,7 +107,6 @@ int tcp_user_open(struct tcp_sock *sock) {
 }
 
 #define tcp_user_send_state_check(sock) \
-    tcp_sock_lock(sock); \
     switch ((sock)->state) { \
         case TCP_CLOSED: \
         case TCP_LISTEN: \
@@ -124,7 +125,6 @@ int tcp_user_open(struct tcp_sock *sock) {
             /* ESTABLISHED or CLOSE-WAIT */ \
             break; \
     } \
-    tcp_sock_unlock(sock);
 
 int tcp_user_send(struct tcp_sock *sock, void *data, size_t len, int flags) {
     if (sock == NULL)
@@ -132,6 +132,7 @@ int tcp_user_send(struct tcp_sock *sock, void *data, size_t len, int flags) {
 
     // Ensure socket cannot be free'd until this lock is released
     tcp_sock_incref(sock);
+    tcp_sock_lock(sock);
 
     int sent = 0;
 
@@ -150,7 +151,35 @@ int tcp_user_send(struct tcp_sock *sock, void *data, size_t len, int flags) {
         // sure the state hasn't changed in between
         tcp_user_send_state_check(sock);
 
-        int ret = tcp_send_data(sock, sock->tcb.snd.nxt, len, 0);
+        // Ensure there is enough space in the remote rcv.wnd
+        // Take into account those unacknowledged segments that are in-flight
+        size_t inflight_sum = 0;
+        for_each_llist(&sock->unacked) {
+            struct tcp_seq_data *unacked = llist_elem_data();
+            inflight_sum += unacked->len;
+        }
+
+        size_t space = MAX(0, ((int32_t) sock->tcb.snd.wnd) - inflight_sum);
+        if (space <= 0) {
+            // Don't wait if socket is non-blocking
+            if (sock->inet.flags & O_NONBLOCK)
+                return -EWOULDBLOCK;
+
+            LOG(LWARN, "no space in SND.WND. waiting for an incoming ACK");
+
+            // We assume the remote send window is full so wait for an ACK
+            pthread_cond_wait(&sock->waitack, &sock->wait.lock);
+
+            // Woken up; we should re-check our state before sending
+            LOG(LINFO, "woken as ACK arrived. attempting to send again");
+            continue;
+        }
+
+        // There is space in the send window- unlock and get the data out!
+        tcp_sock_unlock(sock);
+
+        // Send at most the space left in the SND.WND
+        int ret = tcp_send_data(sock, sock->tcb.snd.nxt, space, 0);
         if (ret <= 0) {
             LOGSE(LINFO, "tcp_send_data returned", -ret);
             sent = ret;

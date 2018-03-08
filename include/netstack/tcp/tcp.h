@@ -176,6 +176,7 @@ struct tcp_sock {
 
     // Thread wait lock
     retlock_t wait;
+    pthread_cond_t waitack;
 };
 
 

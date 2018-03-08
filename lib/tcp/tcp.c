@@ -221,8 +221,11 @@ struct tcp_sock *tcp_sock_init(struct tcp_sock *sock) {
     sock->tcb = (struct tcb) {0};
     // Use default MSS for outgoing send() calls
     sock->mss = TCP_DEF_MSS;
+
+    // Locking & concurrency
     atomic_init(&sock->refcount, 1);
     retlock_init(&sock->wait);
+    pthread_cond_init(&sock->waitack, NULL);
 
     // Retransmission
     contimer_init(&sock->rtimer, tcp_retransmission_timeout);
@@ -275,6 +278,7 @@ void tcp_sock_cleanup(struct tcp_sock *sock) {
 
     // Set the open() return value and wake it up
     retlock_broadcast(&sock->wait, -ECONNABORTED);
+    pthread_cond_broadcast(&sock->waitack);
 
     switch (sock->state) {
         case TCP_SYN_SENT:

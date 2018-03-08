@@ -733,8 +733,8 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                 // updated RTO. See: https://tools.ietf.org/html/rfc6298#page-4
                 sock->backoff = 0;
 
-                // TODO: Inform any waiting send() calls when acknowledgements
-                // arrive for data they are waiting to be sent.
+                // Wakeup tcp_user_send() now as there might be space in the snd.wnd
+                pthread_cond_broadcast(&sock->waitack);
 
                 if (tcp_seq_gt(seg_ack, tcb->snd.nxt) &&
                     !tcp_seq_lt(seg_ack, tcb->snd.una)) {
