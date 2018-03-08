@@ -242,11 +242,6 @@ struct tcp_sock *tcp_sock_init(struct tcp_sock *sock) {
 
 inline void tcp_sock_free(struct tcp_sock *sock) {
 
-    if (tcp_sock_trylock(sock) != EBUSY) {
-        LOG(LERR, "tcp_sock_free() called on unlocked socket!");
-        return;
-    }
-
     // Cancel all running timers
     tcp_timewait_cancel(sock);
     contimer_stop(&sock->rtimer);

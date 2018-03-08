@@ -361,14 +361,6 @@ int _tcp_sock_decref_unlock(struct tcp_sock *sock, const char *file, int line, c
 
 #define tcp_sock_unlock(sock) pthread_mutex_unlock(&(sock)->wait.lock)
 
-#define tcp_sock_unlock_safe(sock) { \
-    LOG(LTRCE, "tcp_sock_unlock_safe(%p)", &(sock)->wait.lock); \
-    int _trylock_ret = pthread_mutex_trylock(&(sock)->wait.lock); \
-    /* Unlock if the lock was just obtained or if it was already locked */ \
-    if (_trylock_ret == 0 || _trylock_ret == EBUSY) \
-        pthread_mutex_unlock(&(sock)->wait.lock); \
-}
-
 
 /*
  * TCP Internet functions
