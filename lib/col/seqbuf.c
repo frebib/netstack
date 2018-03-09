@@ -126,10 +126,6 @@ int seqbuf_consume(seqbuf_t *buf, size_t from, size_t len) {
     if (buf == NULL)
         return -EINVAL;
 
-    if ((long) (from - buf->start) % buf->limit < 0) {
-        LOG(LERR, "from (%zu) < buf->start (%zu)", from, buf->start);
-        return -EOVERFLOW;
-    }
     if (seqbuf_available(buf, from) < len) {
         LOG(LERR, "len (%zu) > buf->count (%zu), from %zu", len, buf->count, from);
         return -ERANGE;
@@ -189,11 +185,6 @@ int seqbuf_consume_to(seqbuf_t *buf, size_t newstart) {
 long seqbuf_available(seqbuf_t *buf, size_t from) {
     if (buf == NULL)
         return -EINVAL;
-
-    if ((long) (from - buf->start) % buf->limit < 0) {
-        LOG(LERR, "from (%zu) < buf->start (%zu)", from, buf->start);
-        return 0;
-    }
 
     // Only return >= 0 available bytes
     return MAX(((long) (buf->start + buf->count) - from) % buf->limit, 0);
