@@ -93,12 +93,13 @@
   - Line 300: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
   - Line 370: Parse incoming TCP options for MSS value
   - Line 408: If there are other controls or text in the segment,
-  - Line 500: Store out-of-order segments that are >RCV.NXT for later processing
-  - Line 642: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
-  - Line 741: Is sending an ACK here necessary?
-  - Line 782: Send success to waiting close() calls
-  - Line 1001: stop other TCP timers in FIN-WAIT-2
-  - Line 1018: stop other TCP timers in FIN-WAIT-2
+  - Line 485: Handle duplicate incoming segments in TIME-WAIT
+  - Line 501: Store out-of-order segments that are >RCV.NXT for later processing
+  - Line 643: Implement RFC 5961 Section 4: Blind Reset Attack on SYN
+  - Line 742: Is sending an ACK here necessary?
+  - Line 783: Send success to waiting close() calls
+  - Line 1002: stop other TCP timers in FIN-WAIT-2
+  - Line 1019: stop other TCP timers in FIN-WAIT-2
 
 ## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
   - Line 23: Don't assume IPv4 L3, choose based on sock->saddr

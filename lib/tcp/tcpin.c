@@ -482,7 +482,8 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         and return.
     */
     if (!valid) {
-        if (seg->flags.rst == 0) {
+        // TODO: Handle duplicate incoming segments in TIME-WAIT
+        if (seg->flags.rst == 0 && sock->state != TCP_TIME_WAIT) {
             LOG(LDBUG, "Sending ACK");
             ret = tcp_send_ack(sock);
         }
