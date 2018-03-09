@@ -9,6 +9,7 @@ typedef struct seqbuf {
     size_t start;           // Sequence number of first byte in buffers->head
     size_t count;           // Number of bytes in all buffers, starting from
                             // start at the first byte of buffers->head
+    size_t limit;           // Wrapping point in the buffer
 } seqbuf_t;
 
 struct seqbuf_block {
@@ -17,7 +18,7 @@ struct seqbuf_block {
     // Access the block payload with `block + 1`
 };
 
-int seqbuf_init(seqbuf_t *buf, size_t start);
+int seqbuf_init(seqbuf_t *buf, size_t start, size_t limit);
 
 void seqbuf_free(seqbuf_t *buf);
 

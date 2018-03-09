@@ -8,13 +8,14 @@
 #include <netstack/log.h>
 #include <netstack/col/seqbuf.h>
 
-int seqbuf_init(seqbuf_t *buf, size_t start) {
+int seqbuf_init(seqbuf_t *buf, size_t start, size_t limit) {
     if (buf == NULL)
         return -EINVAL;
 
     buf->head = NULL;
     buf->tail = NULL;
     buf->start = start;
+    buf->limit = limit;
     buf->count = 0;
 
     return 0;
@@ -46,7 +47,7 @@ long seqbuf_read(seqbuf_t *buf, size_t from, void *dest, size_t len) {
     // We can only read at most what is available, or what is requested
     size_t toread = MIN(len, avail);
     // Offset by the initial byte
-    size_t blockofs = from - buf->start;
+    size_t blockofs = ((long) from - buf->start) % buf->limit;
     // Cumulative sum of bytes read
     size_t total_read = 0;
     // Start at the first buffer and advance from there
@@ -125,11 +126,11 @@ int seqbuf_consume(seqbuf_t *buf, size_t from, size_t len) {
     if (buf == NULL)
         return -EINVAL;
 
-    if (from < buf->start) {
+    if ((long) (from - buf->start) % buf->limit < 0) {
         LOG(LERR, "from (%zu) < buf->start (%zu)", from, buf->start);
         return -EOVERFLOW;
     }
-    if ((buf->count - from - buf->start) < len) {
+    if (seqbuf_available(buf, from) < len) {
         LOG(LERR, "len (%zu) > buf->count (%zu), from %zu", len, buf->count, from);
         return -ERANGE;
     }
@@ -173,7 +174,7 @@ int seqbuf_consume_to(seqbuf_t *buf, size_t newstart) {
     if (buf == NULL)
         return -EINVAL;
 
-    long diff = (long) (newstart - buf->start);
+    long diff = ((long) newstart - buf->start) % buf->limit;
 
     if (diff < 0) {
         LOG(LNTCE, "consume_to(%zu) is %ld before current %zu",
@@ -182,18 +183,18 @@ int seqbuf_consume_to(seqbuf_t *buf, size_t newstart) {
     } if (diff <= 0)
         return 0;
 
-    return seqbuf_consume(buf, buf->start, (newstart - buf->start));
+    return seqbuf_consume(buf, buf->start, ((long) newstart - buf->start) % buf->limit);
 }
 
 long seqbuf_available(seqbuf_t *buf, size_t from) {
     if (buf == NULL)
         return -EINVAL;
 
-    if (from < buf->start) {
+    if ((long) (from - buf->start) % buf->limit < 0) {
         LOG(LERR, "from (%zu) < buf->start (%zu)", from, buf->start);
         return 0;
     }
 
     // Only return >= 0 available bytes
-    return MAX((long) (buf->start + buf->count - from), 0);
+    return MAX(((long) (buf->start + buf->count) - from) % buf->limit, 0);
 }

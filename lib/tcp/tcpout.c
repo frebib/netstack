@@ -164,7 +164,10 @@ int tcp_send_data(struct tcp_sock *sock, uint32_t seqn, size_t len,
     // This is performed after the expensive intf_frame_new() because it is
     // unlikely to happen in most cases
     if (tosend < 0) {
+        LOGSE(LERR, "sendbuf_available", -tosend);
         frame_decref_unlock(seg);
+        return (int) tosend;
+    } else if (tosend == 0) {
         return -ENODATA;
     }
 

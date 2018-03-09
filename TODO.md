@@ -19,7 +19,7 @@
   - Line 183: Fix endianness in tcp.h
 
 ## [lib/col/seqbuf.c](lib/col/seqbuf.c)
-  - Line 68: Try mmap() buffers into one contiguous region with one memcpy call
+  - Line 69: Try mmap() buffers into one contiguous region with one memcpy call
 
 ## [lib/eth/arp.c](lib/eth/arp.c)
   - Line 162: Use hashtable for ARP lookups on IPv4
@@ -105,8 +105,8 @@
   - Line 33: Don't assume IPv4 pseudo-header for checksumming
   - Line 39: Implement functionality to specify IP flags (different for IP4/6?)
   - Line 40: Send socket flags to neigh_send_to() in tcp_send()
-  - Line 257: Calculate IP layer options in tcp_send_data()
-  - Line 260: Take into account ethernet header variations, such as VLAN tags
+  - Line 260: Calculate IP layer options in tcp_send_data()
+  - Line 263: Take into account ethernet header variations, such as VLAN tags
 
 ## [lib/tcp/tcpuser.c](lib/tcp/tcpuser.c)
   - Line 16: Handle sending SIGPIPE for dead connections to calling process
@@ -117,12 +117,13 @@
   - Line 143: Limit the size of the send buffer. Block if the buffer is full
   - Line 146: Signal sending thread and offload segmentation/transmission
   - Line 147: Check for MSG_MORE flag and don't trigger for a short while
-  - Line 211: Don't return EOF until recv'd up to FIN seqn
-  - Line 363: Check for MSG_PEEK and conditionally don't do this
-  - Line 384: tcp_close() request until all send() calls have completed
-  - Line 398: Check for pending send() calls
-  - Line 406: If unsent data, queue sending FIN/ACK on CLOSING
-  - Line 516: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
+  - Line 209: Rewind the send buffer to the amount of data we actually sent
+  - Line 223: Don't return EOF until recv'd up to FIN seqn
+  - Line 375: Check for MSG_PEEK and conditionally don't do this
+  - Line 396: tcp_close() request until all send() calls have completed
+  - Line 410: Check for pending send() calls
+  - Line 418: If unsent data, queue sending FIN/ACK on CLOSING
+  - Line 528: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
   - Line 17: Add many configurable interfaces

@@ -161,11 +161,14 @@ int tcp_user_send(struct tcp_sock *sock, void *data, size_t len, int flags) {
 
         size_t space = MAX(0, ((int32_t) sock->tcb.snd.wnd) - inflight_sum);
         if (space <= 0) {
-            // Don't wait if socket is non-blocking
-            if (sock->inet.flags & O_NONBLOCK)
-                return -EWOULDBLOCK;
 
-            LOG(LWARN, "no space in SND.WND. waiting for an incoming ACK");
+            // Don't wait if socket is non-blocking
+            if (sock->inet.flags & O_NONBLOCK) {
+                tcp_sock_decref_unlock(sock);
+                return -EWOULDBLOCK;
+            }
+
+            LOG(LINFO, "no space in SND.WND. waiting for an incoming ACK");
 
             // We assume the remote send window is full so wait for an ACK
             pthread_cond_wait(&sock->waitack, &sock->wait.lock);
@@ -175,11 +178,13 @@ int tcp_user_send(struct tcp_sock *sock, void *data, size_t len, int flags) {
             continue;
         }
 
+        uint32_t seqn = sock->tcb.snd.nxt;
+
         // There is space in the send window- unlock and get the data out!
         tcp_sock_unlock(sock);
 
         // Send at most the space left in the SND.WND
-        int ret = tcp_send_data(sock, sock->tcb.snd.nxt, space, 0);
+        int ret = tcp_send_data(sock, seqn, space, 0);
         if (ret <= 0) {
             LOGSE(LINFO, "tcp_send_data returned", -ret);
             sent = ret;
@@ -187,15 +192,22 @@ int tcp_user_send(struct tcp_sock *sock, void *data, size_t len, int flags) {
         }
         sent += ret;
         LOG(LVERB, "Sent %i bytes (%i/%zu)", ret, sent, len);
+
+        // Lock as we return to the start of the loop again
+        tcp_sock_lock(sock);
     }
     if (sent > 0)
         LOG(LDBUG, "Sent in total %i bytes", sent);
 
     if (sent != len)
-        LOG(LCRIT, "Didn't send everything in the buffer :( %d < %zu", sent, len);
+        LOG(LCRIT, "Didn't send everything in the buffer :( %d != %zu", sent, len);
 
-    tcp_sock_decref(sock);
-    return sent;
+    tcp_sock_decref_unlock(sock);
+
+    // Notify that we sent it all, even though the segments never actually got
+    // sent. Retransmissions will pick up the pieces
+    // TODO: Rewind the send buffer to the amount of data we actually sent
+    return (int) len;
 }
 
 int tcp_user_recv(struct tcp_sock *sock, void* out, size_t len, int flags) {
