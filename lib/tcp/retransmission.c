@@ -153,12 +153,19 @@ void tcp_update_rtq(struct tcp_sock *sock) {
 
     pthread_mutex_lock(&sock->unacked.lock);
 
-    // Ensure we don't try to consume the non-existent ACK byte for our FIN
-    if (tcp_fin_was_acked(sock))
-        seqbuf_consume_to(&sock->sndbuf, sock->tcb.snd.una);
-    else
-        // Consume all acknowledged bytes from send buffer
-        seqbuf_consume_to(&sock->sndbuf, sock->tcb.snd.una - 1);
+    uint32_t unacked = sock->tcb.snd.una;
+    switch (sock->state) {
+        case TCP_SYN_SENT:
+            break;
+        default:
+            // Ensure we don't try to consume the non-existent ACK byte for our FIN
+            if (tcp_fin_was_acked(sock))
+                unacked--;
+
+            // Consume all acknowledged bytes from send buffer
+            seqbuf_consume_to(&sock->sndbuf, unacked);
+            break;
+    }
 
     struct tcp_seq_data latest = {0};
     LOG(LVERB, "checking %zu unacked segments", sock->unacked.length);
@@ -258,5 +265,5 @@ void tcp_update_rtt(struct tcp_sock *sock, struct tcp_seq_data *acked) {
     rto = MAX(rto, TCP_RTO_MIN);
     timespecns(&sock->rto, rto);
 
-    LOG(LWARN, "sock %p RTO <- %.3fms", sock, nstoms((float) rto));
+    LOG(LVERB, "sock %p RTO <- %.3fms", sock, nstoms((float) rto));
 }
