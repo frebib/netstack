@@ -7,7 +7,7 @@
 
 #define NETSTACK_LOG_UNIT "ARP"
 #include <netstack/eth/arp.h>
-#include <netstack/ip/neigh.h>
+#include <netstack/inet/neigh.h>
 
 
 bool arp_log(struct pkt_log *log, struct frame *frame) {

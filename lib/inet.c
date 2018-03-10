@@ -1,7 +1,7 @@
 #include <netinet/in.h>
 
 #define NETSTACK_LOG_UNIT "INET"
-#include <netstack/ip/ipv4.h>
+#include <netstack/inet/ipv4.h>
 #include <netstack/tcp/tcp.h>
 #include <netstack/checksum.h>
 

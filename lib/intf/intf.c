@@ -7,7 +7,7 @@
 #define NETSTACK_LOG_UNIT "INTF"
 #include <netstack/log.h>
 #include <netstack/eth/ether.h>
-#include <netstack/ip/ipv4.h>
+#include <netstack/inet/ipv4.h>
 
 
 // Private functions

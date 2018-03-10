@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <netstack/log.h>
 #include <netstack/intf/intf.h>
-#include <netstack/ip/ipproto.h>
+#include <netstack/inet/ipproto.h>
 
 struct frame;
 

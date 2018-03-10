@@ -3,9 +3,9 @@
 
 #define NETSTACK_LOG_UNIT "ICMP"
 #include <netstack/checksum.h>
-#include <netstack/ip/icmp.h>
-#include <netstack/ip/ipv4.h>
-#include <netstack/ip/neigh.h>
+#include <netstack/inet/icmp.h>
+#include <netstack/inet/ipv4.h>
+#include <netstack/inet/neigh.h>
 
 
 bool icmp_log(struct pkt_log *log, struct frame *frame) {

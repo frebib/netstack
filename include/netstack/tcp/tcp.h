@@ -7,7 +7,7 @@
 
 #include <netstack/log.h>
 #include <netstack/inet.h>
-#include <netstack/ip/neigh.h>
+#include <netstack/inet/neigh.h>
 #include <netstack/intf/intf.h>
 #include <netstack/col/llist.h>
 #include <netstack/col/seqbuf.h>

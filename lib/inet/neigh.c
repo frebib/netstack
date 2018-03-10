@@ -5,9 +5,9 @@
 #define NETSTACK_LOG_UNIT "NEIGH"
 #include <netstack/log.h>
 #include <netstack/eth/arp.h>
-#include <netstack/ip/route.h>
-#include <netstack/ip/ipv4.h>
-#include <netstack/ip/neigh.h>
+#include <netstack/inet/route.h>
+#include <netstack/inet/ipv4.h>
+#include <netstack/inet/neigh.h>
 
 
 int neigh_find_route(struct neigh_route *out) {

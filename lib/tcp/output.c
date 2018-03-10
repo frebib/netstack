@@ -5,9 +5,9 @@
 
 #define NETSTACK_LOG_UNIT "TCP"
 #include <netstack/checksum.h>
-#include <netstack/ip/route.h>
+#include <netstack/inet/route.h>
 #include <netstack/tcp/tcp.h>
-#include <netstack/tcp/tcpopt.h>
+#include <netstack/tcp/option.h>
 #include <netstack/tcp/retransmission.h>
 #include <netstack/time/contimer.h>
 #include <netstack/time/util.h>

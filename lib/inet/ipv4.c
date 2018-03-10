@@ -6,9 +6,9 @@
 
 #define NETSTACK_LOG_UNIT "IPv4"
 #include <netstack/eth/arp.h>
-#include <netstack/ip/ipv4.h>
-#include <netstack/ip/icmp.h>
-#include <netstack/ip/route.h>
+#include <netstack/inet/ipv4.h>
+#include <netstack/inet/icmp.h>
+#include <netstack/inet/route.h>
 #include <netstack/tcp/tcp.h>
 #include <netstack/checksum.h>
 

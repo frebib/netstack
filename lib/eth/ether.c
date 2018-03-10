@@ -3,7 +3,7 @@
 
 #define NETSTACK_LOG_UNIT "ETH"
 #include <netinet/in.h>
-#include <netstack/ip/ipv4.h>
+#include <netstack/inet/ipv4.h>
 #include <netstack/eth/arp.h>
 
 

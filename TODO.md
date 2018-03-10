@@ -4,12 +4,12 @@
   - Line 67: reduce redundant arguments passed to arp_send_req/reply
   - Line 68: infer interface and hwtype based on routing rules
 
+## [include/netstack/inet/ipv4.h](include/netstack/inet/ipv4.h)
+  - Line 32: Take endianness into account in ipv4_hdr
+
 ## [include/netstack/intf/intf.h](include/netstack/intf/intf.h)
   - Line 29: Implement 'virtual' network interfaces
   - Line 43: Move arptbl into an 'ethernet' hardware struct into `void *ll`
-
-## [include/netstack/ip/ipv4.h](include/netstack/ip/ipv4.h)
-  - Line 32: Take endianness into account in ipv4_hdr
 
 ## [include/netstack/log.h](include/netstack/log.h)
   - Line 13: Make LOG_MAX configurable
@@ -32,6 +32,30 @@
 ## [lib/eth/ether.c](lib/eth/ether.c)
   - Line 20: Check and compare intf->vlan to hdr->vlan and reject if no match
 
+## [lib/inet/icmp.c](lib/inet/icmp.c)
+  - Line 92: Don't assume IPv4 parent
+  - Line 97: Find ICMP route
+  - Line 113: Fix frame->data pointer head/tail difference
+
+## [lib/inet/ipv4.c](lib/inet/ipv4.c)
+  - Line 46: Change to `if (!ipv4_should_accept(frame))` to accept other packets
+  - Line 101: Keep track of invalid packets
+  - Line 113: Take options into account here
+  - Line 120: Other integrity checks
+  - Line 122: Change to `if (!ipv4_should_accept(frame))` to accept other packets
+  - Line 155: Dynamically allocate IPv4 header space
+  - Line 163: Make this user-configurable
+
+## [lib/inet/neigh.c](lib/inet/neigh.c)
+  - Line 18: Take source address into route calculation
+  - Line 33: Perform correct route/hardware address lookups when appropriate
+  - Line 56: Make ARP/NDP request now, instead of later to reduce waiting time
+  - Line 167: Rate limit ARP requests to prevent flooding
+  - Line 178: Use inet_socket for passing options to neighbour
+
+## [lib/inet/route.c](lib/inet/route.c)
+  - Line 33: Define how routes with the same metric should behave?
+
 ## [lib/inet.c](lib/inet.c)
   - Line 21: Use hashtbl instead of list to lookup sockets
 
@@ -51,43 +75,7 @@
   - Line 50: Fix TUN/TAP SIOCGIFMTU: EINVAL
   - Line 96: Check for IFF_PI and allocate space for it
 
-## [lib/ip/icmp.c](lib/ip/icmp.c)
-  - Line 92: Don't assume IPv4 parent
-  - Line 97: Find ICMP route
-  - Line 113: Fix frame->data pointer head/tail difference
-
-## [lib/ip/ipv4.c](lib/ip/ipv4.c)
-  - Line 46: Change to `if (!ipv4_should_accept(frame))` to accept other packets
-  - Line 101: Keep track of invalid packets
-  - Line 113: Take options into account here
-  - Line 120: Other integrity checks
-  - Line 122: Change to `if (!ipv4_should_accept(frame))` to accept other packets
-  - Line 155: Dynamically allocate IPv4 header space
-  - Line 163: Make this user-configurable
-
-## [lib/ip/neigh.c](lib/ip/neigh.c)
-  - Line 18: Take source address into route calculation
-  - Line 33: Perform correct route/hardware address lookups when appropriate
-  - Line 56: Make ARP/NDP request now, instead of later to reduce waiting time
-  - Line 167: Rate limit ARP requests to prevent flooding
-  - Line 178: Use inet_socket for passing options to neighbour
-
-## [lib/ip/route.c](lib/ip/route.c)
-  - Line 33: Define how routes with the same metric should behave?
-
-## [lib/tcp/retransmission.c](lib/tcp/retransmission.c)
-  - Line 98: Optionally only send the missing bytes instead of just a full segment worth
-
-## [lib/tcp/tcp.c](lib/tcp/tcp.c)
-  - Line 24: Use frame->sock for socket lookup
-  - Line 145: Check for TSO and GRO and account for it, somehow..
-  - Line 154: Other integrity checks
-  - Line 157: Parse incoming TCP segment options
-  - Line 179: Perform queued actions when reaching certain states
-  - Line 340: Choose a random unused outgoing port
-  - Line 345: Choose a secure initial sequence number
-
-## [lib/tcp/tcpin.c](lib/tcp/tcpin.c)
+## [lib/tcp/input.c](lib/tcp/input.c)
   - Line 60: Optionally don't send TCP RST packets
   - Line 143: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
   - Line 300: Implement TCP/IPv4 precedence, IPv6 has no security/precedence
@@ -101,7 +89,7 @@
   - Line 1002: stop other TCP timers in FIN-WAIT-2
   - Line 1019: stop other TCP timers in FIN-WAIT-2
 
-## [lib/tcp/tcpout.c](lib/tcp/tcpout.c)
+## [lib/tcp/output.c](lib/tcp/output.c)
   - Line 23: Don't assume IPv4 L3, choose based on sock->saddr
   - Line 33: Don't assume IPv4 pseudo-header for checksumming
   - Line 39: Implement functionality to specify IP flags (different for IP4/6?)
@@ -109,7 +97,19 @@
   - Line 260: Calculate IP layer options in tcp_send_data()
   - Line 263: Take into account ethernet header variations, such as VLAN tags
 
-## [lib/tcp/tcpuser.c](lib/tcp/tcpuser.c)
+## [lib/tcp/retransmission.c](lib/tcp/retransmission.c)
+  - Line 98: Optionally only send the missing bytes instead of just a full segment worth
+
+## [lib/tcp/tcp.c](lib/tcp/tcp.c)
+  - Line 24: Use frame->sock for socket lookup
+  - Line 145: Check for TSO and GRO and account for it, somehow..
+  - Line 154: Other integrity checks
+  - Line 157: Parse incoming TCP segment options
+  - Line 179: Perform queued actions when reaching certain states
+  - Line 340: Choose a random unused outgoing port
+  - Line 345: Choose a secure initial sequence number
+
+## [lib/tcp/user.c](lib/tcp/user.c)
   - Line 16: Handle sending SIGPIPE for dead connections to calling process
   - Line 67: Fill out 'user timeout' information
   - Line 89: Check for O_NONBLOCK

@@ -43,7 +43,7 @@ struct neigh_route {
     addr_t nexthop;         /* IP address of neighbouring host next-hop */
     addr_t saddr;           /* Source address of route */
     addr_t daddr;           /* Destination address of route*/
-    uint8_t flags;          /* Route flags: see <netstack/ip/route.h> */
+    uint8_t flags;          /* Route flags: see <netstack/inet/route.h> */
 };
 
 /*!

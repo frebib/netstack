@@ -10,7 +10,7 @@
 #define NETSTACK_LOG_UNIT "NETD"
 #include <netstack.h>
 #include <netstack/log.h>
-#include <netstack/ip/route.h>
+#include <netstack/inet/route.h>
 #include <netstack/tcp/tcp.h>
 #include <netstack/intf/rawsock.h>
 

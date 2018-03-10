@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <netstack/addr.h>
-#include <netstack/ip/ipv4.h>
+#include <netstack/inet/ipv4.h>
 #include <netstack/intf/intf.h>
 
 struct inet_sock {
