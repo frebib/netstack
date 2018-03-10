@@ -130,3 +130,6 @@
   - Line 17: Add many configurable interfaces
   - Line 18: Add loopback interface
   - Line 31: Take interface etc. configuration from config file
+
+## [tools/nshook/src/inject.c](tools/nshook/src/inject.c)
+  - Line 25: Parse config based on argv/configuration file

@@ -19,6 +19,8 @@ TEST_DIR = tests
 
 NETD_DIR = tools/netd
 NETD = $(NETD_DIR)/netd
+LIBNSHOOK_DIR = tools/nshook
+LIBNSHOOK = $(LIBNSHOOK_DIR)/libnshook.so
 
 PREFIX  = /usr/local
 DESTDIR =
@@ -29,21 +31,26 @@ export PREFIX DESTDIR
 default: all
 all: build doc
 build: $(TARGET_LIB) tools
-tools: netd
+tools: $(notdir $(NETD)) $(notdir $(LIBNSHOOK))
 
 # Compilation
 $(TARGET_LIB): $(OBJ)
-	$(CC) $(LDFLAGS) $(OBJ) $(LDLIBS) -o $@
+	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c $(INC)
 	@mkdir -p $(@D)
 	$(CC) -fPIC $(INCLUD) $(CFLAGS) -c $< -o $@
 
 # Tools
-netd: $(NETD)
+$(notdir $(NETD)): $(NETD)
+	@ln -sfv $(NETD) $(notdir $(NETD))
 $(NETD): $(TARGET_LIB)
 	@$(MAKE) -C $(NETD_DIR)
-	@ln -sfv $(NETD) netd
+
+$(notdir $(LIBNSHOOK)): $(LIBNSHOOK)
+	@ln -sfv $(LIBNSHOOK) $(notdir $(LIBNSHOOK))
+$(LIBNSHOOK): $(TARGET_LIB)
+	@$(MAKE) -C $(LIBNSHOOK_DIR)
 
 # Misc
 .PHONY: test doc install uninstall clean
@@ -64,6 +71,8 @@ uninstall:
 
 clean:
 	$(RM) -r $(OBJDIR) $(TARGET_LIB)
-	$(RM) ./netd
+	$(RM) $(notdir $(NETD))
+	$(RM) $(notdir $(LIBNSHOOK))
 	@$(MAKE) -C $(TEST_DIR) clean
 	@$(MAKE) -C $(NETD_DIR) clean
+	@$(MAKE) -C $(LIBNSHOOK_DIR) clean

@@ -16,13 +16,13 @@
 
 // TODO: Add many configurable interfaces
 // TODO: Add loopback interface
-static struct intf *intf;
+static struct netstack instance;
 
 
 int main(int argc, char **argv) {
 
-    // Initialise default config & netstack internals
-    netstack_init();
+    // Initialise config & netstack internals
+    netstack_init(&instance);
 
     // Check for effective CAP_NET_RAW,CAP_NET_ADMIN capabilities
     if (netstack_checkcap(argv[0]))
@@ -31,11 +31,13 @@ int main(int argc, char **argv) {
     // TODO: Take interface etc. configuration from config file
 
     // Create a INTF_RAWSOCK interface for sending/recv'ing data
-    intf = calloc(sizeof(struct intf), 1);
+    int err;
+    struct intf *intf = calloc(sizeof(struct intf), 1);
     if (rawsock_new(intf) != 0) {
         LOG(LCRIT, "Could not create INTF_RAWSOCK");
         exit(EXIT_FAILURE);
     }
+    llist_append(&instance.interfaces, intf);
 
     // Create interface send/recv threads
     intf_init(intf);
@@ -64,7 +66,7 @@ int main(int argc, char **argv) {
                 llist_iter(&tcp_sockets, tcp_sock_cleanup);
                 llist_clear(&tcp_sockets);
 
-                LOG(LNTCE, "Stopping threads");
+                LOG(LNTCE, "Stopping threads for %s", intf->name);
                 // Cleanup threads
                 // Send all terminations first, before waiting
                 for (int i = 0; i < INTF_THR_MAX; i++) {
@@ -86,8 +88,9 @@ int main(int argc, char **argv) {
 
                 // Cleanup interface meta
                 LOG(LNTCE, "Cleaning up interface %s", intf->name);
-                intf->free(intf);
-                free(intf);
+                llist_iter(&instance.interfaces, intf->free);
+                llist_iter(&instance.interfaces, free);
+                llist_clear(&instance.interfaces);
 
                 LOG(LWARN, "Exiting!");
 

@@ -5,8 +5,10 @@
 #define NETSTACK_LOG_UNIT "NETSTACK"
 #include <netstack.h>
 #include <netstack/log.h>
+#include <netstack/intf/intf.h>
 
-int netstack_init(void) {
+
+void netstack_init(struct netstack *inst) {
     // Initialise default logging with stdout & stderr
     log_default(&logconf);
     logconf.lvlstr[LFRAME] = "FRAME";
@@ -15,8 +17,14 @@ int netstack_init(void) {
     fr->min = LFRAME;
     fr->max = LFRAME;
     llist_append(&logconf.streams, fr);
+}
 
-    return 0;
+void netstack_cleanup(struct netstack *inst) {
+    for_each_llist(&inst->interfaces) {
+        struct intf *intf = llist_elem_data();
+        LOG(LINFO, "Cleaning up interface %s", intf->name);
+        intf->free(intf);
+    }
 }
 
 int netstack_checkcap(const char *name) {
