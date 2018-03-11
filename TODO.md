@@ -19,7 +19,7 @@
 
 ## [include/netstack/tcp/tcp.h](include/netstack/tcp/tcp.h)
   - Line 46: Take endianness into account in tcp_hdr
-  - Line 183: Fix endianness in tcp.h
+  - Line 181: Fix endianness in tcp.h
 
 ## [lib/col/seqbuf.c](lib/col/seqbuf.c)
   - Line 69: Try mmap() buffers into one contiguous region with one memcpy call

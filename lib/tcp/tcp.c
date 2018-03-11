@@ -157,7 +157,7 @@ void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {
     // TODO: Parse incoming TCP segment options
 
     // Obtain socket state within the mutex lock
-    enum tcp_state state = TCP_CLOSED;
+    tcp_state_t state = TCP_CLOSED;
     if (sock != NULL) {
         tcp_sock_lock(sock);
         state = sock->state;
@@ -175,7 +175,7 @@ void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum) {
     return;
 }
 
-void _tcp_setstate(struct tcp_sock *sock, enum tcp_state state) {
+void _tcp_setstate(struct tcp_sock *sock, tcp_state_t state) {
     // TODO: Perform queued actions when reaching certain states
     sock->state = state;
 

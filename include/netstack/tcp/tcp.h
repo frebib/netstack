@@ -108,20 +108,18 @@ struct tcb {
     } rcv;
 };
 
-enum tcp_state {
-    TCP_LISTEN,
-    TCP_SYN_SENT,
-    TCP_SYN_RECEIVED,
-    TCP_ESTABLISHED,
-    TCP_FIN_WAIT_1,
-    TCP_FIN_WAIT_2,
-    TCP_CLOSE_WAIT,
-    TCP_CLOSING,
-    TCP_CLOSED,
-    TCP_LAST_ACK,
-    TCP_TIME_WAIT
-};
-static const char *tcp_strstate(enum tcp_state state) {
+
+// Use tcp_state enumeration defined in <netinet/tcp.h> for compatibility
+#include <netinet/tcp.h>
+
+#define tcp_state_t         unsigned char
+#define TCP_SYN_RECEIVED    TCP_SYN_RECV
+#define TCP_FIN_WAIT_1      TCP_FIN_WAIT1
+#define TCP_FIN_WAIT_2      TCP_FIN_WAIT2
+#define TCP_CLOSED          TCP_CLOSE
+
+
+static const char *tcp_strstate(tcp_state_t state) {
     switch (state) {
         case TCP_LISTEN:        return "LISTEN";
         case TCP_SYN_SENT:      return "SYN-SENT";
@@ -145,7 +143,7 @@ struct tcp_passive {
 
 struct tcp_sock {
     struct inet_sock inet;
-    enum tcp_state state;
+    tcp_state_t state;
     struct tcb tcb;
     uint16_t mss;               // Defaults to TCP_DEF_MSS if not "negotiated"
                                 // MSS for _outgoing_ send() calls only!
@@ -275,7 +273,7 @@ void tcp_recv(struct frame *frame, struct tcp_sock *sock, uint16_t net_csum);
         LOG(LDBUG, "%s state reached", tcp_strstate(state)); \
         _tcp_setstate(sock, state)
 
-void _tcp_setstate(struct tcp_sock *sock, enum tcp_state state);
+void _tcp_setstate(struct tcp_sock *sock, tcp_state_t state);
 
 /*!
  * Called on a newly established connection. It allocates required buffers
