@@ -43,7 +43,7 @@ void alist_free(void *lst) {
         free(list->arr);
 }
 
-int alist_add(void *lst, void **newelem) {
+ssize_t alist_add(void *lst, void **newelem) {
     alist_t *list = lst;
     int ret;
     alist_lock(list);
@@ -58,6 +58,6 @@ int alist_add(void *lst, void **newelem) {
     // Increment list count and get the elem at count
     *newelem = alist_elem(list, list->count++);
     alist_unlock(list);
-    return 0;
+    return (int) (list->count - 1);
 }
 

@@ -77,8 +77,8 @@ void alist_free(void *lst);
  * As with malloc(3), the memory is NOT initialised.
  * @param lst list to add element to
  * @param newelem pointer to set to new element pointer
- * @return 0 on success, -1 otherwise (if realloc(3) fails)
+ * @return index of new element on success, -1 otherwise (if realloc(3) fails)
  */
-int alist_add(void *lst, void **newelem);
+ssize_t alist_add(void *lst, void **newelem);
 
 #endif //NETSTACK_ALIST_H

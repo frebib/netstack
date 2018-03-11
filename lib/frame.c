@@ -112,9 +112,9 @@ int frame_layer_push_ptr(struct frame *f, proto_t prot, void *hdr, void *data) {
         return -EINVAL;
 
     struct frame_layer *elem;
-    int ret;
-    if ((ret = alist_add(&f->layer, (void **) &elem)))
-        return ret;
+    ssize_t ret;
+    if ((ret = alist_add(&f->layer, (void **) &elem)) < 0)
+        return (int) ret;
 
     elem->proto = prot;
     elem->hdr   = hdr;
