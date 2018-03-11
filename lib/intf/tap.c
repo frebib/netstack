@@ -5,7 +5,6 @@
 #include <unistd.h>
 
 #include <sys/ioctl.h>
-#include <sys/socket.h>
 
 #include <net/if.h>
 #include <linux/if_tun.h>
@@ -14,6 +13,7 @@
 #include <netstack/log.h>
 #include <netstack/intf/tap.h>
 #include <netstack/eth/ether.h>
+#include <netstack/api/socket.h>
 
 
 int tap_new(struct intf *interface) {
@@ -33,7 +33,7 @@ int tap_new(struct intf *interface) {
     char *devname = "netstack";
     strncpy(req.ifr_name, devname, IFNAMSIZ);
 
-    if (ioctl(fd, TUNSETIFF, &req)) {
+    if (sys_ioctl(fd, TUNSETIFF, &req)) {
         LOGERR("ioctl TUNSETIFF");
         close(fd);
         return errno;
@@ -42,7 +42,7 @@ int tap_new(struct intf *interface) {
     memset(&req, 0, sizeof(struct ifreq));
     strncpy(req.ifr_name, devname, IFNAMSIZ);
 
-    if (ioctl(fd, SIOCGIFMTU, &req)) {
+    if (sys_ioctl(fd, SIOCGIFMTU, &req)) {
         LOGERR("ioctl SIOCGIFMTU");
 //        close(fd);
 //        return errno;
@@ -54,7 +54,7 @@ int tap_new(struct intf *interface) {
     LOG(LINFO, "Using interface (#%d) %s, mtu %d",
         req.ifr_ifindex, devname, mtu);
 
-    if (ioctl(fd, SIOCGIFHWADDR, &req) < 0) {
+    if (sys_ioctl(fd, SIOCGIFHWADDR, &req) < 0) {
         LOGERR("ioctl SIOCGIFHWADDR");
         return errno;
     }
@@ -102,7 +102,7 @@ long tap_recv_frame(struct frame *frame) {
     pthread_cleanup_push((void (*)(void *)) frame_decref, frame) ;
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 
-    if ((count = read(sock, frame->buffer, frame->buf_sz)) == -1)
+    if ((count = sys_read(sock, frame->buffer, frame->buf_sz)) == -1)
         return (int) count;
 
     // Don't allow cancellation from here onwards
@@ -119,7 +119,7 @@ long tap_send_frame(struct frame *frame) {
     ssize_t count = 0;
     size_t len = frame_pkt_len(frame);
 
-    if ((count = write(sock, frame->head, len)) == -1) {
+    if ((count = sys_write(sock, frame->head, len)) == -1) {
         LOGERR("write");
         return errno;
     }

@@ -16,6 +16,7 @@
 #include <netstack/log.h>
 #include <netstack/eth/ether.h>
 #include <netstack/intf/rawsock.h>
+#include <netstack/api/socket.h>
 
 int rawsock_new(struct intf *interface) {
     if (interface == NULL)
@@ -23,17 +24,17 @@ int rawsock_new(struct intf *interface) {
 
     // Open a raw socket (raw layer 2/3 frames)
     // Use SOCK_DGRAM to remove ethernet header
-    int sock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+    int sock = sys_socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
     if (sock < 0) {
         LOGERR("socket");
         return -1;
     }
 
     int opt = true;
-    int err = setsockopt(sock, SOL_SOCKET, SO_TIMESTAMPNS, &opt, sizeof(int));
+    int err = sys_setsockopt(sock, SOL_SOCKET, SO_TIMESTAMPNS, &opt, sizeof(int));
     if (err < 0) {
         LOGERR("setsockopt SO_TIMESTAMPNS");
-        close(sock);
+        sys_close(sock);
         return -1;
     }
 
@@ -41,7 +42,7 @@ int rawsock_new(struct intf *interface) {
     struct ifreq ifr = {0};
     struct if_nameindex *if_ni, *if_ni_head = if_nameindex();
     if_ni = if_ni_head;
-    int ifrsock = socket(PF_INET6, SOCK_DGRAM, IPPROTO_IP);
+    int ifrsock = sys_socket(PF_INET6, SOCK_DGRAM, IPPROTO_IP);
     while (if_ni != NULL && if_ni->if_index != 0) {
 
         strncpy(ifr.ifr_name, if_ni->if_name, IFNAMSIZ);
@@ -49,8 +50,8 @@ int rawsock_new(struct intf *interface) {
             int err = errno;
             LOGERR("ioctl SIOCGIFFLAGS");
             if_freenameindex(if_ni_head);
-            close(ifrsock);
-            close(sock);
+            sys_close(ifrsock);
+            sys_close(sock);
             return err;
         }
         // Check if the interface is 'up'
@@ -60,10 +61,10 @@ int rawsock_new(struct intf *interface) {
         // Keep looking
         if_ni++;
     }
-    close(ifrsock);
+    sys_close(ifrsock);
 
     if (if_ni == NULL) {
-        close(sock);
+        sys_close(sock);
         return -ENODEV;
     }
 
@@ -78,9 +79,9 @@ int rawsock_new(struct intf *interface) {
             .sll_ifindex = ifindex,
             .sll_family = AF_PACKET
     };
-    if (bind(sock, (struct sockaddr *) &sa_ll, sizeof(sa_ll))) {
+    if (sys_bind(sock, (struct sockaddr *) &sa_ll, sizeof(sa_ll))) {
         LOGERR("bind");
-        close(sock);
+        sys_close(sock);
         return -1;
     }
 
@@ -89,7 +90,7 @@ int rawsock_new(struct intf *interface) {
 
     // Get chosen interface mac address
     if (ioctl(sock, SIOCGIFHWADDR, &req)) {
-        close(sock);
+        sys_close(sock);
         return -1;
     }
     uint8_t *hwaddr = malloc(IFHWADDRLEN);
@@ -97,7 +98,7 @@ int rawsock_new(struct intf *interface) {
 
     if (ioctl(sock, SIOCGIFMTU, &req)) {
         free(hwaddr);
-        close(sock);
+        sys_close(sock);
         return -1;
     }
     int mtu = req.ifr_mtu;
@@ -125,7 +126,7 @@ int rawsock_new(struct intf *interface) {
 void rawsock_free(struct intf *intf) {
     // TODO: Move some of this cleanup logic into a generic intf_free() function
     struct intf_rawsock *sockptr = (struct intf_rawsock *) intf->ll;
-    close(sockptr->sock);
+    sys_close(sockptr->sock);
     free(sockptr);
     free(intf->ll_addr);
     llist_iter(&intf->arptbl, free);
@@ -147,7 +148,7 @@ long rawsock_recv_frame(struct frame *frame) {
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 
     // use MSG_PEEK to get lookahead amount available to recv
-    if ((lookahead = recv(sock, NULL, 0, (MSG_PEEK | MSG_TRUNC))) == -1) {
+    if ((lookahead = sys_recv(sock, NULL, 0, (MSG_PEEK | MSG_TRUNC))) == -1) {
         return (int) lookahead;
     }
 
@@ -172,11 +173,11 @@ long rawsock_recv_frame(struct frame *frame) {
     msgh.msg_controllen = 1024;
 
     // Read network data into the frame
-    count = recvmsg(sock, &msgh, 0);
+    count = sys_recvmsg(sock, &msgh, 0);
 
     // There was an error. errno should be set
     if (count == -1) {
-        return (int) count;
+        return errno;
     }
 
     struct cmsghdr *cmsg;

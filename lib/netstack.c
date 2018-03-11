@@ -6,9 +6,15 @@
 #include <netstack.h>
 #include <netstack/log.h>
 #include <netstack/intf/intf.h>
+#include <netstack/inet/route.h>
+#include <netstack/api/socket.h>
 
 
 void netstack_init(struct netstack *inst) {
+
+    // Populate all function pointers for sys_* calls
+    ns_api_init();
+
     // Initialise default logging with stdout & stderr
     log_default(&logconf);
     logconf.lvlstr[LFRAME] = "FRAME";
@@ -20,11 +26,26 @@ void netstack_init(struct netstack *inst) {
 }
 
 void netstack_cleanup(struct netstack *inst) {
+
+    // TODO: Wait for all connections to be closed/reset
+
     for_each_llist(&inst->interfaces) {
         struct intf *intf = llist_elem_data();
         LOG(LINFO, "Cleaning up interface %s", intf->name);
         intf->free(intf);
+        free(intf);
     }
+    llist_clear(&inst->interfaces);
+
+    // Cleanup route table
+    llist_iter(&route_tbl, free);
+    llist_clear(&route_tbl);
+
+    LOG(LINFO, "Exiting!");
+
+    // Clean-up logging configuration
+    llist_iter(&logconf.streams, free);
+    llist_clear(&logconf.streams);
 }
 
 int netstack_checkcap(const char *name) {

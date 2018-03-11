@@ -1,11 +1,10 @@
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
 #include <stdio.h>
 #include <dlfcn.h>
 #include <stdlib.h>
 #include <signal.h>
 #include <sysexits.h>
+
+#include <sys/socket.h>
 
 #include <netstack.h>
 

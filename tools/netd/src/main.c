@@ -63,7 +63,9 @@ int main(int argc, char **argv) {
             case SIGQUIT:
                 // Cleanup TCP states
                 LOG(LNTCE, "Cleaning up %zu TCP sockets", tcp_sockets.length);
-                llist_iter(&tcp_sockets, tcp_sock_cleanup);
+                llist_iter(&tcp_sockets, tcp_sock_incref);
+                llist_iter(&tcp_sockets, tcp_sock_abort);
+                llist_iter(&tcp_sockets, tcp_sock_destroy);
                 llist_clear(&tcp_sockets);
 
                 LOG(LNTCE, "Stopping threads for %s", intf->name);
@@ -82,20 +84,7 @@ int main(int argc, char **argv) {
                     }
                 }
 
-                // Cleanup route table
-                llist_iter(&route_tbl, free);
-                llist_clear(&route_tbl);
-
-                // Cleanup interface meta
-                LOG(LNTCE, "Cleaning up interface %s", intf->name);
-                llist_iter(&instance.interfaces, intf->free);
-                llist_iter(&instance.interfaces, free);
-                llist_clear(&instance.interfaces);
-
-                LOG(LWARN, "Exiting!");
-
-                llist_iter(&logconf.streams, free);
-                llist_clear(&logconf.streams);
+                netstack_cleanup(&instance);
 
                 return EXIT_SUCCESS;
             default:

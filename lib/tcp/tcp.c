@@ -269,10 +269,10 @@ inline void tcp_sock_destroy(struct tcp_sock *sock) {
     tcp_sock_free(sock);
 }
 
-void tcp_sock_cleanup(struct tcp_sock *sock) {
+void tcp_sock_abort(struct tcp_sock *sock) {
 
     // Set the open() return value and wake it up
-    retlock_broadcast(&sock->wait, -ECONNABORTED);
+    retlock_broadcast_bare(&sock->wait, -ECONNABORTED);
     pthread_cond_broadcast(&sock->waitack);
 
     switch (sock->state) {
@@ -292,12 +292,6 @@ void tcp_sock_cleanup(struct tcp_sock *sock) {
         default:
             break;
     }
-
-    // Wait for all tracked socket operations to complete before free'ing sock
-//    refcount_wait(&sock->refcount);
-
-    // Deallocate socket memory
-    tcp_sock_destroy(sock);
 }
 
 int _tcp_sock_incref(struct tcp_sock *sock, const char *file, int line, const char *func) {
@@ -313,6 +307,7 @@ int _tcp_sock_decref(struct tcp_sock *sock, const char *file, int line, const ch
             refcnt - 1, file, line, func);
         tcp_sock_destroy(sock);
     }
+
     return refcnt - 1;
 }
 
@@ -328,6 +323,7 @@ int _tcp_sock_decref_unlock(struct tcp_sock *sock, const char *file, int line, c
     } else {
         tcp_sock_unlock(sock);
     }
+
     return refcnt - 1;
 }
 

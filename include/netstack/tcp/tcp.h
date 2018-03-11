@@ -328,7 +328,7 @@ void tcp_sock_destroy(struct tcp_sock *sock);
  * send/recv calls and calls tcp_free_sock()
  * @param sock
  */
-void tcp_sock_cleanup(struct tcp_sock *sock);
+void tcp_sock_abort(struct tcp_sock *sock);
 
 /*!
  * Holds a reference to the tcp socket. Every reference obtained should be
