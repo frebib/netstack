@@ -55,6 +55,11 @@ extern int (*sys_listen)(int, int);
 
 extern int (*sys_accept)(int, struct sockaddr *restrict, socklen_t *restrict);
 
+#ifdef _GNU_SOURCE
+extern int (*sys_accept4)(int fd, struct sockaddr *restrict addr,
+                          socklen_t *restrict len, int flags);
+#endif
+
 extern int (*sys_getpeername)(int, struct sockaddr *restrict, socklen_t *restrict);
 
 extern int (*sys_getsockname)(int, struct sockaddr *restrict, socklen_t *restrict);

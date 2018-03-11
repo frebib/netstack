@@ -16,6 +16,11 @@ int (*sys_listen)(int, int) = NULL;
 
 int (*sys_accept)(int, struct sockaddr *restrict, socklen_t *restrict) = NULL;
 
+#ifdef _GNU_SOURCE
+int (*sys_accept4)(int fd, struct sockaddr *restrict addr,
+                   socklen_t *restrict len, int flags) = NULL;
+#endif
+
 int (*sys_getpeername)(int, struct sockaddr *restrict, socklen_t *restrict) = NULL;
 
 int (*sys_getsockname)(int, struct sockaddr *restrict, socklen_t *restrict) = NULL;
@@ -69,6 +74,9 @@ int ns_api_init() {
     sys_bind = dlsym(RTLD_NEXT, "bind");
     sys_listen = dlsym(RTLD_NEXT, "listen");
     sys_accept = dlsym(RTLD_NEXT, "accept");
+#ifdef _GNU_SOURCE
+    sys_accept4 = dlsym(RTLD_NEXT, "accept4");
+#endif
     sys_getpeername = dlsym(RTLD_NEXT, "getpeername");
     sys_getsockname = dlsym(RTLD_NEXT, "getsockname");
     sys_getsockopt = dlsym(RTLD_NEXT, "getsockopt");
