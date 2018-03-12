@@ -6,6 +6,8 @@
 #include <stdbool.h>
 #include <string.h>
 
+#include <netinet/in.h>
+
 #include <netstack/proto.h>
 
 /* Ethernet */
@@ -125,6 +127,16 @@ static inline char *straddr(addr_t *addr) {
         default:
             // Addresses that have no length are invalid
             return NULL;
+    }
+}
+
+static inline void addr_from_sa(addr_t *out, const struct sockaddr *sa) {
+    switch (sa->sa_family) {
+        case AF_INET:
+            out->proto = PROTO_IPV4;
+            out->ipv4 = ntohl(((struct sockaddr_in *) sa)->sin_addr.s_addr);
+        default:
+            break;
     }
 }
 

@@ -216,16 +216,21 @@ void tcp_established(struct tcp_sock *sock, uint32_t recvnext) {
 }
 
 struct tcp_sock *tcp_sock_init(struct tcp_sock *sock) {
-    sock->passive = NULL;
-    sock->timewait = (timeout_t) {0};
+
+    sock->state = TCP_CLOSED;
     sock->tcb = (struct tcb) {0};
     // Use default MSS for outgoing send() calls
+    // TODO: Choose suitable default MSS for IPv4/IPv6
     sock->mss = TCP_DEF_MSS;
+    sock->passive = NULL;
+    sock->parent = NULL;
 
     // Locking & concurrency
     atomic_init(&sock->refcount, 1);
     retlock_init(&sock->wait);
     pthread_cond_init(&sock->waitack, NULL);
+
+    sock->timewait = (timeout_t) {0};
 
     // Retransmission
     contimer_init(&sock->rtimer, tcp_retransmission_timeout);

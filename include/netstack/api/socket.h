@@ -15,7 +15,6 @@
 #include <stdint.h>
 
 #include <netstack/addr.h>
-
 #include <netstack/inet.h>
 #include <netstack/col/alist.h>
 
@@ -23,13 +22,34 @@
 ARRAYLIST_DEFINE(ns_socket, struct inet_sock *);
 extern ns_socket_t ns_sockets;
 
+// Lowest file descriptor used by netstack
+#define NS_MIN_FD   UINT16_MAX
+
+#define ns_valid_fd(fd) ((fd) >= NS_MIN_FD)
+#define ns_find_sock(fd) (*alist_elem(&ns_sockets, (fd) - NS_MIN_FD))
+
+#define ns_check_sock(fd, name, default) \
+    if (!ns_valid_fd(fd)) \
+        default \
+    struct inet_sock *(name); \
+    if (((name) = (struct inet_sock *) ns_find_sock(fd)) == NULL) { \
+        errno = ENOTSOCK; \
+        return -1; \
+    }
+
+#define returnerr(err) \
+    do { \
+        errno = err; \
+        return -1; \
+    } while (0)
+
+
 /*!
  * Initialises the house-keeping for netstack socket API as well as the
  * sys_* calls for real system calls to the kernel for the socket API.
  * @return
  */
 int ns_api_init();
-
 
 
 /*!

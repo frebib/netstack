@@ -2,6 +2,7 @@
 #define NETSTACK_INET_H
 
 #include <stdint.h>
+#include <netinet/in.h>
 #include <netstack/addr.h>
 #include <netstack/inet/ipv4.h>
 #include <netstack/intf/intf.h>
@@ -11,6 +12,7 @@ struct inet_sock {
     addr_t remaddr;
     uint16_t locport;
     uint16_t remport;
+    uint8_t type;           /* Type of socket. See types in socket(2) */
     struct intf *intf;      /* Interface is fixed per-socket as the address/port
                               pairs define the socket, and thus the interface */
     uint16_t flags;         /* Socket-level options */

@@ -6,9 +6,6 @@
 
 #include <netstack/api/socket.h>
 
-
-ns_socket_t ns_sockets;
-
 /*
  * This file contains permanent definitions for function pointers defined in
  * <netstack/api/socket.h> to provide constant reference to the same in-memory
@@ -74,7 +71,7 @@ ssize_t (*sys_sendfile)(int out_fd, int in_fd, off_t *offset, size_t count) = NU
 
 
 int ns_api_init() {
-    alist_init(&ns_sockets, 16);
+    alist_init(&ns_sockets, 4);
 
     sys_socket = dlsym(RTLD_NEXT, "socket");
     sys_connect = dlsym(RTLD_NEXT, "connect");
