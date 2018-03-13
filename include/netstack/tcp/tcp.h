@@ -558,7 +558,7 @@ int tcp_send_syn(struct tcp_sock *sock);
 int tcp_user_open(struct tcp_sock *sock);
 int tcp_user_listen(struct tcp_sock *sock, size_t backlog);
 int tcp_user_accept(struct tcp_sock *sock, struct tcp_sock **client);
-int tcp_user_send(struct tcp_sock *sock, void *data, size_t len, int flags);
+int tcp_user_send(struct tcp_sock *sock, const void *data, size_t len, int flags);
 int tcp_user_recv(struct tcp_sock *sock, void* data, size_t len, int flags);
 int tcp_user_close(struct tcp_sock *sock);
 int tcp_user_abort();

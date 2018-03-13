@@ -126,7 +126,7 @@ int tcp_user_open(struct tcp_sock *sock) {
             break; \
     } \
 
-int tcp_user_send(struct tcp_sock *sock, void *data, size_t len, int flags) {
+int tcp_user_send(struct tcp_sock *sock, const void *data, size_t len, int flags) {
     if (sock == NULL)
         return -ENOTSOCK;
 

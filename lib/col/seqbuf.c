@@ -87,7 +87,7 @@ long seqbuf_read(seqbuf_t *buf, size_t from, void *dest, size_t len) {
     return total_read;
 }
 
-long seqbuf_write(seqbuf_t *buf, void *src, size_t len) {
+long seqbuf_write(seqbuf_t *buf, const void *src, size_t len) {
     if (buf == NULL)
         return -EINVAL;
 

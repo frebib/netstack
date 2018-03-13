@@ -24,7 +24,7 @@ void seqbuf_free(seqbuf_t *buf);
 
 long seqbuf_read(seqbuf_t *buf, size_t from, void *dest, size_t len);
 
-long seqbuf_write(seqbuf_t *buf, void *src, size_t len);
+long seqbuf_write(seqbuf_t *buf, const void *src, size_t len);
 
 int seqbuf_consume(seqbuf_t *buf, size_t from, size_t len);
 
