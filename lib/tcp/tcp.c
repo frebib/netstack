@@ -199,6 +199,9 @@ void tcp_established(struct tcp_sock *sock, uint32_t recvnext) {
 
     tcp_setstate(sock, TCP_ESTABLISHED);
 
+    // Cancel the pending retransmit timeout
+    contimer_stop(&sock->rtimer);
+
     // Set the initial recv value to the first byte in stream
     sock->recvptr = recvnext;
     LOG(LTRCE, "set recvptr to %u", sock->recvptr);

@@ -115,9 +115,9 @@
   - Line 154: Other integrity checks
   - Line 157: Parse incoming TCP segment options
   - Line 179: Perform queued actions when reaching certain states
-  - Line 223: Choose suitable default MSS for IPv4/IPv6
-  - Line 341: Choose a random unused outgoing port
-  - Line 346: Choose a secure initial sequence number
+  - Line 226: Choose suitable default MSS for IPv4/IPv6
+  - Line 344: Choose a random unused outgoing port
+  - Line 349: Choose a secure initial sequence number
 
 ## [lib/tcp/user.c](lib/tcp/user.c)
   - Line 16: Handle sending SIGPIPE for dead connections to calling process
