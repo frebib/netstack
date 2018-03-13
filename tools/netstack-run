@@ -1,10 +1,9 @@
 #!/bin/sh
 set -e
 
-cd "$(dirname "$0")"
-cd ..
+DIR="$(realpath "$(dirname "$0")/../")"
 
-export LD_LIBRARY_PATH="$PWD:$LD_LIBRARY_PATH"
+export LD_LIBRARY_PATH="$DIR:$LD_LIBRARY_PATH"
 export LD_PRELOAD="libnshook.so:libnetstack.so"
 
 exec "$@"
