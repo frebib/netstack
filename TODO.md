@@ -19,7 +19,7 @@
 
 ## [include/netstack/tcp/tcp.h](include/netstack/tcp/tcp.h)
   - Line 46: Take endianness into account in tcp_hdr
-  - Line 181: Fix endianness in tcp.h
+  - Line 182: Fix endianness in tcp.h
 
 ## [lib/api/tcp.c](lib/api/tcp.c)
   - Line 41: Look up route and find local address to use
@@ -122,19 +122,17 @@
 ## [lib/tcp/user.c](lib/tcp/user.c)
   - Line 16: Handle sending SIGPIPE for dead connections to calling process
   - Line 67: Fill out 'user timeout' information
-  - Line 89: Check for O_NONBLOCK
-  - Line 91: Obtain timespec value for timedwait
-  - Line 142: Write to sndbuf and output directly at the same time
-  - Line 143: Limit the size of the send buffer. Block if the buffer is full
-  - Line 146: Signal sending thread and offload segmentation/transmission
-  - Line 147: Check for MSG_MORE flag and don't trigger for a short while
-  - Line 209: Rewind the send buffer to the amount of data we actually sent
-  - Line 223: Don't return EOF until recv'd up to FIN seqn
-  - Line 375: Check for MSG_PEEK and conditionally don't do this
-  - Line 396: tcp_close() request until all send() calls have completed
-  - Line 410: Check for pending send() calls
-  - Line 418: If unsent data, queue sending FIN/ACK on CLOSING
-  - Line 528: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
+  - Line 132: Write to sndbuf and output directly at the same time
+  - Line 133: Limit the size of the send buffer. Block if the buffer is full
+  - Line 136: Signal sending thread and offload segmentation/transmission
+  - Line 137: Check for MSG_MORE flag and don't trigger for a short while
+  - Line 199: Rewind the send buffer to the amount of data we actually sent
+  - Line 213: Don't return EOF until recv'd up to FIN seqn
+  - Line 365: Check for MSG_PEEK and conditionally don't do this
+  - Line 386: tcp_close() request until all send() calls have completed
+  - Line 400: Check for pending send() calls
+  - Line 408: If unsent data, queue sending FIN/ACK on CLOSING
+  - Line 518: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
   - Line 17: Add many configurable interfaces

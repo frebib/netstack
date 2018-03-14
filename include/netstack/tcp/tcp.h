@@ -171,6 +171,7 @@ struct tcp_sock {
 
     // Reference counting & shared-locking
     atomic_int refcount;
+    int error;
 
     // Thread wait lock
     retlock_t wait;

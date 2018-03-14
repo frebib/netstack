@@ -78,28 +78,18 @@ int tcp_user_open(struct tcp_sock *sock) {
 
     int ret;
     if ((ret = tcp_send_syn(sock)) < 0) {
-        LOG(LNTCE, "tcp_sock_decref() because tcp_send_syn() err");
+        if (ret != -EINPROGRESS)
+            LOGSE(LNTCE, "tcp_send_syn", -ret);
         tcp_sock_decref_unlock(sock);
         return ret;
     }
 
+    // If we got this far, the connection is blocking so we should wait for
+    // a connection to be established
     // Wait for the connection to be established
-    while (sock->state != TCP_ESTABLISHED && ret >= 0) {
-
-        // TODO: Check for O_NONBLOCK
-        if (false) {
-            // TODO: Obtain timespec value for timedwait
-            struct timespec t = {.tv_sec = 5, .tv_nsec = 0};
-            retlock_timedwait(&sock->wait, &t, &ret);
-            if (ret == ETIMEDOUT) {
-                LOG(LNTCE, "tcp_sock_decref() because ETIMEDOUT");
-                tcp_sock_decref_unlock(sock);
-                return -ETIMEDOUT;
-            }
-        } else {
-            // Wait indefinitely until we are woken
-            retlock_wait_bare(&sock->wait, &ret);
-        }
+    while (sock->state != TCP_ESTABLISHED && sock->error >= 0) {
+        // Wait indefinitely until we are woken
+        retlock_wait_bare(&sock->wait, &ret);
     }
 
     tcp_sock_decref_unlock(sock);

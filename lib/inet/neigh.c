@@ -189,7 +189,7 @@ int neigh_send_to(struct neigh_route *rt, struct frame *frame, uint8_t proto,
                 neigh_queued_unlock(pending);
 
                 // Indicate that the packet was queued
-                ret = -EWOULDBLOCK;
+                ret = -EINPROGRESS;
             } else {
                 LOG(LDBUG, "Requesting hwaddr for %s, (wait %lds)",
                       straddr(&rt->nexthop), to.tv_sec);
