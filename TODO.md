@@ -19,7 +19,7 @@
 
 ## [include/netstack/tcp/tcp.h](include/netstack/tcp/tcp.h)
   - Line 46: Take endianness into account in tcp_hdr
-  - Line 182: Fix endianness in tcp.h
+  - Line 183: Fix endianness in tcp.h
 
 ## [lib/api/tcp.c](lib/api/tcp.c)
   - Line 41: Look up route and find local address to use
@@ -116,23 +116,23 @@
   - Line 157: Parse incoming TCP segment options
   - Line 179: Perform queued actions when reaching certain states
   - Line 226: Choose suitable default MSS for IPv4/IPv6
-  - Line 344: Choose a random unused outgoing port
-  - Line 349: Choose a secure initial sequence number
+  - Line 348: Choose a random unused outgoing port
+  - Line 353: Choose a secure initial sequence number
 
 ## [lib/tcp/user.c](lib/tcp/user.c)
   - Line 16: Handle sending SIGPIPE for dead connections to calling process
   - Line 67: Fill out 'user timeout' information
-  - Line 132: Write to sndbuf and output directly at the same time
-  - Line 133: Limit the size of the send buffer. Block if the buffer is full
-  - Line 136: Signal sending thread and offload segmentation/transmission
-  - Line 137: Check for MSG_MORE flag and don't trigger for a short while
-  - Line 199: Rewind the send buffer to the amount of data we actually sent
-  - Line 213: Don't return EOF until recv'd up to FIN seqn
-  - Line 365: Check for MSG_PEEK and conditionally don't do this
-  - Line 386: tcp_close() request until all send() calls have completed
-  - Line 400: Check for pending send() calls
-  - Line 408: If unsent data, queue sending FIN/ACK on CLOSING
-  - Line 518: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
+  - Line 133: Write to sndbuf and output directly at the same time
+  - Line 134: Limit the size of the send buffer. Block if the buffer is full
+  - Line 137: Signal sending thread and offload segmentation/transmission
+  - Line 138: Check for MSG_MORE flag and don't trigger for a short while
+  - Line 200: Rewind the send buffer to the amount of data we actually sent
+  - Line 214: Don't return EOF until recv'd up to FIN seqn
+  - Line 368: Check for MSG_PEEK and conditionally don't do this
+  - Line 390: tcp_close() request until all send() calls have completed
+  - Line 404: Check for pending send() calls
+  - Line 413: If unsent data, queue sending FIN/ACK on CLOSING
+  - Line 525: Check for O_NONBLOCK and return EWOULDBLOCK in tcp_user_accept
 
 ## [tools/netd/src/main.c](tools/netd/src/main.c)
   - Line 17: Add many configurable interfaces

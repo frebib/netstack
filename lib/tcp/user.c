@@ -89,9 +89,10 @@ int tcp_user_open(struct tcp_sock *sock) {
     // Wait for the connection to be established
     while (sock->state != TCP_ESTABLISHED && sock->error >= 0) {
         // Wait indefinitely until we are woken
-        retlock_wait_bare(&sock->wait, &ret);
+        pthread_cond_wait(&sock->wait, &sock->lock);
     }
 
+    ret = sock->error;
     tcp_sock_decref_unlock(sock);
     return ret;
 }
@@ -161,7 +162,7 @@ int tcp_user_send(struct tcp_sock *sock, const void *data, size_t len, int flags
             LOG(LINFO, "no space in SND.WND. waiting for an incoming ACK");
 
             // We assume the remote send window is full so wait for an ACK
-            pthread_cond_wait(&sock->waitack, &sock->wait.lock);
+            pthread_cond_wait(&sock->waitack, &sock->lock);
 
             // Woken up; we should re-check our state before sending
             LOG(LINFO, "woken as ACK arrived. attempting to send again");
@@ -207,7 +208,7 @@ int tcp_user_recv(struct tcp_sock *sock, void* out, size_t len, int flags) {
     // Ensure socket cannot be free'd until this lock is released
     tcp_sock_incref(sock);
 
-    int ret = 0, err = 0;
+    int ret = 0;
     unsigned count = 0;     /* # of bytes already copied to out buffer */
 
     // TODO: Don't return EOF until recv'd up to FIN seqn
@@ -258,6 +259,8 @@ int tcp_user_recv(struct tcp_sock *sock, void* out, size_t len, int flags) {
             if (count > 0) {
                 tcp_sock_unlock(sock);
 
+                LOG(LDBUG, "recvqueue empty, read %d bytes", count);
+
                 // We have already read some data and the queue is now empty
                 // Return back the data to the user
                 ret = count;
@@ -283,17 +286,17 @@ int tcp_user_recv(struct tcp_sock *sock, void* out, size_t len, int flags) {
 
             // Wait for some data then continue when some arrives
             LOG(LDBUG, "recvqueue has nothing ready. waiting to be woken up");
-            if ((ret = retlock_wait_bare(&sock->wait, &err)))
-                LOGE(LERR, "retlock_wait %s: ", strerror((int) ret));
+            if ((ret = tcp_wait_change(sock)))
+                LOGE(LERR, "tcp_wait_change %s: ", strerror((int) ret));
 
-            LOG(LDBUG, "tcp_user_recv woken with %d", err);
+            LOG(LDBUG, "tcp_user_recv woken with %d", sock->error);
             tcp_sock_unlock(sock);
 
             // Don't return EOF if 0 here, check properly above
 
             // err is <0 for error
-            if (err < 0) {
-                ret = err;
+            if (sock->error < 0) {
+                ret = sock->error;
                 goto decref_and_return;
             }
 
@@ -370,6 +373,7 @@ int tcp_user_recv(struct tcp_sock *sock, void* out, size_t len, int flags) {
 
 decref_and_return:
     tcp_sock_decref(sock);
+
     return ret;
 }
 
@@ -402,7 +406,8 @@ int tcp_user_close(struct tcp_sock *sock) {
         case TCP_ESTABLISHED:
             tcp_setstate(sock, TCP_FIN_WAIT_1);
             tcp_send_finack(sock);
-            retlock_wait_bare(&sock->wait, &ret);
+            tcp_wait_change(sock);
+            ret = sock->error;
             break;
         case TCP_CLOSE_WAIT:
             // TODO: If unsent data, queue sending FIN/ACK on CLOSING
@@ -413,9 +418,11 @@ int tcp_user_close(struct tcp_sock *sock) {
             tcp_send_finack(sock);
 
             // Wait for the connection to be closed before returning
-            while (!(sock->state == TCP_TIME_WAIT || sock->state == TCP_CLOSED))
-                retlock_wait_bare(&sock->wait, &ret);
+            while (!(sock->state == TCP_TIME_WAIT || sock->state == TCP_CLOSED)
+                   && sock->error != 0)
+                tcp_wait_change(sock);
 
+            ret = sock->error;
             break;
         case TCP_CLOSING:
         case TCP_LAST_ACK:
@@ -519,7 +526,7 @@ int tcp_user_accept(struct tcp_sock *sock, struct tcp_sock **client) {
 
         LOG(LNTCE, "No connections ready to be accepted. Waiting..");
 
-        retlock_wait_bare(&sock->wait, NULL);
+        tcp_wait_change(sock);
     }
 
     tcp_sock_unlock(sock);

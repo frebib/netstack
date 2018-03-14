@@ -184,7 +184,7 @@ void _tcp_setstate(struct tcp_sock *sock, tcp_state_t state) {
         case TCP_CLOSE_WAIT:
             // Signal EOF to any waiting recv() calls
             LOG(LTRCE, "Waking all waiting user calls");
-            retlock_broadcast_bare(&sock->wait, 0);
+            tcp_wake_waiters(sock);
             break;
         case TCP_CLOSED:
             // Clear this timeout
@@ -214,7 +214,7 @@ void tcp_established(struct tcp_sock *sock, uint32_t recvnext) {
 
     // If socket was PASSIVE open, notify the parent socket if waiting on accept()
     if (sock->parent != NULL) {
-        retlock_broadcast(&sock->parent->wait, 1);
+        tcp_wake_waiters(sock->parent);
     }
 }
 
@@ -230,8 +230,10 @@ struct tcp_sock *tcp_sock_init(struct tcp_sock *sock) {
 
     // Locking & concurrency
     atomic_init(&sock->refcount, 1);
-    retlock_init(&sock->wait);
+    pthread_mutex_init(&sock->lock, NULL);
+    pthread_cond_init(&sock->wait, NULL);
     pthread_cond_init(&sock->waitack, NULL);
+    sock->error = 0;
 
     sock->timewait = (timeout_t) {0};
 
@@ -244,6 +246,8 @@ struct tcp_sock *tcp_sock_init(struct tcp_sock *sock) {
     sock->rto = (struct timespec) { 1, 0 };
     sock->rtt = sectons(1);   // Default RTT is 1 second
     sock->rttvar = sock->srtt = 0;
+
+    llist_append(&tcp_sockets, sock);
 
     return sock;
 }
@@ -267,7 +271,7 @@ inline void tcp_sock_free(struct tcp_sock *sock) {
     llist_clear(&sock->unacked);
 
     // This shouldn't do anything as we currently hold the lock
-    retlock_broadcast_bare(&sock->wait, 0);
+    tcp_wake_waiters(sock);
 
     free(sock);
 }
@@ -280,7 +284,7 @@ inline void tcp_sock_destroy(struct tcp_sock *sock) {
 void tcp_sock_abort(struct tcp_sock *sock) {
 
     // Set the open() return value and wake it up
-    retlock_broadcast_bare(&sock->wait, -ECONNABORTED);
+    tcp_wake_error(sock, -ECONNABORTED);
     pthread_cond_broadcast(&sock->waitack);
 
     switch (sock->state) {

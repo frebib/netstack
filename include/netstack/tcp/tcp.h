@@ -174,7 +174,8 @@ struct tcp_sock {
     int error;
 
     // Thread wait lock
-    retlock_t wait;
+    pthread_mutex_t lock;
+    pthread_cond_t wait;
     pthread_cond_t waitack;
 };
 
@@ -354,12 +355,20 @@ int _tcp_sock_decref(struct tcp_sock *sock, const char *file, int line, const ch
 int _tcp_sock_decref_unlock(struct tcp_sock *sock, const char *file, int line, const char *func);
 #define tcp_sock_decref_unlock(sock) _tcp_sock_decref_unlock(sock, __FILE__, __LINE__, __func__)
 
-#define tcp_sock_lock(sock) pthread_mutex_lock(&(sock)->wait.lock)
+#define tcp_sock_lock(sock) pthread_mutex_lock(&(sock)->lock)
 
-#define tcp_sock_trylock(sock) pthread_mutex_trylock(&(sock)->wait.lock)
+#define tcp_sock_trylock(sock) pthread_mutex_trylock(&(sock)->lock)
 
-#define tcp_sock_unlock(sock) pthread_mutex_unlock(&(sock)->wait.lock)
+#define tcp_sock_unlock(sock) pthread_mutex_unlock(&(sock)->lock)
 
+
+#define tcp_set_error(sock, err) (sock)->error = (err);
+#define tcp_wait_change(sock) pthread_cond_wait(&(sock)->wait, &(sock)->lock)
+#define tcp_wake_waiters(sock) pthread_cond_broadcast(&(sock)->wait)
+static inline int tcp_wake_error(struct tcp_sock *sock, int error) {
+    tcp_set_error(sock, error);
+    return pthread_cond_broadcast(&(sock)->wait);
+}
 
 /*
  * TCP Internet functions

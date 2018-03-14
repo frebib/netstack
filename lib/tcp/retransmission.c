@@ -20,7 +20,7 @@ void tcp_syn_retransmission_timeout(void *arg) {
     // If the backoff has hit the retry count, give up and claim ETIMEDOUT
     if (sock->backoff >= TCP_SYN_COUNT - 1) {
         tcp_setstate(sock, TCP_CLOSED);
-        retlock_broadcast_bare(&sock->wait, -ETIMEDOUT);
+        tcp_wake_error(sock, -ETIMEDOUT);
         tcp_sock_unlock(sock);
         return;
     }

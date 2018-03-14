@@ -291,7 +291,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         if (seg->flags.rst == 1) {
             if (ack_acceptable) {
                 tcp_setstate(sock, TCP_CLOSED);
-                retlock_broadcast_bare(&sock->wait, -ECONNREFUSED);
+                tcp_wake_error(sock, -ECONNREFUSED);
                 tcp_sock_decref(sock);
             }
             goto drop_pkt;
@@ -385,7 +385,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                     ret = tcp_send_ack(sock);
 
                 // Signal the open() call if it's waiting for us
-                if (retlock_broadcast_bare(&sock->wait, 0)) {
+                if (tcp_wake_waiters(sock)) {
                     LOGERR("pthread_cond_signal");
                 }
 
@@ -523,7 +523,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             if (seg->flags.rst == 1) {
                 // If backlog list is NULL, socket is ACTIVE open
                 if (sock->passive == NULL) {
-                    retlock_broadcast_bare(&sock->wait, -ECONNREFUSED);
+                    tcp_wake_error(sock, -ECONNREFUSED);
                     contimer_stop(&sock->rtimer);
                     ret = -ECONNREFUSED;
                 }
@@ -550,7 +550,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         case TCP_CLOSE_WAIT:
             if (seg->flags.rst == 1) {
                 tcp_setstate(sock, TCP_CLOSED);
-                retlock_broadcast_bare(&sock->wait, -ECONNRESET);
+                tcp_wake_error(sock, -ECONNRESET);
                 tcp_sock_decref(sock);
                 goto drop_pkt;
             }
@@ -568,7 +568,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         case TCP_TIME_WAIT:
             if (seg->flags.rst == 1) {
                 tcp_setstate(sock, TCP_CLOSED);
-                retlock_broadcast_bare(&sock->wait, -ECONNRESET);
+                tcp_wake_error(sock, -ECONNRESET);
                 tcp_sock_decref(sock);
                 goto drop_pkt;
             }
@@ -635,7 +635,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             if (seg->flags.syn == 1 && (seg_seq < tcb->rcv.nxt ||
                                         seg_seq > tcb->rcv.nxt + tcb->rcv.wnd)) {
 
-                retlock_broadcast_bare(&sock->wait, -ECONNRESET);
+                tcp_wake_error(sock, -ECONNRESET);
                 LOG(LDBUG, "Sending RST");
                 ret = tcp_send_rst(sock, seg_ack);
                 contimer_stop(&sock->rtimer);
@@ -781,7 +781,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     */
             case TCP_FIN_WAIT_2:
                 // TODO: Send success to waiting close() calls
-                retlock_broadcast_bare(&sock->wait, 0);
+                tcp_wake_error(sock, 0);
                 break;
     /*
         CLOSING STATE
@@ -795,7 +795,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                 tcp_timewait_start(sock);
 
                 // Notify waiting close() calls that the connection is closed
-                retlock_broadcast_bare(&sock->wait, 0);
+                tcp_wake_error(sock, 0);
 
                 break;
     /*
@@ -807,7 +807,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
     */
             case TCP_LAST_ACK:
                 tcp_setstate(sock, TCP_CLOSED);
-                retlock_broadcast_bare(&sock->wait, 0);
+                tcp_wake_waiters(sock);
                 tcp_sock_decref(sock);
                 goto drop_pkt;
     /*
@@ -923,7 +923,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
             // data will likely be lost as we claim to have recv'd it
             if (in_order) {
                 // Signal pending recv() calls with a >0 value to indicate data
-                retlock_broadcast_bare(&sock->wait, frame_data_len(frame));
+                tcp_wake_waiters(sock);
             }
 
             // Always send an ACK for the largest contiguous segment we've queued.
@@ -1047,7 +1047,7 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
         }
 
         // Send 0 to pending recv() calls indicating EOF
-        retlock_broadcast_bare(&sock->wait, 0);
+        tcp_wake_waiters(sock);
 
         tcb->rcv.nxt = seg_seq + 1;
         LOG(LDBUG, "Sending ACK");
