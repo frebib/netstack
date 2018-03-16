@@ -1,5 +1,5 @@
 # netstack: TCP/IP network stack implementation in userland
-[![Build Status](https://drone.adam-ant.co.uk/api/badges/frebib/netd/status.svg)](https://drone.adam-ant.co.uk/frebib/netd)
+[![Build Status](https://drone.spritsail.io/api/badges/frebib/netstack/status.svg)](https://drone.spritsail.io/frebib/netstack)
 
 The homepage for this project is hosted on GitHub: [https://github.com/frebib/netstack](https://github.com/frebib/netstack)
 

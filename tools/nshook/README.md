@@ -1,5 +1,5 @@
 # libnshook: Inject netstack into any binary
-[![Build Status](https://drone.adam-ant.co.uk/api/badges/frebib/netd/status.svg)](https://drone.adam-ant.co.uk/frebib/netd)
+[![Build Status](https://drone.spritsail.io/api/badges/frebib/netstack/status.svg)](https://drone.spritsail.io/frebib/netstack)
 
 libnshook is an injection library that replaces the standard BSD `socket(7)` API at runtime of any dynamically-linked binary using libdl and libc.
 It can be used to test and play with netstack with no requirement to modify or recompile existing code.
