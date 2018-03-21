@@ -2,11 +2,12 @@ FROM debian:stretch-slim as builder
 
 WORKDIR /tmp/netstack
 
+ARG CC=gcc
 ARG CFLAGS=-D_GNU_SOURCE
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get -y update && \
-    apt-get -y install git make gcc libcap-dev && \
+    apt-get -y install git make gcc $CC libcap-dev && \
     git clone https://github.com/frebib/netstack.git . && \
     make install PREFIX=/usr DESTDIR=/output && \
     cp /lib/$(gcc --print-multiarch)/libgcc_s.so* /output/usr/lib && \
