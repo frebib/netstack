@@ -44,8 +44,9 @@ extern ns_socket_t ns_sockets;
         return -1; \
     } while (0)
 
-#define retns(ret) \
+#define retns(thing) \
     do { \
+        int ret = thing; \
         if (ret < 0) { \
             errno = -ret; \
             return -1; \
