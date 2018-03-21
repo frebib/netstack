@@ -66,6 +66,7 @@ void tcp_recv_closed(struct frame *frame, struct tcp_hdr *seg) {
             .remport = frame->remport,
             .remaddr = frame->remaddr,
             .flags = O_NONBLOCK,
+            .type = SOCK_STREAM,
             .intf = frame->intf
     } };
 
@@ -95,6 +96,7 @@ void tcp_recv_listen(struct frame *frame, struct tcp_sock *parent,
             .remport = frame->remport,
             .remaddr = frame->remaddr,
             .flags = O_NONBLOCK,
+            .type = SOCK_STREAM,
             .intf = frame->intf
     } };
 
@@ -176,7 +178,8 @@ void tcp_recv_listen(struct frame *frame, struct tcp_sock *parent,
     client->inet.remaddr = frame->remaddr;
     // Un-accepted connections should be non-blocking
     // as to not cause deadlocks
-    client->inet.flags = O_NONBLOCK,
+    client->inet.flags = O_NONBLOCK;
+    client->inet.type = SOCK_STREAM;
     client->inet.intf = frame->intf;
     client->mss = 1460;
     client->tcb = (struct tcb) {
@@ -918,17 +921,13 @@ int tcp_seg_arr(struct frame *frame, struct tcp_sock *sock) {
                 LOG(LERR, "You dun goofed: recvptr (%u) > RCV.NXT (%u)",
                       sock->recvptr - irs, sock->tcb.rcv.nxt - irs);
 
-            // Only send an acknowledgement for the segment if it is the next
-            // contiguous data in the sequence space. If we send an ACK always
-            // data will likely be lost as we claim to have recv'd it
-            if (in_order) {
-                // Signal pending recv() calls with a >0 value to indicate data
-                tcp_wake_waiters(sock);
-            }
-
             // Always send an ACK for the largest contiguous segment we've queued.
             LOG(LDBUG, "Sending ACK");
             ret = tcp_send_ack(sock);
+
+            // Signal pending recv() calls with a >0 value to indicate data
+            if (in_order)
+                tcp_wake_waiters(sock);
 
             break;
         }

@@ -1,7 +1,10 @@
 #include <errno.h>
+#include <malloc.h>
+#include <sys/param.h>
 
 #include <netstack/api/tcp.h>
 #include <netstack/api/socket.h>
+#include <netstack/tcp/tcp.h>
 
 // Global list of sockets visible to this netstack instance
 ns_socket_t ns_sockets;
@@ -34,8 +37,6 @@ int connect(int fd, const struct sockaddr *addr, socklen_t len) {
         return sys_connect(fd, addr, len);
     });
 
-    LOG(LNTCE, "%s(fd = %d (sock %p), ..)", __func__, fd, sock);
-
     // connect() on SOCK_DGRAM is valid: https://stackoverflow.com/a/9741966
     switch (sock->type) {
         case SOCK_STREAM:
@@ -46,18 +47,55 @@ int connect(int fd, const struct sockaddr *addr, socklen_t len) {
 }
 
 int bind(int fd, const struct sockaddr *addr, socklen_t len) {
-    LOG(LNTCE, "%s", __func__);
-    return sys_bind(fd, addr, len);
+    ns_check_sock(fd, sock, {
+        return sys_bind(fd, addr, len);
+    });
+
+    switch (sock->locaddr.proto) {
+        case PROTO_IPV4:
+            addr_from_sa(&sock->locaddr, &sock->locport, addr);
+            return 0;
+        default:
+            returnerr(ESOCKTNOSUPPORT);
+    }
 }
 
 int listen(int fd, int backlog) {
-    LOG(LNTCE, "%s", __func__);
-    return sys_listen(fd, backlog);
+    ns_check_sock(fd, sock, {
+        return sys_listen(fd, backlog);
+    });
+
+    switch (sock->type) {
+        case SOCK_STREAM:
+            retns(tcp_user_listen((struct tcp_sock *) sock, (int) backlog));
+        default:
+            returnerr(ESOCKTNOSUPPORT);
+    }
 }
 
 int accept(int fd, struct sockaddr *restrict addr, socklen_t *restrict len) {
-    LOG(LNTCE, "%s", __func__);
-    return sys_accept(fd, addr, len);
+    ns_check_sock(fd, sock, {
+        return sys_accept(fd, addr, len);
+    });
+
+    switch (sock->type) {
+        case SOCK_STREAM: {
+            struct tcp_sock *client;
+            int ret = tcp_user_accept((struct tcp_sock *) sock, &client);
+            if (ret < 0)
+                returnerr(-ret);
+
+            struct tcp_sock **elem = NULL;
+            int fd = (int) alist_add(&ns_sockets, (void **) &elem);
+            fd += NS_MIN_FD;
+
+            *elem = client;
+
+            return fd;
+        }
+        default:
+            returnerr(ESOCKTNOSUPPORT);
+    }
 }
 
 #ifdef _GNU_SOURCE
@@ -69,8 +107,17 @@ int accept4(int fd, struct sockaddr *restrict addr, socklen_t *restrict len,
 #endif
 
 ssize_t recv(int fd, void *buf, size_t len, int flags) {
-    LOG(LNTCE, "%s", __func__);
-    return sys_recv(fd, buf, len, flags);
+    LOG(LNTCE, "%s(fd = %d, ..)", __func__, fd);
+    ns_check_sock(fd, sock, {
+        return sys_recv(fd, buf, len, flags);
+    });
+
+    switch (sock->type) {
+        case SOCK_STREAM:
+            return recv_tcp(sock, buf, len, flags);
+        default:
+            returnerr(ESOCKTNOSUPPORT);
+    }
 }
 
 ssize_t read(int fd, void *buf, size_t count) {
@@ -95,8 +142,18 @@ ssize_t write(int fd, const void *buf, size_t count) {
 }
 
 ssize_t send(int fd, const void *buf, size_t len, int flags) {
-    LOG(LNTCE, "%s", __func__);
-    return sys_send(fd, buf, len, flags);
+    ns_check_sock(fd, sock, {
+        return sys_send(fd, buf, len, flags);
+    });
+
+    LOG(LNTCE, "%s(fd = %d (sock %p), ..)", __func__, fd, sock);
+
+    switch (sock->type) {
+        case SOCK_STREAM:
+            return send_tcp(sock, buf, len, flags);
+        default:
+            returnerr(ESOCKTNOSUPPORT);
+    }
 }
 
 ssize_t sendto(int fd, const void *buf, size_t len, int flags,
@@ -110,6 +167,18 @@ ssize_t sendmsg(int fd, const struct msghdr *msg, int flags) {
     return sys_sendmsg(fd, msg, flags);
 }
 
+int poll(struct pollfd fds[], nfds_t nfds, int timeout) {
+    LOG(LNTCE, "%s", __func__);
+    return sys_poll(fds, nfds, timeout);
+}
+
+int select(int nfds, fd_set *restrict readfds, fd_set *restrict writefds,
+                  fd_set *restrict errorfds,
+                  struct timeval *restrict timeout) {
+    LOG(LNTCE, "%s", __func__);
+    return sys_select(nfds, readfds, writefds, errorfds, timeout);
+}
+
 int getpeername(int fd, struct sockaddr *restrict addr, socklen_t *restrict len) {
     LOG(LNTCE, "%s", __func__);
     return sys_getpeername(fd, addr, len);
@@ -120,9 +189,41 @@ int getsockname(int fd, struct sockaddr *restrict addr, socklen_t *restrict len)
     return sys_getsockname(fd, addr, len);
 }
 
+int getsockopt_sock(struct inet_sock *inet, int level, int opt, void *val,
+                    socklen_t *restrict len);
 int getsockopt(int fd, int level, int opt, void *val, socklen_t *restrict len) {
-    LOG(LNTCE, "%s", __func__);
-    return sys_getsockopt(fd, level, opt, val, len);
+    ns_check_sock(fd, sock, {
+        return sys_getsockopt(fd, level, opt, val, len);
+    });
+
+    LOG(LNTCE, "%s on sock %p: %d = ?", __func__, sock, opt);
+
+    switch (level) {
+        case SOL_SOCKET:
+            return getsockopt_sock(sock, level, opt, val, len);
+        case SOL_TCP:
+            if (sock->type != SOCK_STREAM)
+                returnerr(ENOPROTOOPT);
+            return getsockopt_tcp(sock, level, opt, val, len);
+        default:
+            returnerr(ENOPROTOOPT);
+    }
+}
+int getsockopt_sock(struct inet_sock *sock, int level, int opt, void *val,
+                    socklen_t *restrict len) {
+
+    switch (opt) {
+        case SO_ERROR:
+            if (sock->type == SOCK_STREAM) {
+                // Get TCP error for TCP sockets
+                struct tcp_sock *tcp_sock = (struct tcp_sock *) sock;
+                size_t size = MIN((size_t) len, sizeof(tcp_sock->error));
+                memcpy(val, &tcp_sock->error, size);
+                return 0;
+            }
+        default:
+            returnerr(ENOPROTOOPT);
+    }
 }
 
 int setsockopt_sock(struct inet_sock *inet, int level, int opt, const void *val,
@@ -132,7 +233,7 @@ int setsockopt(int fd, int level, int opt, const void *val, socklen_t len) {
         return sys_setsockopt(fd, level, opt, val, len);
     });
 
-    LOG(LNTCE, "%s on sock %p: %d = %p", __func__, sock, opt, val);
+    LOG(LNTCE, "%s on sock %p: %d = %d", __func__, sock, opt, *(int *)val);
 
     switch (level) {
         case SOL_SOCKET:
@@ -152,8 +253,18 @@ int setsockopt_sock(struct inet_sock *sock, int level, int opt, const void *val,
 }
 
 int shutdown(int fd, int how) {
-    LOG(LNTCE, "%s", __func__);
-    return sys_shutdown(fd, how);
+    ns_check_sock(fd, sock, {
+        return sys_shutdown(fd, how);
+    });
+
+    LOG(LNTCE, "%s(fd = %d (sock %p), ..)", __func__, fd, sock);
+
+    switch (sock->type) {
+        case SOCK_STREAM:
+            return shutdown_tcp(sock, how);
+        default:
+            returnerr(ENOTCONN);
+    }
 }
 
 int sockatmark(int fd) {

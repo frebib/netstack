@@ -26,16 +26,17 @@ extern ns_socket_t ns_sockets;
 #define NS_MIN_FD   UINT16_MAX
 
 #define ns_valid_fd(fd) ((fd) >= NS_MIN_FD)
-#define ns_find_sock(fd) (*alist_elem(&ns_sockets, (fd) - NS_MIN_FD))
+#define ns_find_sock(fd) (ns_sockets.arr[(fd) - NS_MIN_FD])
 
-#define ns_check_sock(fd, name, default) \
+#define ns_check_sock(fd, name, def) \
     if (!ns_valid_fd(fd)) \
-        default \
+        def \
     struct inet_sock *(name); \
-    if (((name) = (struct inet_sock *) ns_find_sock(fd)) == NULL) { \
+    if (((name) = (struct inet_sock *) ns_sockets.arr[(fd) - NS_MIN_FD]) == NULL) { \
         errno = ENOTSOCK; \
         return -1; \
-    }
+    } \
+    LOG(LNTCE, "%s(fd = %d (sock %p), ..)", __func__, (fd), (name));
 
 #define returnerr(err) \
     do { \
@@ -43,6 +44,15 @@ extern ns_socket_t ns_sockets;
         return -1; \
     } while (0)
 
+#define retns(ret) \
+    do { \
+        if (ret < 0) { \
+            errno = -ret; \
+            return -1; \
+        } else { \
+            return ret; \
+        } \
+    } while (0)
 
 /*!
  * Initialises the house-keeping for netstack socket API as well as the

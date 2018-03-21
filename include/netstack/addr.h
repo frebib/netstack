@@ -130,11 +130,19 @@ static inline char *straddr(addr_t *addr) {
     }
 }
 
-static inline void addr_from_sa(addr_t *out, const struct sockaddr *sa) {
+static inline void
+addr_from_sa(addr_t *out, uint16_t *port, const struct sockaddr *sa) {
     switch (sa->sa_family) {
-        case AF_INET:
-            out->proto = PROTO_IPV4;
-            out->ipv4 = ntohl(((struct sockaddr_in *) sa)->sin_addr.s_addr);
+        case AF_INET: {
+            struct sockaddr_in *in = (struct sockaddr_in *) sa;
+            if (out != NULL) {
+                out->proto = PROTO_IPV4;
+                out->ipv4 = ntohl(in->sin_addr.s_addr);
+            }
+            if (port != NULL) {
+                *port = ntohs(in->sin_port);
+            }
+        }
         default:
             break;
     }
