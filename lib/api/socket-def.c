@@ -35,6 +35,8 @@ int (*sys_getsockopt)(int, int, int, void *restrict, socklen_t *restrict) = NULL
 
 int (*sys_setsockopt)(int, int, int, const void *, socklen_t) = NULL;
 
+int (*sys_fcntl)(int fd, int cmd, ...) = NULL;
+
 int (*sys_shutdown)(int, int) = NULL;
 
 int (*sys_sockatmark)(int) = NULL;
@@ -85,6 +87,7 @@ int ns_api_init() {
     sys_getsockname = dlsym(RTLD_NEXT, "getsockname");
     sys_getsockopt = dlsym(RTLD_NEXT, "getsockopt");
     sys_setsockopt = dlsym(RTLD_NEXT, "setsockopt");
+    sys_fcntl = dlsym(RTLD_NEXT, "fcntl");
     // recv'ing
     sys_read = dlsym(RTLD_NEXT, "read");
     sys_recv = dlsym(RTLD_NEXT, "recv");

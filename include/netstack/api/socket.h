@@ -99,6 +99,8 @@ extern int (*sys_getsockopt)(int, int, int, void *restrict, socklen_t *restrict)
 
 extern int (*sys_setsockopt)(int, int, int, const void *, socklen_t);
 
+extern int (*sys_fcntl)(int fd, int cmd, ...);
+
 extern int (*sys_shutdown)(int, int);
 
 extern int (*sys_sockatmark)(int);

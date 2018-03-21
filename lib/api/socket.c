@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <fcntl.h>
 #include <malloc.h>
 #include <sys/param.h>
 
@@ -107,7 +108,6 @@ int accept4(int fd, struct sockaddr *restrict addr, socklen_t *restrict len,
 #endif
 
 ssize_t recv(int fd, void *buf, size_t len, int flags) {
-    LOG(LNTCE, "%s(fd = %d, ..)", __func__, fd);
     ns_check_sock(fd, sock, {
         return sys_recv(fd, buf, len, flags);
     });
@@ -250,6 +250,53 @@ int setsockopt(int fd, int level, int opt, const void *val, socklen_t len) {
 int setsockopt_sock(struct inet_sock *sock, int level, int opt, const void *val,
                     socklen_t len) {
     returnerr(ENOPROTOOPT);
+}
+
+int fcntl(int fd, int cmd, ...) {
+    va_list args;
+    void *arg;
+    va_start(args, cmd);
+    arg = va_arg(args, void *);
+    va_end(args);
+
+    ns_check_sock(fd, sock, {
+        return sys_fcntl(fd, cmd, arg);
+    });
+
+    int val;
+    va_start(args, cmd);
+    val = va_arg(args, int);
+    va_end(args);
+
+    va_end(args);
+    switch (cmd) {
+        case F_DUPFD:
+        case F_DUPFD_CLOEXEC: {
+            struct inet_sock **elem = NULL;
+            int dupfd = (int) alist_add(&ns_sockets, (void **) &elem);
+            *elem = sock;
+            if (sock->type == SOCK_STREAM)
+                tcp_sock_incref((struct tcp_sock *) sock);
+            return dupfd + NS_MIN_FD;
+        }
+        case F_GETFL:
+            return sock->flags;
+        case F_SETFL:
+            sock->flags = (uint16_t) val;
+            return 0;
+        case F_GETFD:
+        case F_SETFD:
+        case F_GETOWN:
+        case F_SETOWN:
+        case F_GETLK:
+        case F_SETLK:
+        case F_SETLKW:
+        default:
+            returnerr(EINVAL);
+            break;
+    }
+
+    returnerr(EINVAL);
 }
 
 int shutdown(int fd, int how) {
