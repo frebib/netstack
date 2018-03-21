@@ -95,6 +95,8 @@ void neigh_update_hwaddr(struct intf *intf, addr_t *daddr, addr_t *hwaddr);
  */
 void neigh_queue_expire(struct queued_pkt *pending);
 
+void neigh_queue_cancel(struct intf *intf);
+
 #define neigh_queued_lock(qd) \
     do { \
         atomic_fetch_add(&(qd)->refcount, 1); \

@@ -61,6 +61,9 @@ int main(int argc, char **argv) {
             case SIGINT:
             case SIGHUP:
             case SIGQUIT:
+
+                llist_iter(&instance.interfaces, neigh_queue_cancel);
+
                 // Cleanup TCP states
                 LOG(LNTCE, "Cleaning up %zu TCP sockets", tcp_sockets.length);
                 llist_iter(&tcp_sockets, tcp_sock_incref);

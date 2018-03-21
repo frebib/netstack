@@ -291,3 +291,23 @@ void neigh_queue_expire(struct queued_pkt *pending) {
     timeout_clear(&pending->timeout);
     neigh_queued_free(pending);
 }
+
+void neigh_queue_cancel(struct intf *intf) {
+
+    for_each_llist(&intf->neigh_outqueue) {
+        struct queued_pkt *pending = llist_elem_data();
+
+        // Obtain the lock before attempting to clear any values
+        neigh_queued_lock(pending);
+        retlock_broadcast_bare(&pending->retwait, -ECANCELED);
+
+        // Remove pending frame from queue
+        struct intf *intf = pending->frame->intf;
+        llist_remove(&intf->neigh_outqueue, pending);
+        frame_decref(pending->frame);
+
+        // Deallocate memory
+        timeout_clear(&pending->timeout);
+        neigh_queued_free(pending);
+    }
+}
