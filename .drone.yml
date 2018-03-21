@@ -16,6 +16,11 @@ pipeline:
       - cmake "$SRC"
       - make
 
+  docker:
+    image: spritsail/docker-build
+    volumes: [ '/var/run/docker.sock:/var/run/docker.sock' ]
+    rm: true
+
   test:
     image: alpine:3.7
     privileged: true
@@ -36,7 +41,7 @@ pipeline:
             --track-origins=yes
             netd >/dev/null 
           || test $? -eq 124
-
+    
 matrix:
   CC:
     - gcc
