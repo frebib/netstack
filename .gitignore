@@ -9,4 +9,6 @@ vgcore.*
 callgrind.*
 
 /libnetstack.so*
+/libnshook.so*
 /netd
+/httpget

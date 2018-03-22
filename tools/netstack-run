@@ -1,6 +1,10 @@
 #!/bin/sh
 set -e
 
+if ! capsh --caps=cap_net_admin=+eip 2>/dev/null || ! capsh --caps=cap_net_raw=+eip 2>/dev/null; then
+    exec sudo $0 $@
+fi
+
 DIR="$(realpath "$(dirname "$0")/../")"
 
 export LD_LIBRARY_PATH="$DIR:$DIR/lib:$LD_LIBRARY_PATH"

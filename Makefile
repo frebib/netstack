@@ -19,6 +19,8 @@ TEST_DIR = tests
 
 NETD_DIR = tools/netd
 NETD = $(NETD_DIR)/netd
+HTTPGET_DIR = tools/httpget
+HTTPGET = $(HTTPGET_DIR)/httpget
 LIBNSHOOK_DIR = tools/nshook
 LIBNSHOOK = $(LIBNSHOOK_DIR)/libnshook.so
 
@@ -31,7 +33,7 @@ export PREFIX DESTDIR
 default: all
 all: build doc
 build: $(TARGET_LIB) tools
-tools: $(notdir $(NETD)) $(notdir $(LIBNSHOOK))
+tools: $(notdir $(NETD)) $(notdir $(LIBNSHOOK)) $(notdir $(HTTPGET))
 
 # Compilation
 $(TARGET_LIB): $(OBJ)
@@ -46,6 +48,11 @@ $(notdir $(NETD)): $(NETD)
 	@ln -sfv $(NETD) $(notdir $(NETD))
 $(NETD): $(TARGET_LIB)
 	@$(MAKE) -C $(NETD_DIR)
+
+$(notdir $(HTTPGET)): $(HTTPGET)
+	@ln -sfv $(HTTPGET) $(notdir $(HTTPGET))
+$(HTTPGET): $(TARGET_LIB)
+	@$(MAKE) -C $(HTTPGET_DIR)
 
 $(notdir $(LIBNSHOOK)): $(LIBNSHOOK)
 	@ln -sfv $(LIBNSHOOK) $(notdir $(LIBNSHOOK))
@@ -74,7 +81,9 @@ uninstall:
 clean:
 	$(RM) -r $(OBJDIR) $(TARGET_LIB)
 	$(RM) $(notdir $(NETD))
+	$(RM) $(notdir $(HTTPGET))
 	$(RM) $(notdir $(LIBNSHOOK))
 	@$(MAKE) -C $(TEST_DIR) clean
 	@$(MAKE) -C $(NETD_DIR) clean
+	@$(MAKE) -C $(HTTPGET_DIR) clean
 	@$(MAKE) -C $(LIBNSHOOK_DIR) clean
