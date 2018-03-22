@@ -1,3 +1,0 @@
-[submodule "ext/ring_buffer"]
-	path = ext/ring_buffer
-	url = https://github.com/jbro/ring_buffer.git
