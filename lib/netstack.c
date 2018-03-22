@@ -41,6 +41,9 @@ void netstack_cleanup(struct netstack *inst) {
     llist_iter(&route_tbl, free);
     llist_clear(&route_tbl);
 
+    // Deallocate the global socket list
+    alist_free(&ns_sockets);
+
     LOG(LINFO, "Exiting!");
 
     // Clean-up logging configuration
