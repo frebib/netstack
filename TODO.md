@@ -67,10 +67,10 @@
   - Line 21: Use hashtbl instead of list to lookup sockets
 
 ## [lib/intf/intf.c](lib/intf/intf.c)
-  - Line 83: Implement rx 'software' timestamping
-  - Line 103: Conditionally print debugging information
-  - Line 175: Check intf hwtype to calculate max frame size
-  - Line 205: Selectively choose an appropriate address from intf
+  - Line 86: Implement rx 'software' timestamping
+  - Line 106: Conditionally print debugging information
+  - Line 178: Check intf hwtype to calculate max frame size
+  - Line 208: Selectively choose an appropriate address from intf
 
 ## [lib/intf/rawsock.c](lib/intf/rawsock.c)
   - Line 127: Move some of this cleanup logic into a generic intf_free() function

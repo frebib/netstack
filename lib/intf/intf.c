@@ -23,25 +23,28 @@ int intf_dispatch(struct frame *frame) {
         frame_incref(frame);
         frame_lock(frame, SHARED_RD);
 
-        // Send the frame
-        ret = frame->intf->send_frame(frame);
-        if (ret < 0)
-           LOGSE(LINFO, "send_frame() returned %ld", ret, ret);
-
         // Log outgoing packets
         struct pkt_log log = PKT_TRANS(LFRAME);
+        struct frame *logframe = frame_clone(frame, SHARED_RD);
 
         switch (frame->intf->proto) {
             case PROTO_ETHER:
-                LOGT_OPT_COMMIT(ether_log(&log, frame), &log.t);
+                LOGT_OPT_COMMIT(ether_log(&log, logframe), &log.t);
                 break;
             case PROTO_IP:
             case PROTO_IPV4:
-                LOGT_OPT_COMMIT(ipv4_log(&log, frame), &log.t);
+                LOGT_OPT_COMMIT(ipv4_log(&log, logframe), &log.t);
                 break;
             default:
                 break;
         }
+
+        frame_decref_unlock(logframe);
+
+        // Send the frame
+        ret = frame->intf->send_frame(frame);
+        if (ret < 0)
+            LOGSE(LINFO, "send_frame() returned %ld", ret, ret);
 
         frame_decref_unlock(frame);
     }
@@ -104,13 +107,13 @@ void _intf_recv_thread(struct intf *intf) {
         // Push received data into the stack
         switch (intf->proto) {
             case PROTO_ETHER:
-                ether_recv(rawframe);
                 LOGT_OPT_COMMIT(ether_log(&log, logframe), &log.t);
+                ether_recv(rawframe);
                 break;
             case PROTO_IP:
             case PROTO_IPV4:
-                ipv4_recv(rawframe);
                 LOGT_OPT_COMMIT(ipv4_log(&log, logframe), &log.t);
+                ipv4_recv(rawframe);
                 break;
             default:
                 LOG(LWARN, "Interface protocol %d unsupported\t", intf->proto);
