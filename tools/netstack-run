@@ -3,7 +3,7 @@ set -e
 
 DIR="$(realpath "$(dirname "$0")/../")"
 
-export LD_LIBRARY_PATH="$DIR:$LD_LIBRARY_PATH"
+export LD_LIBRARY_PATH="$DIR:$DIR/lib:$LD_LIBRARY_PATH"
 export LD_PRELOAD="libnshook.so:libnetstack.so"
 
 exec "$@"

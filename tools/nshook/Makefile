@@ -15,6 +15,7 @@ OBJ = $(patsubst $(SRCDIR)%,$(OBJDIR)%,$(patsubst %.c, %.o, $(SRC)))
 
 # Target declarations
 TARGET_LIB = libnshook.so
+HOOK_SCRIPT = ../netstack-run
 
 PREFIX  = /usr/local
 DESTDIR =
@@ -35,6 +36,14 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c $(INC)
 	$(CC) -fPIC $(CFLAGS) $(INCLUD) -c $< -o $@
 
 # Misc
-.PHONY: clean
+.PHONY: install uninstall clean
+install: $(TARGET_LIB) $(HOOK_SCRIPT)
+	install -Dm644 $(TARGET_LIB) $(DESTDIR)$(PREFIX)/lib/$(TARGET_LIB)
+	install -Dm755 $(HOOK_SCRIPT) $(DESTDIR)$(PREFIX)/bin/$(notdir $(HOOK_SCRIPT))
+
+uninstall:
+	$(RM) $(DESTDIR)$(PREFIX)/lib/$(TARGET_LIB)
+	$(RM) $(DESTDIR)$(PREFIX)/bin/$(notdir $(HOOK_SCRIPT))
+
 clean:
 	$(RM) -r $(OBJDIR) $(TARGET_LIB)

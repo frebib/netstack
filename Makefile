@@ -64,10 +64,12 @@ doc:
 install: $(TARGET_LIB) tools
 	install -Dm644 $(TARGET_LIB) $(DESTDIR)$(PREFIX)/lib/$(TARGET_LIB)
 	@$(MAKE) -C $(NETD_DIR) install
+	@$(MAKE) -C $(LIBNSHOOK_DIR) install
 
 uninstall:
 	$(RM) $(DESTDIR)/$(PREFIX)/lib/$(TARGET_LIB)
 	@$(MAKE) -C $(NETD_DIR) uninstall
+	@$(MAKE) -C $(LIBNSHOOK_DIR) uninstall
 
 clean:
 	$(RM) -r $(OBJDIR) $(TARGET_LIB)
