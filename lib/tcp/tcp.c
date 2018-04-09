@@ -87,7 +87,7 @@ void tcp_log_recvqueue(struct tcp_sock *sock) {
             struct tcp_hdr *hdr = tcp_hdr(qframe);
             uint32_t seqn = ntohl(hdr->seqn);
             uint32_t relseq = seqn - sock->tcb.irs;
-            if (seqn > ctr)
+            if (tcp_seq_gt(seqn, ctr))
                 LOGT(&t, "recvqueue    < GAP OF %u bytes>\n", seqn - ctr);
             LOGT(&t, "recvqueue[%u] seq %u-%u\n",
                  i++, relseq, relseq + frame_data_len(qframe) - 1);
