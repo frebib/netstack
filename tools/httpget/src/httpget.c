@@ -13,7 +13,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Usage: %s <host> <port>\n", basename(argv[0]));
         return EXIT_FAILURE;
     }
-    
+
     int fd, ret;
     struct addrinfo *info, hints = {0};
     hints.ai_family = AF_INET;
@@ -53,5 +53,5 @@ int main(int argc, char **argv) {
 
     fprintf(stderr, "total bytes %u\n", total);
 
-    close(fd);
+    shutdown(fd, SHUT_RDWR);
 }
