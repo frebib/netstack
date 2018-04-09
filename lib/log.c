@@ -40,7 +40,7 @@ struct log_config logconf = {
 void log_default(struct log_config *conf) {
     // Add stdout/stderr streams
     struct log_stream *out = malloc(sizeof(struct log_stream));
-    out->stream = stdout;
+    out->stream = stderr;
     out->min = LTRCE;
     out->max = LNTCE - 1;
     llist_append(&logconf.streams, out);

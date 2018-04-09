@@ -6,6 +6,7 @@
 #include <netstack.h>
 #include <netstack/log.h>
 #include <netstack/intf/intf.h>
+#include <netstack/intf/rawsock.h>
 #include <netstack/inet/route.h>
 #include <netstack/api/socket.h>
 
@@ -19,10 +20,49 @@ void netstack_init(struct netstack *inst) {
     log_default(&logconf);
     logconf.lvlstr[LFRAME] = "FRAME";
     struct log_stream *fr = malloc(sizeof(struct log_stream));
-    fr->stream = stdout;
+    fr->stream = stderr;
     fr->min = LFRAME;
     fr->max = LFRAME;
     llist_append(&logconf.streams, fr);
+
+
+    struct intf *intf = calloc(sizeof(struct intf), 1);
+    if (rawsock_new(intf) != 0) {
+        LOG(LCRIT, "Could not create INTF_RAWSOCK");
+        exit(EXIT_FAILURE);
+    }
+    llist_append(&inst->interfaces, intf);
+
+    // Create interface send/recv threads
+    intf_init(intf);
+
+    struct route_entry *local = malloc(sizeof(struct route_entry));
+    struct route_entry *gw = malloc(sizeof(struct route_entry));
+    addr_t *myip = calloc(sizeof(addr_t), 1);
+    local->gwaddr = (addr_t) { .proto = PROTO_NULL };
+    local->flags = 0;
+    local->metric = 1024;
+    local->intf = intf;
+    gw->daddr = (addr_t) { .proto = PROTO_NULL };
+    gw->flags = RT_GATEWAY;
+    gw->metric = 1024;
+    gw->intf = intf;
+
+    /*
+     *  CONFIGURE ADDRESSING VALUES AT THE END OF THESE LINES
+     */
+    local->daddr = (addr_t) { .proto = PROTO_IPV4, .ipv4 = num_ipv4(10,185,121,0) };
+    local->netmask = (addr_t) { .proto = PROTO_IPV4, .ipv4 = num_ipv4(255,255,255,0) };
+    gw->gwaddr = (addr_t) { .proto = PROTO_IPV4, .ipv4 = num_ipv4(10,185,121,1) };
+    gw->netmask = (addr_t) { .proto = PROTO_IPV4, .ipv4 = num_ipv4(255,255,255,0) };
+    *myip = (addr_t) { .proto = PROTO_IPV4, .ipv4 = num_ipv4(10,185,121,16) };
+    /*
+     *
+     */
+
+    llist_append(&route_tbl, local);
+    llist_append(&route_tbl, gw);
+    llist_append(&intf->inet, myip);
 }
 
 void netstack_cleanup(struct netstack *inst) {

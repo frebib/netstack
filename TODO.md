@@ -83,7 +83,7 @@
   - Line 96: Check for IFF_PI and allocate space for it
 
 ## [lib/netstack.c](lib/netstack.c)
-  - Line 30: Wait for all connections to be closed/reset
+  - Line 70: Wait for all connections to be closed/reset
 
 ## [lib/tcp/input.c](lib/tcp/input.c)
   - Line 60: Optionally don't send TCP RST packets
