@@ -26,6 +26,13 @@ static bool contimer_event_id_pred(void *a, void *b) {
 static void *_contimer_run(void *arg) {
     contimer_t *t = arg;
 
+#ifdef _GNU_SOURCE
+    char thread_name[64];
+    pthread_getname_np(pthread_self(), thread_name, 64);
+    strncat(thread_name, "/timer", 63);
+    pthread_setname_np(pthread_self(), thread_name);
+#endif
+
     pthread_mutex_lock(&t->timeouts.lock);
     while (t->running) {
         int ret;
@@ -48,32 +55,29 @@ static void *_contimer_run(void *arg) {
         contimeout_change_state(event, SLEEPING);
 
         do {
-            // Don't hold the lock whilst we sleep, it causes unwanted contention
-            pthread_mutex_unlock(&t->timeouts.lock);
-
             // Sleep for the timeout then callback
-            ret = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &event->wake, NULL);
-
-            // Ensure after unlocking we check if any state has been changed
-            // such as an event cancellation or a stopped t
-            pthread_mutex_lock(&t->timeouts.lock);
+            ret = pthread_cond_timedwait(&t->wait, &t->timeouts.lock, &event->wake);
 
             // The t has been stopped. Clean-up and exit
-            if (event->state == CANCELLED || !t->running) {
+            if (!t->running) {
+                LOG(LVERB, "timer stopped, cleaning up");
+                goto event_cleanup;
+            } else if (event->state == CANCELLED) {
+                LOG(LVERB, "event cancelled, cleaning up");
                 goto event_cleanup;
             }
 
             // We were woken by a signal. Go back to sleep
             if (ret == EINTR) {
-                LOG(LVERB, "clock_nanosleep woken by a signal.");
+                LOG(LVERB, "pthread_cond_timedwait woken by a signal.");
                 continue;
             }
-            else if (ret != 0) {
-                LOGSE(LERR, "clock_nanosleep", ret);
+            else if (ret != ETIMEDOUT) {
+                LOGSE(LERR, "pthread_cond_timedwait", ret);
                 goto event_cleanup;
             }
-            // 0 is time elapsed
-        } while (ret != 0);
+        // when timedout we are done sleeping
+        } while (ret != ETIMEDOUT);
 
         LOG(LTRCE, "timer elapsed. calling callback");
 
@@ -107,7 +111,14 @@ int contimer_init(contimer_t *t, void (*callback)(void *)) {
     t->nextid = 0;
     t->running = true;
     t->callback = callback;
-    pthread_cond_init(&t->wait, NULL);
+
+    // Initialise the pthread_cond var with a MONOTONIC clock
+    // Ideally we would use MONOTONIC_RAW but that is Linux-only
+    pthread_condattr_t attr;
+    pthread_condattr_init(&attr);
+    pthread_condattr_setclock(&attr, CLOCK_MONOTONIC);
+    pthread_cond_init(&t->wait, &attr);
+
     return pthread_create(&t->thread, NULL, _contimer_run, t);
 }
 
@@ -128,6 +139,7 @@ contimer_event_t contimer_queue(contimer_t *t, struct timespec *abs,
         memcpy(event + 1, arg, len);
     }
 
+    LOG(LTRCE, "queuing event %d", event->id);
     llist_append_nolock(&t->timeouts, event);
 
     // Signal the timer that there is a new event if it is waiting for one
@@ -201,7 +213,7 @@ int contimer_cancel(contimer_t *timer, contimer_event_t id) {
             should_free = true;
         case SLEEPING:
             event->state = CANCELLED;
-            pthread_kill(timer->thread, SIGCONT);
+            pthread_cond_signal(&timer->wait);
             ret = 0;
             break;
         case CALLING:
@@ -246,9 +258,6 @@ int contimer_stop(contimer_t *timer) {
     // Wake the condition variable, if it is sleeping
     pthread_cond_signal(&timer->wait);
     pthread_mutex_unlock(&timer->timeouts.lock);
-
-    // Wake clock_nanosleep if it is sleeping
-    pthread_kill(timer->thread, SIGCONT);
 
     // Wait for the thread to terminate
     return -pthread_join(timer->thread, NULL);
