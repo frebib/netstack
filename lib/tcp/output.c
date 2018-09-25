@@ -225,7 +225,13 @@ void tcp_queue_unacked(struct tcp_sock *sock, uint32_t seqn, uint16_t len,
 
     // Only queue segments if they are not retransmissions
     if (seqn != sock->tcb.snd.nxt) {
-        LOG(LDBUG, "not queuing segment %u (snd.nxt %u)", seqn, sock->tcb.snd.nxt);
+        LOG(LVERB, "not queuing segment %u (snd.nxt %u)", seqn, sock->tcb.snd.nxt);
+        return;
+    }
+
+    // Don't queue empty ACK packets
+    if (len == 0 && flags == TCP_FLAG_ACK) {
+        LOG(LVERB, "not queuing ACK segment %u", seqn);
         return;
     }
 

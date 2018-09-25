@@ -104,8 +104,8 @@
   - Line 33: Don't assume IPv4 pseudo-header for checksumming
   - Line 39: Implement functionality to specify IP flags (different for IP4/6?)
   - Line 40: Send socket flags to neigh_send_to() in tcp_send()
-  - Line 260: Calculate IP layer options in tcp_send_data()
-  - Line 263: Take into account ethernet header variations, such as VLAN tags
+  - Line 266: Calculate IP layer options in tcp_send_data()
+  - Line 269: Take into account ethernet header variations, such as VLAN tags
 
 ## [lib/tcp/retransmission.c](lib/tcp/retransmission.c)
   - Line 98: Optionally only send the missing bytes instead of just a full segment worth
