@@ -72,7 +72,7 @@ static void *_contimer_run(void *arg) {
                 LOG(LVERB, "pthread_cond_timedwait woken by a signal.");
                 continue;
             }
-            else if (ret != ETIMEDOUT) {
+            else if (ret != 0 && ret != ETIMEDOUT) {
                 LOGSE(LERR, "pthread_cond_timedwait", ret);
                 goto event_cleanup;
             }
