@@ -7,10 +7,12 @@ ARG CFLAGS=-D_GNU_SOURCE
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get -y update && \
-    apt-get -y install git make gcc $CC libcap-dev && \
-    git clone https://github.com/frebib/netstack.git . && \
-    make install PREFIX=/usr DESTDIR=/output && \
-    cp /lib/$(gcc --print-multiarch)/libgcc_s.so* /output/usr/lib && \
+    apt-get -y install make gcc $CC libcap-dev
+
+ADD . /tmp/netstack
+WORKDIR /tmp/netstack
+
+RUN make install PREFIX=/usr DESTDIR=/output && \
     cp /lib/$(gcc --print-multiarch)/libcap.so* /output/usr/lib
 
 # ~~~~~~~~~~~~~~~~~~
