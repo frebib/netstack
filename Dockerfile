@@ -12,8 +12,8 @@ RUN apt-get -y update && \
 ADD . /tmp/netstack
 WORKDIR /tmp/netstack
 
-RUN make install PREFIX=/usr DESTDIR=/output && \
-    cp /lib/$(gcc --print-multiarch)/libcap.so* /output/usr/lib
+RUN make install -j$(nproc) PREFIX=/usr DESTDIR=/output && \
+    cp -d /lib/$(gcc --print-multiarch)/libcap.so* /output/usr/lib
 
 # ~~~~~~~~~~~~~~~~~~
 
